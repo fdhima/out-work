@@ -1,7 +1,5 @@
 // import { supabase } from '@/lib/supabase'
-// import { createUser } from '@/services/users'
 // import { useRouter } from 'expo-router'
-// import { sha256 } from 'js-sha256'
 // import { useState } from 'react'
 // import {
 //   Alert,
@@ -12,40 +10,26 @@
 //   View,
 // } from 'react-native'
 
-// export default function SignupScreen() {
+// export default function LoginScreen() {
 //   const router = useRouter()
 
-//   const [username, setUsername] = useState('')
 //   const [email, setEmail] = useState('')
 //   const [password, setPassword] = useState('')
 //   const [loading, setLoading] = useState(false)
 
-//   const signUp = async () => {
-//     if (!username || !email || !password) {
-//       Alert.alert('Error', 'All fields are required')
-//       return
-//     }
-
+//   const login = async () => {
 //     try {
 //       setLoading(true)
 
-//       /* 1️⃣ Supabase Auth user */
-//       const { data, error } = await supabase.auth.signUp({
+//       const { error } = await supabase.auth.signInWithPassword({
 //         email,
 //         password,
 //       })
 //       if (error) throw error
 
-//       /* 2️⃣ App users table */
-//       await createUser({
-//         username,
-//         email,
-//         password_hash: sha256(password),
-//       })
-
 //       router.replace('/(tabs)')
 //     } catch (err: any) {
-//       Alert.alert('Signup failed', err.message)
+//       Alert.alert('Login failed', err.message)
 //     } finally {
 //       setLoading(false)
 //     }
@@ -53,14 +37,7 @@
 
 //   return (
 //     <View style={styles.container}>
-//       <Text style={styles.title}>Create account</Text>
-
-//       <TextInput
-//         placeholder="Username"
-//         value={username}
-//         onChangeText={setUsername}
-//         style={styles.input}
-//       />
+//       <Text style={styles.title}>Welcome back</Text>
 
 //       <TextInput
 //         placeholder="Email"
@@ -81,16 +58,16 @@
 
 //       <TouchableOpacity
 //         style={styles.button}
-//         onPress={signUp}
+//         onPress={login}
 //         disabled={loading}
 //       >
 //         <Text style={styles.buttonText}>
-//           {loading ? 'Creating...' : 'Sign Up'}
+//           {loading ? 'Signing in...' : 'Login'}
 //         </Text>
 //       </TouchableOpacity>
 
-//       <TouchableOpacity onPress={() => router.push('/login')}>
-//         <Text style={styles.link}>Already have an account? Login</Text>
+//       <TouchableOpacity onPress={() => router.push('/signup')}>
+//         <Text style={styles.link}>Create an account</Text>
 //       </TouchableOpacity>
 //     </View>
 //   )
@@ -120,31 +97,39 @@
 //     fontWeight: '500',
 //   },
 // })
+
 import { supabase } from '@/lib/supabase'
+import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Button, Text, TextInput, View } from 'react-native'
 
-export default function RegisterScreen() {
+export default function LoginScreen() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const signUp = async () => {
-    const { error } = await supabase.auth.signUp({
+  const signIn = async () => {
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
-    if (error) setMessage(error.message)
-    else setMessage('Check your email for confirmation')
+    if (error) setError(error.message)
+    else router.replace('/')
   }
 
   return (
     <View style={{ padding: 24 }}>
-      <TextInput placeholder="Email" onChangeText={setEmail} />
-      <TextInput placeholder="Password" secureTextEntry onChangeText={setPassword} />
-      {message && <Text>{message}</Text>}
-      <Button title="Sign Up" onPress={signUp} />
+      <Text>Email</Text>
+      <TextInput onChangeText={setEmail} autoCapitalize="none" />
+
+      <Text>Password</Text>
+      <TextInput onChangeText={setPassword} secureTextEntry />
+
+      {error && <Text style={{ color: 'red' }}>{error}</Text>}
+
+      <Button title="Sign In" onPress={signIn} />
     </View>
   )
 }
