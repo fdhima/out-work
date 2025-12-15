@@ -1,135 +1,295 @@
-// import { supabase } from '@/lib/supabase'
-// import { useRouter } from 'expo-router'
-// import { useState } from 'react'
-// import {
-//   Alert,
-//   StyleSheet,
-//   Text,
-//   TextInput,
-//   TouchableOpacity,
-//   View,
-// } from 'react-native'
-
-// export default function LoginScreen() {
-//   const router = useRouter()
-
-//   const [email, setEmail] = useState('')
-//   const [password, setPassword] = useState('')
-//   const [loading, setLoading] = useState(false)
-
-//   const login = async () => {
-//     try {
-//       setLoading(true)
-
-//       const { error } = await supabase.auth.signInWithPassword({
-//         email,
-//         password,
-//       })
-//       if (error) throw error
-
-//       router.replace('/(tabs)')
-//     } catch (err: any) {
-//       Alert.alert('Login failed', err.message)
-//     } finally {
-//       setLoading(false)
-//     }
-//   }
-
-//   return (
-//     <View style={styles.container}>
-//       <Text style={styles.title}>Welcome back</Text>
-
-//       <TextInput
-//         placeholder="Email"
-//         autoCapitalize="none"
-//         keyboardType="email-address"
-//         value={email}
-//         onChangeText={setEmail}
-//         style={styles.input}
-//       />
-
-//       <TextInput
-//         placeholder="Password"
-//         secureTextEntry
-//         value={password}
-//         onChangeText={setPassword}
-//         style={styles.input}
-//       />
-
-//       <TouchableOpacity
-//         style={styles.button}
-//         onPress={login}
-//         disabled={loading}
-//       >
-//         <Text style={styles.buttonText}>
-//           {loading ? 'Signing in...' : 'Login'}
-//         </Text>
-//       </TouchableOpacity>
-
-//       <TouchableOpacity onPress={() => router.push('/signup')}>
-//         <Text style={styles.link}>Create an account</Text>
-//       </TouchableOpacity>
-//     </View>
-//   )
-// }
-
-// const styles = StyleSheet.create({
-//   container: { flex: 1, padding: 24, justifyContent: 'center' },
-//   title: { fontSize: 28, fontWeight: '700', marginBottom: 24 },
-//   input: {
-//     borderWidth: 1,
-//     borderColor: '#ddd',
-//     padding: 12,
-//     borderRadius: 10,
-//     marginBottom: 12,
-//   },
-//   button: {
-//     backgroundColor: '#2563eb',
-//     padding: 14,
-//     borderRadius: 12,
-//     marginTop: 8,
-//   },
-//   buttonText: { color: '#fff', textAlign: 'center', fontWeight: '600' },
-//   link: {
-//     marginTop: 16,
-//     textAlign: 'center',
-//     color: '#2563eb',
-//     fontWeight: '500',
-//   },
-// })
-
+import { ThemedText } from '@/components/themed-text'
+import { ThemedView } from '@/components/themed-view'
+import { useColorScheme } from '@/hooks/use-color-scheme'
+import { useThemeColor } from '@/hooks/use-theme-color'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Button, Text, TextInput, View } from 'react-native'
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native'
 
 export default function LoginScreen() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const colorScheme = useColorScheme() ?? 'light'
+  const textColor = useThemeColor({}, 'text')
+  const tintColor = useThemeColor({}, 'tint')
+  const iconColor = useThemeColor({}, 'icon')
 
   const signIn = async () => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      setLoading(true)
+      setError(null)
 
-    if (error) setError(error.message)
-    else router.replace('/')
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        setError(error.message)
+        return
+      }
+
+      router.replace('/')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <View style={{ padding: 24 }}>
-      <Text>Email</Text>
-      <TextInput onChangeText={setEmail} autoCapitalize="none" />
+    <ThemedView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardView}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor:
+                  colorScheme === 'dark'
+                    ? 'rgba(255, 255, 255, 0.08)'
+                    : 'rgba(255, 255, 255, 0.95)',
+              },
+            ]}
+          >
+            <ThemedText type="title" style={styles.title}>
+              Welcome back
+            </ThemedText>
+            <ThemedText type="subtitle" style={styles.subtitle}>
+              Sign in to continue
+            </ThemedText>
 
-      <Text>Password</Text>
-      <TextInput onChangeText={setPassword} secureTextEntry />
+            <Input
+              label="Email"
+              placeholder="you@example.com"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
+              textColor={textColor}
+              iconColor={iconColor}
+              backgroundColor={
+                colorScheme === 'dark'
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : '#f3f4f6'
+              }
+            />
 
-      {error && <Text style={{ color: 'red' }}>{error}</Text>}
+            <Input
+              label="Password"
+              placeholder="••••••••"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              textColor={textColor}
+              iconColor={iconColor}
+              backgroundColor={
+                colorScheme === 'dark'
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : '#f3f4f6'
+              }
+            />
 
-      <Button title="Sign In" onPress={signIn} />
+            {error ? (
+              <ThemedText style={[styles.error, { color: '#ef4444' }]}>
+                {error}
+              </ThemedText>
+            ) : null}
+
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                {
+                  backgroundColor: tintColor,
+                  opacity: loading ? 0.7 : 1,
+                },
+              ]}
+              onPress={signIn}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <ThemedText
+                  lightColor="#fff"
+                  darkColor="#fff"
+                  style={styles.primaryText}
+                >
+                  Sign In
+                </ThemedText>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.secondaryButton,
+                {
+                  backgroundColor:
+                    colorScheme === 'dark'
+                      ? 'rgba(255, 255, 255, 0.15)'
+                      : '#e5e7eb',
+                },
+              ]}
+              onPress={() => router.push('/auth/signup')}
+              disabled={loading}
+            >
+              <ThemedText style={styles.secondaryText}>
+                Create an account
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ThemedView>
+  )
+}
+
+interface InputProps {
+  label: string
+  textColor: string
+  iconColor: string
+  backgroundColor: string
+  [key: string]: any
+}
+
+function Input({
+  label,
+  textColor,
+  iconColor,
+  backgroundColor,
+  ...props
+}: InputProps) {
+  return (
+    <View style={styles.inputGroup}>
+      <ThemedText style={styles.label}>{label}</ThemedText>
+      <TextInput
+        {...props}
+        style={[
+          styles.input,
+          {
+            backgroundColor,
+            color: textColor,
+            borderColor:
+              backgroundColor === 'rgba(255, 255, 255, 0.1)'
+                ? 'rgba(255, 255, 255, 0.2)'
+                : 'transparent',
+          },
+        ]}
+        placeholderTextColor={iconColor}
+      />
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 16,
+    paddingTop: 24,
+    paddingBottom: 32,
+    justifyContent: 'center',
+  },
+  card: {
+    borderRadius: 20,
+    padding: 24,
+    paddingBottom: 28,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+    gap: 12,
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  subtitle: {
+    textAlign: 'center',
+    marginBottom: 20,
+    opacity: 0.7,
+  },
+  inputGroup: {
+    marginBottom: 14,
+  },
+  label: {
+    marginBottom: 8,
+    fontSize: 15,
+    fontWeight: '600',
+    opacity: 0.9,
+  },
+  input: {
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    minHeight: 52,
+    borderWidth: 1,
+  },
+  error: {
+    textAlign: 'center',
+    marginVertical: 8,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  primaryButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    minHeight: 52,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#0a7ea4',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  primaryText: {
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  secondaryButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    minHeight: 52,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  secondaryText: {
+    fontWeight: '600',
+    fontSize: 16,
+  },
+})
+
