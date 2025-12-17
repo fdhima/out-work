@@ -1,4 +1,11 @@
-import { FlatList, Image, StyleSheet, Text, View } from "react-native";
+import { useRef } from "react";
+import {
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import MapView, { Marker } from "react-native-maps";
 
 const DATA = [
@@ -7,27 +14,56 @@ const DATA = [
     title: "Modern Apartment in Athens",
     rating: 4.8,
     image: "https://picsum.photos/400/250?1",
+    coordinate: {
+      latitude: 37.9838,
+      longitude: 23.7275,
+    },
   },
   {
     id: "2",
     title: "Cozy Studio Near Acropolis",
     rating: 4.6,
     image: "https://picsum.photos/400/250?2",
+    coordinate: {
+      latitude: 37.9715,
+      longitude: 23.7267,
+    },
   },
   {
     id: "3",
     title: "Luxury Loft with View",
     rating: 4.9,
     image: "https://picsum.photos/400/250?3",
+    coordinate: {
+      latitude: 37.9756,
+      longitude: 23.7348,
+    },
   },
 ];
 
 export default function HomeScreen() {
+  const mapRef = useRef<MapView | null>(null);
+
+  const centerMap = (coordinate: {
+    latitude: number;
+    longitude: number;
+  }) => {
+    mapRef.current?.animateToRegion(
+      {
+        ...coordinate,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      },
+      350
+    );
+  };
+
   return (
     <View style={styles.container}>
-      {/* Top half: Map */}
+      {/* Map */}
       <View style={styles.mapContainer}>
         <MapView
+          ref={mapRef}
           style={StyleSheet.absoluteFill}
           initialRegion={{
             latitude: 37.9838,
@@ -36,14 +72,18 @@ export default function HomeScreen() {
             longitudeDelta: 0.05,
           }}
         >
-          <Marker
-            coordinate={{ latitude: 37.9838, longitude: 23.7275 }}
-            title="Athens"
-          />
+          {DATA.map((item) => (
+            <Marker
+              key={item.id}
+              coordinate={item.coordinate}
+              title={item.title}
+              onPress={() => centerMap(item.coordinate)}
+            />
+          ))}
         </MapView>
       </View>
 
-      {/* Bottom half: Cards */}
+      {/* Cards */}
       <View style={styles.listContainer}>
         <FlatList
           data={DATA}
