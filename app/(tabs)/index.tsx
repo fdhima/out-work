@@ -1,4 +1,5 @@
-import { useRef } from "react";
+import { getPlaces, Place } from "@/services/places";
+import { useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Image,
@@ -43,20 +44,35 @@ const DATA = [
 
 export default function HomeScreen() {
   const mapRef = useRef<MapView | null>(null);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const centerMap = (coordinate: {
-    latitude: number;
-    longitude: number;
-  }) => {
+  const centerMap = (latitude: number, longitude: number) => {
     mapRef.current?.animateToRegion(
       {
-        ...coordinate,
+        latitude,
+        longitude,
         latitudeDelta: 0.02,
         longitudeDelta: 0.02,
       },
       350
     );
   };
+
+  useEffect(() => {
+    const fetchPlaces = async () => {
+      try {
+        setLoading(true);
+        const data = await getPlaces();
+        if (data) setPlaces(data);
+      } catch (err) {
+        console.error("Error, fetching places: ", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPlaces();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -72,12 +88,16 @@ export default function HomeScreen() {
             longitudeDelta: 0.05,
           }}
         >
-          {DATA.map((item) => (
+          {places.map((place) => (
             <Marker
-              key={item.id}
-              coordinate={item.coordinate}
-              title={item.title}
-              onPress={() => centerMap(item.coordinate)}
+              key={place.id}
+              coordinate={{
+                latitude: place.latitude,
+                longitude: place.longitude,
+              }}
+              title={place.name}
+              description={place.description}
+              onPress={() => centerMap(place.latitude, place.longitude)}
             />
           ))}
         </MapView>
@@ -85,20 +105,30 @@ export default function HomeScreen() {
 
       {/* Cards */}
       <View style={styles.listContainer}>
-        <FlatList
-          data={DATA}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Image source={{ uri: item.image }} style={styles.cardImage} />
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardRating}>⭐ {item.rating}</Text>
+        {loading ? (
+          <Text>Loading places...</Text>
+        ) : (
+          <FlatList
+            data={places}
+            keyExtractor={(item) => item.id.toString()}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <Image
+                  source={{
+                    uri: `https://picsum.photos/400/250?random=${item.id}`,
+                  }}
+                  style={styles.cardImage}
+                />
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>{item.name}</Text>
+                  <Text style={styles.cardTitle}>{item.description}</Text>
+                  <Text style={styles.cardRating}>⭐ {item.rating_avg}</Text>
+                </View>
               </View>
-            </View>
-          )}
-        />
+            )}
+          />
+        )}
       </View>
     </View>
   );
@@ -109,45 +139,36 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-
-  /* Map */
   mapContainer: {
-    flex: 1, // half screen
+    flex: 1,
   },
-
-  /* Cards */
   listContainer: {
-    flex: 1, // half screen
+    flex: 1,
     padding: 12,
   },
-
   card: {
     backgroundColor: "#fff",
     borderRadius: 16,
     marginBottom: 16,
     overflow: "hidden",
-    elevation: 3, // Android shadow
+    elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-
   cardImage: {
     width: "100%",
     height: 160,
   },
-
   cardContent: {
     padding: 12,
   },
-
   cardTitle: {
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 4,
   },
-
   cardRating: {
     fontSize: 14,
     color: "#555",
