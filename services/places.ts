@@ -13,6 +13,7 @@ export interface Place {
 }
 
 export interface CreatePlaceInput {
+  userId: string;
   name: string;
   description: string;
   rating_avg: number; // to be calculated later in code

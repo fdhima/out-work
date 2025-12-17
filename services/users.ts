@@ -36,6 +36,12 @@ export interface UpdateUserInput {
  * Queries
  * -------------------------------------------------- */
 
+
+export async function getUserId() {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id; // string or null
+}
+
 /**
  * Get user by ID
  */
