@@ -1,112 +1,406 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { createPlace } from "@/services/places";
+import { getUserId } from "@/services/users";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import MapView, { Marker } from "react-native-maps";
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+export default function CreatePlace() {
+  const colorScheme = useColorScheme() ?? "light";
+  const textColor = useThemeColor({}, "text");
+  const tintColor = useThemeColor({}, "tint");
+  const iconColor = useThemeColor({}, "icon");
 
-export default function TabTwoScreen() {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [rating, setRating] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
+
+  const handleMapPress = (event: any) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    setLatitude(latitude);
+    setLongitude(longitude);
+  };
+
+
+  const handleCreatePlace = async () => {
+    // Basic validation
+    if (!name || !description || !latitude || !longitude) {
+      Alert.alert("Error", "Please fill in all fields");
+      console.log(name, description, latitude, longitude, await getUserId())
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const newPlace = await createPlace({
+        user_id: await getUserId() ?? '',
+        name,
+        description,
+        latitude: latitude,
+        longitude: longitude,
+        rating_avg: rating > 0 ? rating : 5, // Use user rating if selected, otherwise default to 5
+        approved: true,
+      });
+
+      Alert.alert("Success", "Place created successfully!");
+      // Reset form
+      setName("");
+      setDescription("");
+      setLatitude(null);
+      setLongitude(null);
+      setRating(0);
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert("Error", error.message || "Failed to create place");
+    } finally {
+      setLoading(false);
+    }
+
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
+    <ThemedView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.keyboardView}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor:
+                  colorScheme === "dark"
+                    ? "rgba(255, 255, 255, 0.08)"
+                    : "rgba(255, 255, 255, 0.95)",
+              },
+            ]}
+          >
+            <ThemedText type="title" style={styles.title}>
+              Create Place
             </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+            <ThemedText type="subtitle" style={styles.subtitle}>
+              Add a new place to explore
+            </ThemedText>
+
+            <Input
+              label="Name"
+              placeholder="Enter place name"
+              value={name}
+              onChangeText={setName}
+              textColor={textColor}
+              iconColor={iconColor}
+              backgroundColor={
+                colorScheme === "dark"
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "#f3f4f6"
+              }
+            />
+
+            <Input
+              label="Description"
+              placeholder="Enter description"
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              textColor={textColor}
+              iconColor={iconColor}
+              backgroundColor={
+                colorScheme === "dark"
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "#f3f4f6"
+              }
+              style={styles.multilineInput}
+            />
+
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.label}>Select Location</ThemedText>
+              <View
+                style={[
+                  styles.mapContainer,
+                  {
+                    borderColor:
+                      colorScheme === "dark"
+                        ? "rgba(255, 255, 255, 0.2)"
+                        : "rgba(0, 0, 0, 0.1)",
+                  },
+                ]}
+              >
+                <MapView
+                  style={styles.map}
+                  initialRegion={{
+                    latitude: 37.9838,
+                    longitude: 23.7275,
+                    latitudeDelta: 0.05,
+                    longitudeDelta: 0.05,
+                  }}
+                  onPress={handleMapPress}
+                >
+                  {latitude !== null && longitude !== null && (
+                    <Marker coordinate={{ latitude, longitude }} />
+                  )}
+                </MapView>
+              </View>
+              {latitude !== null && longitude !== null ? (
+                <ThemedText style={styles.mapHint}>
+                  Location selected: {latitude.toFixed(4)}, {longitude.toFixed(4)}
+                </ThemedText>
+              ) : (
+                <ThemedText style={styles.mapHint}>
+                  Tap on the map to select a location
+                </ThemedText>
+              )}
+            </View>
+
+            <StarRating
+              label="Rating (optional)"
+              value={rating}
+              onValueChange={setRating}
+              tintColor={tintColor}
+              iconColor={iconColor}
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                {
+                  backgroundColor: tintColor,
+                  opacity: loading ? 0.7 : 1,
+                },
+              ]}
+              onPress={handleCreatePlace}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <ThemedText
+                  lightColor="#fff"
+                  darkColor="#fff"
+                  style={styles.primaryButtonText}
+                >
+                  Create Place
+                </ThemedText>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ThemedView>
+  );
+}
+
+interface InputProps {
+  label: string;
+  textColor: string;
+  iconColor: string;
+  backgroundColor: string;
+  style?: any;
+  [key: string]: any;
+}
+
+function Input({
+  label,
+  textColor,
+  iconColor,
+  backgroundColor,
+  style,
+  ...props
+}: InputProps) {
+  return (
+    <View style={styles.inputGroup}>
+      <ThemedText style={styles.label}>{label}</ThemedText>
+      <TextInput
+        {...props}
+        style={[
+          styles.input,
+          {
+            backgroundColor,
+            color: textColor,
+            borderColor:
+              backgroundColor === "rgba(255, 255, 255, 0.1)"
+                ? "rgba(255, 255, 255, 0.2)"
+                : "transparent",
+          },
+          style,
+        ]}
+        placeholderTextColor={iconColor}
+      />
+    </View>
+  );
+}
+
+interface StarRatingProps {
+  label: string;
+  value: number;
+  onValueChange: (value: number) => void;
+  tintColor: string;
+  iconColor: string;
+}
+
+function StarRating({
+  label,
+  value,
+  onValueChange,
+  tintColor,
+  iconColor,
+}: StarRatingProps) {
+  const handleStarPress = (starIndex: number) => {
+    // If clicking the same star that's already selected, unselect (set to 0)
+    if (value === starIndex) {
+      onValueChange(0);
+    } else {
+      onValueChange(starIndex);
+    }
+  };
+
+  return (
+    <View style={styles.inputGroup}>
+      <ThemedText style={styles.label}>{label}</ThemedText>
+      <View style={styles.starContainer}>
+        {[1, 2, 3, 4, 5].map((starIndex) => (
+          <TouchableOpacity
+            key={starIndex}
+            onPress={() => handleStarPress(starIndex)}
+            activeOpacity={0.7}
+            style={styles.starButton}
+          >
+            <MaterialIcons
+              name={starIndex <= value ? "star" : "star-border"}
+              size={40}
+              color={starIndex <= value ? tintColor : iconColor}
+            />
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
   },
-  titleContainer: {
-    flexDirection: 'row',
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 16,
+    paddingTop: 24,
+    paddingBottom: 32,
+  },
+  card: {
+    borderRadius: 20,
+    padding: 24,
+    paddingBottom: 28,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
     gap: 8,
+  },
+  title: {
+    textAlign: "center",
+    marginBottom: 8,
+    fontSize: 32,
+  },
+  subtitle: {
+    textAlign: "center",
+    marginBottom: 32,
+    opacity: 0.7,
+    fontSize: 16,
+    fontWeight: "400",
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    marginBottom: 8,
+    fontSize: 15,
+    fontWeight: "600",
+    opacity: 0.9,
+  },
+  input: {
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    minHeight: 52,
+    borderWidth: 1,
+  },
+  multilineInput: {
+    minHeight: 100,
+    textAlignVertical: "top",
+    paddingTop: 14,
+  },
+  mapContainer: {
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  map: {
+    width: "100%",
+    height: 250,
+  },
+  mapHint: {
+    fontSize: 13,
+    opacity: 0.6,
+    fontStyle: "italic",
+  },
+  primaryButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    minHeight: 52,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#0a7ea4",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    marginTop: 8,
+  },
+  primaryButtonText: {
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  starContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  starButton: {
+    padding: 4,
   },
 });
