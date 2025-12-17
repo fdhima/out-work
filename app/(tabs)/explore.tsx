@@ -32,6 +32,9 @@ export default function CreatePlace() {
   const [rating, setRating] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
+  const inputBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f3f4f6'
+  const cardBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.95)'
+
   const handleMapPress = (event: any) => {
     const { latitude, longitude } = event.nativeEvent.coordinate;
     setLatitude(latitude);
@@ -86,17 +89,7 @@ export default function CreatePlace() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor:
-                  colorScheme === "dark"
-                    ? "rgba(255, 255, 255, 0.08)"
-                    : "rgba(255, 255, 255, 0.95)",
-              },
-            ]}
-          >
+          <View style={[styles.card, { backgroundColor: cardBg }]}>
             <ThemedText type="title" style={styles.title}>
               Create Place
             </ThemedText>
@@ -111,11 +104,7 @@ export default function CreatePlace() {
               onChangeText={setName}
               textColor={textColor}
               iconColor={iconColor}
-              backgroundColor={
-                colorScheme === "dark"
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "#f3f4f6"
-              }
+              backgroundColor={inputBg}
             />
 
             <Input
@@ -126,11 +115,7 @@ export default function CreatePlace() {
               multiline
               textColor={textColor}
               iconColor={iconColor}
-              backgroundColor={
-                colorScheme === "dark"
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "#f3f4f6"
-              }
+              backgroundColor={inputBg}
               style={styles.multilineInput}
             />
 
@@ -310,7 +295,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 16,
-    paddingTop: 24,
+    paddingTop: 60,
     paddingBottom: 32,
   },
   card: {
