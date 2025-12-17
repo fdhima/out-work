@@ -3,49 +3,19 @@ import { useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Image,
+  ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-
-const DATA = [
-  {
-    id: "1",
-    title: "Modern Apartment in Athens",
-    rating: 4.8,
-    image: "https://picsum.photos/400/250?1",
-    coordinate: {
-      latitude: 37.9838,
-      longitude: 23.7275,
-    },
-  },
-  {
-    id: "2",
-    title: "Cozy Studio Near Acropolis",
-    rating: 4.6,
-    image: "https://picsum.photos/400/250?2",
-    coordinate: {
-      latitude: 37.9715,
-      longitude: 23.7267,
-    },
-  },
-  {
-    id: "3",
-    title: "Luxury Loft with View",
-    rating: 4.9,
-    image: "https://picsum.photos/400/250?3",
-    coordinate: {
-      latitude: 37.9756,
-      longitude: 23.7348,
-    },
-  },
-];
 
 export default function HomeScreen() {
   const mapRef = useRef<MapView | null>(null);
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
 
   const centerMap = (latitude: number, longitude: number) => {
     mapRef.current?.animateToRegion(
@@ -66,11 +36,11 @@ export default function HomeScreen() {
         const data = await getPlaces();
         if (data) setPlaces(data);
       } catch (err) {
-        console.error("Error, fetching places: ", err);
+        console.error("Error fetching places: ", err);
       } finally {
         setLoading(false);
       }
-    }
+    };
     fetchPlaces();
   }, []);
 
@@ -103,17 +73,52 @@ export default function HomeScreen() {
         </MapView>
       </View>
 
-      {/* Cards */}
+      {/* List or Detail */}
       <View style={styles.listContainer}>
         {loading ? (
           <Text>Loading places...</Text>
+        ) : selectedPlace ? (
+          // Detail View
+          <ScrollView>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => setSelectedPlace(null)}
+            >
+              <Text style={styles.backButtonText}>← Back to list</Text>
+            </TouchableOpacity>
+
+            <Image
+              source={{
+                uri: `https://picsum.photos/400/250?random=${selectedPlace.id}`,
+              }}
+              style={styles.cardImage}
+            />
+            <View style={styles.cardContent}>
+              <Text style={styles.cardTitle}>{selectedPlace.name}</Text>
+              <Text style={styles.cardDescription}>{selectedPlace.description}</Text>
+              <Text style={styles.cardRating}>⭐ {selectedPlace.rating_avg}</Text>
+              <Text style={styles.cardCoordinates}>
+                Latitude: {selectedPlace.latitude}, Longitude: {selectedPlace.longitude}
+              </Text>
+              <Text style={styles.cardStatus}>
+                Approved: {selectedPlace.approved ? "Yes" : "No"}
+              </Text>
+            </View>
+          </ScrollView>
         ) : (
+          // List View
           <FlatList
             data={places}
             keyExtractor={(item) => item.id.toString()}
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
-              <View style={styles.card}>
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => {
+                  setSelectedPlace(item);        // Select the place
+                  centerMap(item.latitude, item.longitude); // Center the map
+                }}
+              >
                 <Image
                   source={{
                     uri: `https://picsum.photos/400/250?random=${item.id}`,
@@ -122,10 +127,16 @@ export default function HomeScreen() {
                 />
                 <View style={styles.cardContent}>
                   <Text style={styles.cardTitle}>{item.name}</Text>
-                  <Text style={styles.cardTitle}>{item.description}</Text>
+                  <Text
+                    style={styles.cardDescription}
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                  >
+                    {item.description}
+                  </Text>
                   <Text style={styles.cardRating}>⭐ {item.rating_avg}</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             )}
           />
         )}
@@ -169,8 +180,31 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 4,
   },
+  cardDescription: {
+    fontSize: 14,
+    marginBottom: 4,
+    color: "#333",
+  },
   cardRating: {
     fontSize: 14,
     color: "#555",
+  },
+  cardCoordinates: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+  },
+  cardStatus: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
+  },
+  backButton: {
+    marginBottom: 12,
+  },
+  backButtonText: {
+    color: "#007AFF",
+    fontSize: 16,
+    fontWeight: "500",
   },
 });
