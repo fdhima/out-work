@@ -126,8 +126,10 @@ export default function RegisterScreen() {
               style={[
                 styles.primaryButton,
                 {
-                  backgroundColor: tintColor,
-                  opacity: loading ? 0.7 : 1,
+                  backgroundColor:
+                    colorScheme === 'dark'
+                      ? 'rgba(255, 255, 255, 0.15)'
+                      : '#e5e7eb',
                 },
               ]}
               onPress={signUp}
@@ -280,7 +282,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#0a7ea4',
+    // shadowColor: '#0a7ea4',
     shadowOffset: {
       width: 0,
       height: 4,
