@@ -108,3 +108,12 @@ export async function approvePlace(placeId: number): Promise<Place> {
   if (error) throw error;
   return data;
 }
+
+export async function getPlaceImages(placeId: number) {
+  const { data, error } = await supabase
+    .from("images")
+    .select("id, url")
+    .eq("place_id", placeId);
+  if (error) throw error;
+  return data;
+}
