@@ -2,22 +2,24 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { createImage, uploadImage } from "@/services/images";
 import { createPlace } from "@/services/places";
 import { getUserId } from "@/services/users";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
+  Alert, Image, KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+
 
 export default function CreatePlace() {
   const colorScheme = useColorScheme() ?? "light";
@@ -30,17 +32,34 @@ export default function CreatePlace() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [rating, setRating] = useState<number>(0);
+  const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const inputBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f3f4f6'
-  const cardBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.95)'
+  const inputBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f3f4f6';
+  const cardBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.95)';
 
-  const handleMapPress = (event: any) => {
+  const pickImages = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: 4,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImages(result.assets);
+    }
+  };
+
+  const removeImage = (uri: string) => {
+    setImages((prev) => prev.filter((img) => img.uri !== uri));
+  };
+
+  const selectPlace = (event: any) => {
     const { latitude, longitude } = event.nativeEvent.coordinate;
     setLatitude(latitude);
     setLongitude(longitude);
   };
-
 
   const handleCreatePlace = async () => {
     // Basic validation
@@ -62,7 +81,11 @@ export default function CreatePlace() {
         rating_avg: rating > 0 ? rating : 5, // Use user rating if selected, otherwise default to 5
         approved: true,
       });
-
+      
+      for (let i = 0; i < images.length; i++) {
+        const url = await uploadImage(images[i].uri, newPlace.id, i);
+        await createImage({url: url, place_id: newPlace.id});
+      }
       Alert.alert("Success", "Place created successfully!");
       // Reset form
       setName("");
@@ -140,7 +163,7 @@ export default function CreatePlace() {
                     latitudeDelta: 0.05,
                     longitudeDelta: 0.05,
                   }}
-                  onPress={handleMapPress}
+                  onPress={selectPlace}
                 >
                   {latitude !== null && longitude !== null && (
                     <Marker coordinate={{ latitude, longitude }} />
@@ -165,6 +188,43 @@ export default function CreatePlace() {
               tintColor={tintColor}
               iconColor={iconColor}
             />
+
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.label}>
+                Images ({images.length}/4)
+              </ThemedText>
+
+              <View style={styles.imageGrid}>
+                {images.map((img) => (
+                  <View key={img.uri} style={styles.imageWrapper}>
+                    <Image
+                      source={{ uri: img.uri }}
+                      style={styles.image}
+                    />
+
+                    <TouchableOpacity 
+                      style={styles.removeImage}
+                      onPress={() => removeImage(img.uri)}
+                    >
+                      <MaterialIcons name="close" size={18} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+
+                {images.length < 4 && (
+                  <TouchableOpacity
+                    style={styles.addImage}
+                    onPress={pickImages}
+                  >
+                    <MaterialIcons
+                      name="add-photo-alternate"
+                      size={32}
+                      color={iconColor}
+                    />
+                  </TouchableOpacity>
+                )}
+            </View>
+
 
             <TouchableOpacity
               style={[
@@ -191,6 +251,7 @@ export default function CreatePlace() {
                 </ThemedText>
               )}
             </TouchableOpacity>
+          </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -390,4 +451,41 @@ const styles = StyleSheet.create({
   starButton: {
     padding: 4,
   },
+  imageGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+
+  imageWrapper: {
+    position: "relative",
+  },
+
+  image: {
+    width: 90,
+    height: 90,
+    borderRadius: 12,
+  },
+
+  removeImage: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 12,
+    padding: 4,
+  },
+
+  addImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    justifyContent: "center",
+    alignItems: "center",
+    opacity: 0.7,
+  },
+
 });
+
