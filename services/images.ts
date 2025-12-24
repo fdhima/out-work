@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { File } from "expo-file-system";
 
 export interface Image {
   id: number,
@@ -13,21 +14,23 @@ export interface CreateImageInput {
   url: string,
 }
 
-// Seperate service is needed since images are stored first at Supabase Storage
-// and then their URL is inserted into the database table.
 export async function uploadImage(
   uri: string,
   placeId: number,
   index: number
 ): Promise<string> {
-  const response = await fetch(uri);
-  const blob = await response.blob();
+  const file = new File(uri); // File points to your local file
 
-  const filePath = `${placeId}/${Date.now()}-${index}.jpg`;
+  // Convert file to Uint8Array
+  const arrayBuffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+
+  const ext = uri.split(".").pop() ?? "jpg";
+  const filePath = `${placeId}/${Date.now()}-${index}.${ext}`;
 
   const { error } = await supabase.storage
     .from("place-images")
-    .upload(filePath, blob, {
+    .upload(filePath, bytes, {
       contentType: "image/jpeg",
       upsert: false,
     });
@@ -41,20 +44,6 @@ export async function uploadImage(
   return data.publicUrl;
 }
 
-export async function getImageById(id: number) { Promise<Image | null> 
-  let { data: images, error } = await supabase
-    .from('images')
-    .select('id')
-  if (error) throw error;
-  return images;
-}
-
-export async function getImages() { Promise<Image[]> 
-  let { data: images, error } = await supabase
-    .from('images')
-    .select('*')
-
-}
 
 export async function createImage(input: CreateImageInput) { Promise<Image>
   const { data, error } = await supabase
