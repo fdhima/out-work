@@ -4,7 +4,8 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { getPlaces, Place } from "@/services/places";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useEffect, useRef, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -40,20 +41,24 @@ export default function HomeScreen() {
     );
   };
 
-  useEffect(() => {
-    const fetchPlaces = async () => {
-      try {
-        setLoading(true);
-        const data = await getPlaces();
-        if (data) setPlaces(data);
-      } catch (err) {
-        console.error("Error fetching places: ", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPlaces();
-  }, []);
+  const fetchPlaces = async () => {
+    try {
+      setLoading(true);
+      const data = await getPlaces();
+      setPlaces(data ?? []);
+    } catch (err) {
+      console.error("Error fetching places: ", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchPlaces();
+    }, [])
+  );
+
 
   const renderStars = (rating: number) => {
     return (
