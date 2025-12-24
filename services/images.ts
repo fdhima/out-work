@@ -54,3 +54,29 @@ export async function createImage(input: CreateImageInput) { Promise<Image>
   if (error) throw error;
 }
 
+export async function getImagesForPlace(placeId: number): Promise<string[]> {
+  const { data, error } = await supabase.storage
+    .from("place-images")
+    .list(`${placeId}`, {
+      limit: 100,        // adjust if needed
+      offset: 0,
+      sortBy: { column: "name", order: "asc" },
+    });
+
+  if (error) {
+    console.error("Error fetching images:", error);
+    return [];
+  }
+
+  if (!data) return [];
+
+  // Get public URLs for each image
+  return data.map((file) => {
+    const { data: urlData } = supabase.storage
+      .from("place-images")
+      .getPublicUrl(`${placeId}/${file.name}`);
+    return urlData.publicUrl;
+  });
+}
+
+
