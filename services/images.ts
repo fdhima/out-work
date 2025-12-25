@@ -67,7 +67,7 @@ export async function getImagesForPlace(placeId: number): Promise<string[]> {
     console.error("Error fetching images:", error);
     return [];
   }
-
+  console.log(data)
   if (!data) return [];
 
   // Get public URLs for each image

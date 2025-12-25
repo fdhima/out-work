@@ -2,9 +2,10 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { getImagesForPlace } from "@/services/images";
 import { getPlaces, Place } from "@/services/places";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,6 +18,8 @@ import {
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 
+type PlaceWithImages = Place & { images: string[] };
+
 export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const backgroundColor = useThemeColor({}, "background");
@@ -25,9 +28,9 @@ export default function HomeScreen() {
   const iconColor = useThemeColor({}, "icon");
 
   const mapRef = useRef<MapView | null>(null);
-  const [places, setPlaces] = useState<Place[]>([]);
+  const [places, setPlaces] = useState<PlaceWithImages[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceWithImages | null>(null);
 
   const centerMap = (latitude: number, longitude: number) => {
     mapRef.current?.animateToRegion(
@@ -45,19 +48,30 @@ export default function HomeScreen() {
     try {
       setLoading(true);
       const data = await getPlaces();
-      setPlaces(data ?? []);
+      if (!data) return;
+
+      // Fetch images for each place
+      const placesWithImages = await Promise.all(
+        data.map(async (place) => {
+          const images = await getImagesForPlace(place.id);
+          return { ...place, images };
+        })
+      );
+
+      setPlaces(placesWithImages);
     } catch (err) {
       console.error("Error fetching places: ", err);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   useFocusEffect(
     useCallback(() => {
       fetchPlaces();
     }, [])
   );
+
 
 
   const renderStars = (rating: number) => {
@@ -156,7 +170,7 @@ export default function HomeScreen() {
             >
               <Image
                 source={{
-                  uri: `https://picsum.photos/400/250?random=${selectedPlace.id}`,
+                  uri: selectedPlace.images?.[0] ?? "https://via.placeholder.com/400x250?text=No+Image",
                 }}
                 style={styles.detailImage}
               />
@@ -229,7 +243,7 @@ export default function HomeScreen() {
               >
                 <Image
                   source={{
-                    uri: `https://picsum.photos/400/250?random=${item.id}`,
+                    uri: item.images?.[0] ??  `https://picsum.photos/400/250?random=${item.id}`,
                   }}
                   style={styles.cardImage}
                 />
