@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import FullscreenGallery from "@/components/ui/fullscreen-gallery";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { getImagesForPlace } from "@/services/images";
@@ -31,6 +32,9 @@ export default function HomeScreen() {
   const [places, setPlaces] = useState<PlaceWithImages[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlace, setSelectedPlace] = useState<PlaceWithImages | null>(null);
+  const [galleryVisible, setGalleryVisible] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
   const centerMap = (latitude: number, longitude: number) => {
     mapRef.current?.animateToRegion(
@@ -44,7 +48,7 @@ export default function HomeScreen() {
     );
   };
 
-  function ImageCarousel({ images, height }: { images: string[]; height: number }) {
+  function ImageCarousel({ images, height, onPress }: { images: string[]; height: number; onPress?: (index: number) => void }) {
     const [width, setWidth] = useState(0);
     const [index, setIndex] = useState(0);
 
@@ -62,11 +66,13 @@ export default function HomeScreen() {
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           keyExtractor={(_, i) => String(i)}
-          renderItem={({ item }) => (
-            <Image
-              source={{ uri: item }}
-              style={{ width: width || undefined, height, backgroundColor: "#f3f4f6" }}
-            />
+          renderItem={({ item, index: itemIndex }) => (
+            <TouchableOpacity activeOpacity={0.9} onPress={() => onPress?.(itemIndex)}>
+              <Image
+                source={{ uri: item }}
+                style={{ width: width || undefined, height, backgroundColor: "#f3f4f6" }}
+              />
+            </TouchableOpacity>
           )}
           onScroll={(e) => {
             if (!width) return;
@@ -90,6 +96,7 @@ export default function HomeScreen() {
       </View>
     );
   }
+
 
   const fetchPlaces = async () => {
     try {
@@ -218,6 +225,11 @@ export default function HomeScreen() {
               <ImageCarousel
                 images={selectedPlace.images ?? []}
                 height={250}
+                onPress={(i) => {
+                  setGalleryImages(selectedPlace.images ?? []);
+                  setGalleryIndex(i);
+                  setGalleryVisible(true);
+                }}
               />
               <View style={styles.detailContent}>
                 <ThemedText type="title" style={styles.detailTitle}>
@@ -289,6 +301,11 @@ export default function HomeScreen() {
                 <ImageCarousel
                   images={item.images ?? [ `https://picsum.photos/400/250?random=${item.id}` ]}
                   height={180}
+                  onPress={(i) => {
+                    setGalleryImages(item.images ?? [ `https://picsum.photos/400/250?random=${item.id}` ]);
+                    setGalleryIndex(i);
+                    setGalleryVisible(true);
+                  }}
                 />
                 <View style={styles.cardContent}>
                   <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
@@ -316,6 +333,12 @@ export default function HomeScreen() {
           />
         )}
       </View>
+      <FullscreenGallery
+        visible={galleryVisible}
+        images={galleryImages}
+        initialIndex={galleryIndex}
+        onRequestClose={() => setGalleryVisible(false)}
+      />
     </ThemedView>
   );
 }
