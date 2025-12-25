@@ -14,12 +14,21 @@ import {
   Image,
   ScrollView,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 
-type PlaceWithImages = Place & { images: string[] };
+type Review = {
+  id: string;
+  author: string;
+  rating: number;
+  text: string;
+  date: string;
+};
+
+type PlaceWithImages = Place & { images: string[]; reviews?: Review[] };
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? "light";
@@ -35,6 +44,11 @@ export default function HomeScreen() {
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
+
+  // Review form state
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewText, setReviewText] = useState<string>("");
+  const [submittingReview, setSubmittingReview] = useState<boolean>(false);
 
   const centerMap = (latitude: number, longitude: number) => {
     mapRef.current?.animateToRegion(
@@ -95,7 +109,7 @@ export default function HomeScreen() {
           scrollEventThrottle={16}
         />
 
-        { (imgs.length ? imgs : [placeholder]).length > 1 && (
+        {(imgs.length ? imgs : [placeholder]).length > 1 && (
           <View style={styles.pagination} pointerEvents="none">
             {(imgs.length ? imgs : [placeholder]).map((_, i) => (
               <View
@@ -120,7 +134,25 @@ export default function HomeScreen() {
       const placesWithImages = await Promise.all(
         data.map(async (place) => {
           const images = await getImagesForPlace(place.id);
-          return { ...place, images };
+          // Add some mocked reviews for testing
+          const mockReviews: Review[] = [
+            {
+              id: `${place.id}-r1`,
+              author: "Alice",
+              rating: 4.5,
+              text: "Lovely place — great atmosphere and friendly staff.",
+              date: new Date().toISOString(),
+            },
+            {
+              id: `${place.id}-r2`,
+              author: "Bob",
+              rating: 5,
+              text: "Absolutely loved it! Will come back.",
+              date: new Date().toISOString(),
+            },
+          ];
+
+          return { ...place, images, reviews: mockReviews };
         })
       );
 
@@ -289,6 +321,95 @@ export default function HomeScreen() {
                     </ThemedText>
                   </View>
                 </View>
+
+                {/* Reviews Section */}
+                <View style={styles.reviewsContainer}>
+                  <ThemedText type="title" style={styles.sectionTitle}>
+                    Reviews
+                  </ThemedText>
+
+                  {/* Write review card */}
+                  <View style={styles.reviewFormCard}>
+                    <ThemedText style={styles.writeReviewTitle}>
+                      Write a review
+                    </ThemedText>
+
+                    <View style={styles.starSelector}>
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <TouchableOpacity key={s} onPress={() => setReviewRating(s)}>
+                          <MaterialIcons
+                            name={s <= reviewRating ? "star" : "star-border"}
+                            size={28}
+                            color={tintColor}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    <TextInput
+                      value={reviewText}
+                      onChangeText={setReviewText}
+                      placeholder="Share your experience…"
+                      placeholderTextColor={
+                        colorScheme === "dark" ? "#9ca3af" : "#6b7280"
+                      }
+                      multiline
+                      style={[
+                        styles.reviewInput,
+                        {
+                          color: textColor,
+                          backgroundColor:
+                            colorScheme === "dark"
+                              ? "rgba(255,255,255,0.06)"
+                              : "#f9fafb",
+                        },
+                      ]}
+                    />
+
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      style={[styles.submitButton, { backgroundColor: tintColor }]}
+                    >
+                      <ThemedText style={styles.submitButtonText}>
+                        {submittingReview ? "Posting…" : "Post review"}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Existing reviews */}
+                  {selectedPlace.reviews?.length ? (
+                    selectedPlace.reviews.map((r) => (
+                      <View key={r.id} style={styles.reviewCard}>
+                        <View style={styles.reviewHeader}>
+                          <View style={styles.reviewAuthorRow}>
+                            {[1, 2, 3, 4, 5].map((i) => (
+                              <MaterialIcons
+                                key={i}
+                                name={i <= Math.round(r.rating) ? "star" : "star-border"}
+                                size={14}
+                                color={tintColor}
+                              />
+                            ))}
+                            <ThemedText style={styles.reviewAuthor}>
+                              {r.author}
+                            </ThemedText>
+                          </View>
+                          <ThemedText style={styles.reviewDate}>
+                            {new Date(r.date).toLocaleDateString()}
+                          </ThemedText>
+                        </View>
+
+                        <ThemedText style={styles.reviewText}>
+                          {r.text}
+                        </ThemedText>
+                      </View>
+                    ))
+                  ) : (
+                    <ThemedText style={styles.noReviewsText}>
+                      No reviews yet — be the first ✨
+                    </ThemedText>
+                  )}
+                </View>
               </View>
             </View>
           </ScrollView>
@@ -317,10 +438,10 @@ export default function HomeScreen() {
                 activeOpacity={0.7}
               >
                 <ImageCarousel
-                  images={item.images ?? [ `https://picsum.photos/400/250?random=${item.id}` ]}
+                  images={item.images ?? [`https://picsum.photos/400/250?random=${item.id}`]}
                   height={180}
                   onPress={(i) => {
-                    setGalleryImages(item.images ?? [ `https://picsum.photos/400/250?random=${item.id}` ]);
+                    setGalleryImages(item.images ?? [`https://picsum.photos/400/250?random=${item.id}`]);
                     setGalleryIndex(i);
                     setGalleryVisible(true);
                   }}
@@ -519,4 +640,94 @@ const styles = StyleSheet.create({
     fontSize: 16,
     opacity: 0.6,
   },
+reviewsContainer: {
+  marginTop: 24,
+  gap: 16,
+},
+
+sectionTitle: {
+  fontSize: 22,
+  fontWeight: "700",
+},
+
+reviewFormCard: {
+  padding: 16,
+  borderRadius: 16,
+  gap: 12,
+  backgroundColor: "rgba(0,0,0,0.03)",
+},
+
+writeReviewTitle: {
+  fontSize: 16,
+  fontWeight: "600",
+},
+
+starSelector: {
+  flexDirection: "row",
+  gap: 8,
+},
+
+reviewInput: {
+  minHeight: 90,
+  borderRadius: 12,
+  padding: 12,
+  fontSize: 14,
+  textAlignVertical: "top",
+},
+
+submitButton: {
+  marginTop: 4,
+  paddingVertical: 12,
+  borderRadius: 12,
+  alignItems: "center",
+},
+
+submitButtonText: {
+  color: "#fff",
+  fontWeight: "600",
+  fontSize: 15,
+},
+
+reviewCard: {
+  padding: 14,
+  borderRadius: 14,
+  backgroundColor: "rgba(0,0,0,0.04)",
+  gap: 6,
+},
+
+reviewHeader: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+},
+
+reviewAuthorRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 6,
+},
+
+reviewAuthor: {
+  fontSize: 14,
+  fontWeight: "600",
+},
+
+reviewDate: {
+  fontSize: 12,
+  opacity: 0.6,
+},
+
+reviewText: {
+  fontSize: 14,
+  lineHeight: 20,
+  opacity: 0.9,
+},
+
+noReviewsText: {
+  fontSize: 14,
+  opacity: 0.6,
+  textAlign: "center",
+  marginTop: 8,
+},
+
 });
