@@ -12,6 +12,8 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -45,10 +47,20 @@ export default function HomeScreen() {
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
-  // Review form state
   const [reviewRating, setReviewRating] = useState<number>(5);
   const [reviewText, setReviewText] = useState<string>("");
   const [submittingReview, setSubmittingReview] = useState<boolean>(false);
+
+  const [showAllReviews, setShowAllReviews] = useState(false);
+
+  const MAX_REVIEWS_PREVIEW = 3;
+
+  const visibleReviews = showAllReviews
+    ? selectedPlace?.reviews ?? []
+    : (selectedPlace?.reviews ?? []).slice(0, MAX_REVIEWS_PREVIEW);
+
+  const hasMoreReviews =
+    (selectedPlace?.reviews?.length ?? 0) > MAX_REVIEWS_PREVIEW;
 
   const centerMap = (latitude: number, longitude: number) => {
     mapRef.current?.animateToRegion(
@@ -238,7 +250,6 @@ export default function HomeScreen() {
             <ThemedText style={styles.loadingText}>Loading places...</ThemedText>
           </View>
         ) : selectedPlace ? (
-          // Detail View
           <ScrollView
             contentContainerStyle={styles.detailContainer}
             showsVerticalScrollIndicator={false}
@@ -329,82 +340,112 @@ export default function HomeScreen() {
                   </ThemedText>
 
                   {/* Write review card */}
-                  <View style={styles.reviewFormCard}>
-                    <ThemedText style={styles.writeReviewTitle}>
-                      Write a review
-                    </ThemedText>
+                  <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : undefined}
+                    keyboardVerticalOffset={100}
+                  >
+                    <View style={styles.reviewFormCard}>
 
-                    <View style={styles.starSelector}>
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <TouchableOpacity key={s} onPress={() => setReviewRating(s)}>
-                          <MaterialIcons
-                            name={s <= reviewRating ? "star" : "star-border"}
-                            size={28}
-                            color={tintColor}
-                          />
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-
-                    <TextInput
-                      value={reviewText}
-                      onChangeText={setReviewText}
-                      placeholder="Share your experience…"
-                      placeholderTextColor={
-                        colorScheme === "dark" ? "#9ca3af" : "#6b7280"
-                      }
-                      multiline
-                      style={[
-                        styles.reviewInput,
-                        {
-                          color: textColor,
-                          backgroundColor:
-                            colorScheme === "dark"
-                              ? "rgba(255,255,255,0.06)"
-                              : "#f9fafb",
-                        },
-                      ]}
-                    />
-
-                    <TouchableOpacity
-                      activeOpacity={0.85}
-                      style={[styles.submitButton, { backgroundColor: tintColor }]}
-                    >
-                      <ThemedText style={styles.submitButtonText}>
-                        {submittingReview ? "Posting…" : "Post review"}
+                      <ThemedText style={styles.writeReviewTitle}>
+                        Write a review
                       </ThemedText>
-                    </TouchableOpacity>
-                  </View>
+
+                      <View style={styles.starSelector}>
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <TouchableOpacity key={s} onPress={() => setReviewRating(s)}>
+                            <MaterialIcons
+                              name={s <= reviewRating ? "star" : "star-border"}
+                              size={28}
+                              color={tintColor}
+                            />
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+
+                      <TextInput
+                        value={reviewText}
+                        onChangeText={setReviewText}
+                        placeholder="Share your experience…"
+                        placeholderTextColor={
+                          colorScheme === "dark" ? "#9ca3af" : "#6b7280"
+                        }
+                        multiline
+                        style={[
+                          styles.reviewInput,
+                          {
+                            color: textColor,
+                            backgroundColor:
+                              colorScheme === "dark"
+                                ? "rgba(255,255,255,0.06)"
+                                : "#f9fafb",
+                          },
+                        ]}
+                      />
+
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        style={[
+                          styles.submitButton,
+                          {
+                            backgroundColor: reviewText.trim()
+                              ? tintColor
+                              : "rgba(0,0,0,0.3)",
+                          },
+                        ]}
+                        disabled={!reviewText.trim() || submittingReview}
+
+                      >
+                        <ThemedText style={styles.submitButtonText}>
+                          {submittingReview ? "Posting…" : "Post review"}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  </KeyboardAvoidingView>
 
                   {/* Existing reviews */}
-                  {selectedPlace.reviews?.length ? (
-                    selectedPlace.reviews.map((r) => (
-                      <View key={r.id} style={styles.reviewCard}>
-                        <View style={styles.reviewHeader}>
-                          <View style={styles.reviewAuthorRow}>
-                            {[1, 2, 3, 4, 5].map((i) => (
-                              <MaterialIcons
-                                key={i}
-                                name={i <= Math.round(r.rating) ? "star" : "star-border"}
-                                size={14}
-                                color={tintColor}
-                              />
-                            ))}
-                            <ThemedText style={styles.reviewAuthor}>
-                              {r.author}
+                  {visibleReviews.length ? (
+                    <>
+                      {visibleReviews.map((r) => (
+                        <View key={r.id} style={styles.reviewCard}>
+                          <View style={styles.reviewHeader}>
+                            <View style={styles.reviewAuthorRow}>
+                              {[1, 2, 3, 4, 5].map((i) => (
+                                <MaterialIcons
+                                  key={i}
+                                  name={i <= Math.round(r.rating) ? "star" : "star-border"}
+                                  size={14}
+                                  color={tintColor}
+                                />
+                              ))}
+                              <ThemedText style={styles.reviewAuthor}>
+                                {r.author}
+                              </ThemedText>
+                            </View>
+                            <ThemedText style={styles.reviewDate}>
+                              {new Date(r.date).toLocaleDateString()}
                             </ThemedText>
                           </View>
-                          <ThemedText style={styles.reviewDate}>
-                            {new Date(r.date).toLocaleDateString()}
+
+                          <ThemedText style={styles.reviewText}>
+                            {r.text}
                           </ThemedText>
                         </View>
+                      ))}
 
-                        <ThemedText style={styles.reviewText}>
-                          {r.text}
-                        </ThemedText>
-                      </View>
-                    ))
+                      {hasMoreReviews && (
+                        <TouchableOpacity
+                          onPress={() => setShowAllReviews((v) => !v)}
+                          style={styles.showMoreButton}
+                          activeOpacity={0.7}
+                        >
+                          <ThemedText style={{ color: tintColor, fontWeight: "600" }}>
+                            {showAllReviews ? "Show less" : "Show more reviews"}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      )}
+                    </>
                   ) : (
+
                     <ThemedText style={styles.noReviewsText}>
                       No reviews yet — be the first ✨
                     </ThemedText>
@@ -728,6 +769,10 @@ noReviewsText: {
   opacity: 0.6,
   textAlign: "center",
   marginTop: 8,
+},
+showMoreButton: {
+  alignItems: "center",
+  marginTop: 4,
 },
 
 });
