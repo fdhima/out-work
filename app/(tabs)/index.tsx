@@ -41,10 +41,22 @@ export default function HomeScreen() {
       {
         latitude,
         longitude,
-        latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
+        latitudeDelta: 0.002,
+        longitudeDelta: 0.002,
       },
-      350
+      700
+    );
+  };
+
+  const zoomOutMap = () => {
+    mapRef.current?.animateToRegion(
+      {
+        latitude: 37.9838,
+        longitude: 23.7275,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      },
+      700
     );
   };
 
@@ -167,7 +179,10 @@ export default function HomeScreen() {
               }}
               title={place.name}
               description={place.description}
-              onPress={() => centerMap(place.latitude, place.longitude)}
+              onPress={() => {
+                setSelectedPlace(place);
+                centerMap(place.latitude, place.longitude);
+              }}
             />
           ))}
         </MapView>
@@ -198,7 +213,10 @@ export default function HomeScreen() {
           >
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => setSelectedPlace(null)}
+              onPress={() => {
+                setSelectedPlace(null);
+                zoomOutMap();
+              }}
               activeOpacity={0.7}
             >
               <MaterialIcons name="arrow-back" size={24} color={tintColor} />
