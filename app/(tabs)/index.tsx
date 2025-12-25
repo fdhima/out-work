@@ -44,6 +44,53 @@ export default function HomeScreen() {
     );
   };
 
+  function ImageCarousel({ images, height }: { images: string[]; height: number }) {
+    const [width, setWidth] = useState(0);
+    const [index, setIndex] = useState(0);
+
+    const imgs = (images && images.length ? images.slice(0, 4) : []) as string[];
+    const placeholder = "https://via.placeholder.com/400x250?text=No+Image";
+
+    return (
+      <View
+        style={{ width: "100%", height }}
+        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      >
+        <FlatList
+          data={imgs.length ? imgs : [placeholder]}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(_, i) => String(i)}
+          renderItem={({ item }) => (
+            <Image
+              source={{ uri: item }}
+              style={{ width: width || undefined, height, backgroundColor: "#f3f4f6" }}
+            />
+          )}
+          onScroll={(e) => {
+            if (!width) return;
+            const offsetX = e.nativeEvent.contentOffset.x;
+            const newIndex = Math.round(offsetX / width);
+            if (newIndex !== index) setIndex(newIndex);
+          }}
+          scrollEventThrottle={16}
+        />
+
+        { (imgs.length ? imgs : [placeholder]).length > 1 && (
+          <View style={styles.pagination} pointerEvents="none">
+            {(imgs.length ? imgs : [placeholder]).map((_, i) => (
+              <View
+                key={i}
+                style={[styles.dot, i === index ? styles.dotActive : null]}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  }
+
   const fetchPlaces = async () => {
     try {
       setLoading(true);
@@ -168,11 +215,9 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              <Image
-                source={{
-                  uri: selectedPlace.images?.[0] ?? "https://via.placeholder.com/400x250?text=No+Image",
-                }}
-                style={styles.detailImage}
+              <ImageCarousel
+                images={selectedPlace.images ?? []}
+                height={250}
               />
               <View style={styles.detailContent}>
                 <ThemedText type="title" style={styles.detailTitle}>
@@ -241,11 +286,9 @@ export default function HomeScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Image
-                  source={{
-                    uri: item.images?.[0] ??  `https://picsum.photos/400/250?random=${item.id}`,
-                  }}
-                  style={styles.cardImage}
+                <ImageCarousel
+                  images={item.images ?? [ `https://picsum.photos/400/250?random=${item.id}` ]}
+                  height={180}
                 />
                 <View style={styles.cardContent}>
                   <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
@@ -403,6 +446,26 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 14,
     opacity: 0.7,
+  },
+  pagination: {
+    position: "absolute",
+    bottom: 8,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 6,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    marginHorizontal: 3,
+  },
+  dotActive: {
+    backgroundColor: "rgba(0,0,0,0.7)",
   },
   emptyContainer: {
     flex: 1,
