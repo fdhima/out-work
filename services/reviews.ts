@@ -8,6 +8,7 @@ export interface Review {
   user_id: string;
   created_at: string | null;
   updated_at: string | null;
+  username: string;
 }
 
 export interface CreateReviewInput {
@@ -48,10 +49,31 @@ export async function getReviewById(reviewId: number): Promise<Review | null> {
 export async function getReviewsByPlaceId(placeId: number): Promise<Review[]> {
   const { data, error } = await supabase
     .from('reviews')
-    .select('*')
-    .eq('place_id', placeId);
-  if (error) throw error;
-  return data;
+    .select(`
+      id,
+      comment,
+      rating,
+      place_id,
+      user_id,
+      created_at,
+      profiles (
+        username
+      )
+    `)
+    .eq('place_id', placeId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error(error)
+    return []
+  }
+
+  return (
+    data?.map((r: any) => ({
+      ...r,
+      username: r.profiles?.username ?? 'Unknown',
+    })) ?? []
+  )
 }
 
 // Get reviews by user ID

@@ -18,6 +18,8 @@ import {
 
 export default function RegisterScreen() {
   const router = useRouter()
+
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState<string | null>(null)
@@ -30,6 +32,11 @@ export default function RegisterScreen() {
   const iconColor = useThemeColor({}, 'icon')
 
   const signUp = async () => {
+    if (!username.trim()) {
+      setError('Username is required')
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
@@ -38,6 +45,11 @@ export default function RegisterScreen() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            username, // 👈 stored in user_metadata
+          },
+        },
       })
 
       if (error) {
@@ -57,28 +69,33 @@ export default function RegisterScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor:
-                  colorScheme === 'dark'
-                    ? 'rgba(255, 255, 255, 0.08)'
-                    : 'rgba(255, 255, 255, 0.95)',
-              },
-            ]}
-          >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.card}>
             <ThemedText type="title" style={styles.title}>
               Create account
             </ThemedText>
+
             <ThemedText type="subtitle" style={styles.subtitle}>
               Join us to get started
             </ThemedText>
 
+            {/* Username */}
+            <Input
+              label="Username"
+              placeholder="your_username"
+              autoCapitalize="none"
+              value={username}
+              onChangeText={setUsername}
+              textColor={textColor}
+              iconColor={iconColor}
+              backgroundColor={
+                colorScheme === 'dark'
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : '#f3f4f6'
+              }
+            />
+
+            {/* Email */}
             <Input
               label="Email"
               placeholder="you@example.com"
@@ -95,6 +112,7 @@ export default function RegisterScreen() {
               }
             />
 
+            {/* Password */}
             <Input
               label="Password"
               placeholder="••••••••"
@@ -110,56 +128,35 @@ export default function RegisterScreen() {
               }
             />
 
-            {error ? (
+            {error && (
               <ThemedText style={[styles.error, { color: '#ef4444' }]}>
                 {error}
               </ThemedText>
-            ) : null}
+            )}
 
-            {message ? (
+            {message && (
               <ThemedText style={[styles.success, { color: '#16a34a' }]}>
                 {message}
               </ThemedText>
-            ) : null}
+            )}
 
             <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                {
-                  backgroundColor:
-                    colorScheme === 'dark'
-                      ? 'rgba(255, 255, 255, 0.15)'
-                      : '#e5e7eb',
-                },
-              ]}
+              style={styles.primaryButton}
               onPress={signUp}
               disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <ThemedText
-                  lightColor="#fff"
-                  darkColor="#fff"
-                  style={styles.primaryText}
-                >
+                <ThemedText style={styles.primaryText}>
                   Sign Up
                 </ThemedText>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[
-                styles.secondaryButton,
-                {
-                  backgroundColor:
-                    colorScheme === 'dark'
-                      ? 'rgba(255, 255, 255, 0.15)'
-                      : '#e5e7eb',
-                },
-              ]}
+              style={styles.secondaryButton}
               onPress={() => router.push('/auth/signin')}
-              disabled={loading}
             >
               <ThemedText style={styles.secondaryText}>
                 Already have an account? Sign in
