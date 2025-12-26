@@ -425,19 +425,25 @@ export default function HomeScreen() {
 
                     <TouchableOpacity
                       activeOpacity={0.85}
+                      disabled={!reviewText.trim() || submittingReview}
                       style={[
                         styles.submitButton,
                         {
                           backgroundColor: tintColor,
+                          opacity: !reviewText.trim() || submittingReview ? 0.6 : 1,
                         },
                       ]}
-                      disabled={!reviewText.trim() || submittingReview}
-
                     >
-                      <ThemedText style={styles.submitButtonText}>
-                        {submittingReview ? "Posting…" : "Post review"}
-                      </ThemedText>
+                      {submittingReview ? (
+                        <ActivityIndicator color="#ffffffff" />
+                      ) : (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <MaterialIcons name="send" size={18} color="#000"/>
+                          <ThemedText style={styles.submitButtonText}>Post review</ThemedText>
+                        </View>
+                      )}
                     </TouchableOpacity>
+
                   </View>
 
                   {/* Existing reviews */}
@@ -720,98 +726,91 @@ const styles = StyleSheet.create({
     fontSize: 16,
     opacity: 0.6,
   },
-reviewsContainer: {
-  marginTop: 24,
-  gap: 16,
-},
+  reviewsContainer: {
+    marginTop: 24,
+    gap: 16,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+  },
+  reviewFormCard: {
+    padding: 16,
+    borderRadius: 16,
+    gap: 12,
+    backgroundColor: "rgba(0,0,0,0.03)",
+  },
+  writeReviewTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  starSelector: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  reviewInput: {
+    minHeight: 90,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    textAlignVertical: "top",
+  },
+  submitButton: {
+    marginTop: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
 
-sectionTitle: {
-  fontSize: 22,
-  fontWeight: "700",
-},
-
-reviewFormCard: {
-  padding: 16,
-  borderRadius: 16,
-  gap: 12,
-  backgroundColor: "rgba(0,0,0,0.03)",
-},
-
-writeReviewTitle: {
-  fontSize: 16,
-  fontWeight: "600",
-},
-
-starSelector: {
-  flexDirection: "row",
-  gap: 8,
-},
-
-reviewInput: {
-  minHeight: 90,
-  borderRadius: 12,
-  padding: 12,
-  fontSize: 14,
-  textAlignVertical: "top",
-},
-
-submitButton: {
-  marginTop: 4,
-  paddingVertical: 12,
-  borderRadius: 12,
-  alignItems: "center",
-},
-
-submitButtonText: {
-  color: "#fff",
-  fontWeight: "600",
-  fontSize: 15,
-},
-
-reviewCard: {
-  padding: 14,
-  borderRadius: 14,
-  backgroundColor: "rgba(0,0,0,0.04)",
-  gap: 6,
-},
-
-reviewHeader: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-},
-
-reviewAuthorRow: {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 6,
-},
-
-reviewAuthor: {
-  fontSize: 14,
-  fontWeight: "600",
-},
-
-reviewDate: {
-  fontSize: 12,
-  opacity: 0.6,
-},
-
-reviewText: {
-  fontSize: 14,
-  lineHeight: 20,
-  opacity: 0.9,
-},
-
-noReviewsText: {
-  fontSize: 14,
-  opacity: 0.6,
-  textAlign: "center",
-  marginTop: 8,
-},
-showMoreButton: {
-  alignItems: "center",
-  marginTop: 4,
-},
-
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  submitButtonText: {
+    color: "#000",
+    fontWeight: "700",
+    fontSize: 16,
+    letterSpacing: 0.3,
+  },
+  reviewCard: {
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.04)",
+    gap: 6,
+  },
+  reviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  reviewAuthorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  reviewAuthor: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  reviewDate: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  reviewText: {
+    fontSize: 14,
+    lineHeight: 20,
+    opacity: 0.9,
+  },
+  noReviewsText: {
+    fontSize: 14,
+    opacity: 0.6,
+    textAlign: "center",
+    marginTop: 8,
+  },
+  showMoreButton: {
+    alignItems: "center",
+    marginTop: 4,
+  },
 });
