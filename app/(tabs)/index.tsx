@@ -10,6 +10,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -40,6 +41,9 @@ export default function HomeScreen() {
   const iconColor = useThemeColor({}, "icon");
 
   const mapRef = useRef<MapView | null>(null);
+  const mapFlexAnim = useRef(new Animated.Value(1)).current;
+  const listFlexAnim = useRef(new Animated.Value(1)).current;
+
   const [places, setPlaces] = useState<PlaceWithImages[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlace, setSelectedPlace] = useState<PlaceWithImages | null>(null);
@@ -72,6 +76,20 @@ export default function HomeScreen() {
       },
       700
     );
+
+    // Animate flex ratios when place is selected
+    Animated.parallel([
+      Animated.timing(mapFlexAnim, {
+        toValue: 0.5,
+        duration: 400,
+        useNativeDriver: false,
+      }),
+      Animated.timing(listFlexAnim, {
+        toValue: 1.5,
+        duration: 400,
+        useNativeDriver: false,
+      }),
+    ]).start();
   };
 
   const zoomOutMap = () => {
@@ -84,6 +102,20 @@ export default function HomeScreen() {
       },
       700
     );
+
+    // Animate flex ratios back to equal when deselected
+    Animated.parallel([
+      Animated.timing(mapFlexAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: false,
+      }),
+      Animated.timing(listFlexAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: false,
+      }),
+    ]).start();
   };
 
   function ImageCarousel({ images, height, onPress }: { images: string[]; height: number; onPress?: (index: number) => void }) {
@@ -203,7 +235,14 @@ export default function HomeScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Map */}
-      <View style={styles.mapContainer}>
+      <Animated.View
+        style={[
+          styles.mapContainer,
+          {
+            flex: mapFlexAnim,
+          },
+        ]}
+      >
         <MapView
           ref={mapRef}
           style={StyleSheet.absoluteFill}
@@ -230,13 +269,14 @@ export default function HomeScreen() {
             />
           ))}
         </MapView>
-      </View>
+      </Animated.View>
 
       {/* List or Detail */}
-      <View
+      <Animated.View
         style={[
           styles.listContainer,
           {
+            flex: listFlexAnim,
             backgroundColor:
               colorScheme === "dark"
                 ? "rgba(21, 23, 24, 0.95)"
@@ -250,10 +290,15 @@ export default function HomeScreen() {
             <ThemedText style={styles.loadingText}>Loading places...</ThemedText>
           </View>
         ) : selectedPlace ? (
-          <ScrollView
-            contentContainerStyle={styles.detailContainer}
-            showsVerticalScrollIndicator={false}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={{ flex: 1 }}
           >
+            <ScrollView
+              contentContainerStyle={styles.detailContainer}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
             <TouchableOpacity
               style={styles.backButton}
               onPress={() => {
@@ -340,67 +385,60 @@ export default function HomeScreen() {
                   </ThemedText>
 
                   {/* Write review card */}
-                  <KeyboardAvoidingView
-                    behavior={Platform.OS === "ios" ? "padding" : undefined}
-                    keyboardVerticalOffset={100}
-                  >
-                    <View style={styles.reviewFormCard}>
+                  <View style={styles.reviewFormCard}>
 
-                      <ThemedText style={styles.writeReviewTitle}>
-                        Write a review
-                      </ThemedText>
+                    <ThemedText style={styles.writeReviewTitle}>
+                      Write a review
+                    </ThemedText>
 
-                      <View style={styles.starSelector}>
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <TouchableOpacity key={s} onPress={() => setReviewRating(s)}>
-                            <MaterialIcons
-                              name={s <= reviewRating ? "star" : "star-border"}
-                              size={28}
-                              color={tintColor}
-                            />
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-
-                      <TextInput
-                        value={reviewText}
-                        onChangeText={setReviewText}
-                        placeholder="Share your experience…"
-                        placeholderTextColor={
-                          colorScheme === "dark" ? "#9ca3af" : "#6b7280"
-                        }
-                        multiline
-                        style={[
-                          styles.reviewInput,
-                          {
-                            color: textColor,
-                            backgroundColor:
-                              colorScheme === "dark"
-                                ? "rgba(255,255,255,0.06)"
-                                : "#f9fafb",
-                          },
-                        ]}
-                      />
-
-                      <TouchableOpacity
-                        activeOpacity={0.85}
-                        style={[
-                          styles.submitButton,
-                          {
-                            backgroundColor: reviewText.trim()
-                              ? tintColor
-                              : "rgba(0,0,0,0.3)",
-                          },
-                        ]}
-                        disabled={!reviewText.trim() || submittingReview}
-
-                      >
-                        <ThemedText style={styles.submitButtonText}>
-                          {submittingReview ? "Posting…" : "Post review"}
-                        </ThemedText>
-                      </TouchableOpacity>
+                    <View style={styles.starSelector}>
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <TouchableOpacity key={s} onPress={() => setReviewRating(s)}>
+                          <MaterialIcons
+                            name={s <= reviewRating ? "star" : "star-border"}
+                            size={28}
+                            color={tintColor}
+                          />
+                        </TouchableOpacity>
+                      ))}
                     </View>
-                  </KeyboardAvoidingView>
+
+                    <TextInput
+                      value={reviewText}
+                      onChangeText={setReviewText}
+                      placeholder="Share your experience…"
+                      placeholderTextColor={
+                        colorScheme === "dark" ? "#9ca3af" : "#6b7280"
+                      }
+                      multiline
+                      style={[
+                        styles.reviewInput,
+                        {
+                          color: textColor,
+                          backgroundColor:
+                            colorScheme === "dark"
+                              ? "rgba(255,255,255,0.06)"
+                              : "#f9fafb",
+                        },
+                      ]}
+                    />
+
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      style={[
+                        styles.submitButton,
+                        {
+                          backgroundColor: tintColor,
+                        },
+                      ]}
+                      disabled={!reviewText.trim() || submittingReview}
+
+                    >
+                      <ThemedText style={styles.submitButtonText}>
+                        {submittingReview ? "Posting…" : "Post review"}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </View>
 
                   {/* Existing reviews */}
                   {visibleReviews.length ? (
@@ -453,7 +491,8 @@ export default function HomeScreen() {
                 </View>
               </View>
             </View>
-          </ScrollView>
+            </ScrollView>
+          </KeyboardAvoidingView>
         ) : (
           // List View
           <FlatList
@@ -512,7 +551,7 @@ export default function HomeScreen() {
             }
           />
         )}
-      </View>
+      </Animated.View>
       <FullscreenGallery
         visible={galleryVisible}
         images={galleryImages}
