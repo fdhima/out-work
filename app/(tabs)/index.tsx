@@ -1,10 +1,12 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import FullscreenGallery from "@/components/ui/fullscreen-gallery";
+import { useAuth } from "@/context/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { getImagesForPlace } from "@/services/images";
 import { getPlaces, Place } from "@/services/places";
+import { createReview, getReviewsByPlaceId, Review } from "@/services/reviews";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useRef, useState } from "react";
@@ -22,14 +24,6 @@ import {
   View
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-
-type Review = {
-  id: string;
-  author: string;
-  rating: number;
-  text: string;
-  date: string;
-};
 
 type PlaceWithImages = Place & { images: string[]; reviews?: Review[] };
 
@@ -58,6 +52,8 @@ export default function HomeScreen() {
   const [showAllReviews, setShowAllReviews] = useState(false);
 
   const MAX_REVIEWS_PREVIEW = 3;
+
+  const { session } = useAuth();
 
   const visibleReviews = showAllReviews
     ? selectedPlace?.reviews ?? []
@@ -178,25 +174,8 @@ export default function HomeScreen() {
       const placesWithImages = await Promise.all(
         data.map(async (place) => {
           const images = await getImagesForPlace(place.id);
-          // Add some mocked reviews for testing
-          const mockReviews: Review[] = [
-            {
-              id: `${place.id}-r1`,
-              author: "Alice",
-              rating: 4.5,
-              text: "Lovely place — great atmosphere and friendly staff.",
-              date: new Date().toISOString(),
-            },
-            {
-              id: `${place.id}-r2`,
-              author: "Bob",
-              rating: 5,
-              text: "Absolutely loved it! Will come back.",
-              date: new Date().toISOString(),
-            },
-          ];
-
-          return { ...place, images, reviews: mockReviews };
+          const reviews = await getReviewsByPlaceId(place.id);
+          return { ...place, images, reviews: reviews };
         })
       );
 
@@ -207,6 +186,39 @@ export default function HomeScreen() {
       setLoading(false);
     }
   }
+
+  const submitReview = async () => {
+    if (!selectedPlace || !session?.user) return;
+    const placeId = selectedPlace.id;
+    setSubmittingReview(true);
+    try {
+      await createReview({
+        comment: reviewText.trim(),
+        rating: reviewRating,
+        place_id: placeId,
+        user_id: session.user.id,
+        created_at: new Date().toISOString(),
+      });
+
+      // Refresh reviews for the place
+      const reviews = await getReviewsByPlaceId(placeId);
+
+      // Update selectedPlace and places list locally
+      const avg = reviews && reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+
+      setSelectedPlace((prev) => (prev ? { ...prev, reviews, rating_avg: avg } : prev));
+      setPlaces((prev) => prev.map((p) => (p.id === placeId ? { ...p, reviews, rating_avg: avg } : p)));
+
+      // Clear form
+      setReviewText("");
+      setReviewRating(5);
+      setShowAllReviews(true);
+    } catch (err) {
+      console.error("Error posting review:", err);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -425,12 +437,13 @@ export default function HomeScreen() {
 
                     <TouchableOpacity
                       activeOpacity={0.85}
-                      disabled={!reviewText.trim() || submittingReview}
+                      onPress={submitReview}
+                      disabled={!reviewText.trim() || submittingReview || !session?.user}
                       style={[
                         styles.submitButton,
                         {
                           backgroundColor: tintColor,
-                          opacity: !reviewText.trim() || submittingReview ? 0.6 : 1,
+                          opacity: !reviewText.trim() || submittingReview || !session?.user ? 0.6 : 1,
                         },
                       ]}
                     >
@@ -462,16 +475,16 @@ export default function HomeScreen() {
                                 />
                               ))}
                               <ThemedText style={styles.reviewAuthor}>
-                                {r.author}
+                                {r.user_id}
                               </ThemedText>
                             </View>
                             <ThemedText style={styles.reviewDate}>
-                              {new Date(r.date).toLocaleDateString()}
+                              {new Date(r.created_at).toLocaleDateString()}
                             </ThemedText>
                           </View>
 
                           <ThemedText style={styles.reviewText}>
-                            {r.text}
+                            {r.comment}
                           </ThemedText>
                         </View>
                       ))}
