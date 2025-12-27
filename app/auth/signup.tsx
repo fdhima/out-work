@@ -3,8 +3,9 @@ import { ThemedView } from '@/components/themed-view'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useThemeColor } from '@/hooks/use-theme-color'
 import { supabase } from '@/lib/supabase'
+import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,17 +20,22 @@ import {
 export default function RegisterScreen() {
   const router = useRouter()
 
+  const [fullName, setFullName] = useState('')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const colorScheme = useColorScheme() ?? 'light'
   const textColor = useThemeColor({}, 'text')
   const tintColor = useThemeColor({}, 'tint')
   const iconColor = useThemeColor({}, 'icon')
+
 
   const signUp = async () => {
     if (!username.trim()) {
@@ -37,23 +43,51 @@ export default function RegisterScreen() {
       return
     }
 
+    if (!fullName.trim()) {
+      setError('Full name is required')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+      
     try {
       setLoading(true)
       setError(null)
       setMessage(null)
 
-      const { error } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            username, // 👈 stored in user_metadata
+            username,
           },
         },
       })
 
-      if (error) {
-        setError(error.message)
+      if (signUpError) {
+        setError(signUpError.message)
+        return
+      }
+
+      const user = data.user
+      if (!user) {
+        setError('User creation failed')
+        return
+      }
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          full_name: fullName,
+        })
+
+      if (profileError) {
+        setError(profileError.message)
         return
       }
 
@@ -78,6 +112,21 @@ export default function RegisterScreen() {
             <ThemedText type="subtitle" style={styles.subtitle}>
               Join us to get started
             </ThemedText>
+
+            {/* Full name */}
+            <Input
+              label="Full name"
+              placeholder="John Doe"
+              value={fullName}
+              onChangeText={setFullName}
+              textColor={textColor}
+              iconColor={iconColor}
+              backgroundColor={
+                colorScheme === 'dark'
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : '#f3f4f6'
+              }
+            />
 
             {/* Username */}
             <Input
@@ -116,9 +165,29 @@ export default function RegisterScreen() {
             <Input
               label="Password"
               placeholder="••••••••"
-              secureTextEntry
+              secureTextEntry={!showPassword}
+              showToggle
+              onToggleSecure={() => setShowPassword(v => !v)}
               value={password}
               onChangeText={setPassword}
+              textColor={textColor}
+              iconColor={iconColor}
+              backgroundColor={
+                colorScheme === 'dark'
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : '#f3f4f6'
+              }
+            />
+
+            {/* Password confirmation */}
+            <Input
+              label="Confirm password"
+              placeholder="••••••••"
+              secureTextEntry={!showConfirmPassword}
+              showToggle
+              onToggleSecure={() => setShowConfirmPassword(v => !v)}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
               textColor={textColor}
               iconColor={iconColor}
               backgroundColor={
@@ -174,6 +243,9 @@ interface InputProps {
   textColor: string
   iconColor: string
   backgroundColor: string
+  secureTextEntry?: boolean
+  showToggle?: boolean
+  onToggleSecure?: () => void
   [key: string]: any
 }
 
@@ -182,26 +254,52 @@ function Input({
   textColor,
   iconColor,
   backgroundColor,
+  secureTextEntry,
+  showToggle,
+  onToggleSecure,
   ...props
 }: InputProps) {
   return (
     <View style={styles.inputGroup}>
       <ThemedText style={styles.label}>{label}</ThemedText>
-      <TextInput
-        {...props}
-        style={[
-          styles.input,
-          {
-            backgroundColor,
-            color: textColor,
-            borderColor:
-              backgroundColor === 'rgba(255, 255, 255, 0.1)'
-                ? 'rgba(255, 255, 255, 0.2)'
-                : 'transparent',
-          },
-        ]}
-        placeholderTextColor={iconColor}
-      />
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          {...props}
+          secureTextEntry={secureTextEntry}
+          style={[
+            styles.input,
+            {
+              backgroundColor,
+              color: textColor,
+              borderColor:
+                backgroundColor === 'rgba(255, 255, 255, 0.1)'
+                  ? 'rgba(255, 255, 255, 0.2)'
+                  : 'transparent',
+              paddingRight: showToggle ? 56 : 16,
+            },
+          ]}
+          placeholderTextColor={iconColor}
+        />
+
+        {showToggle && (
+          <TouchableOpacity
+            onPress={onToggleSecure}
+            style={styles.eyeButton}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={
+              secureTextEntry ? 'Show password' : 'Hide password'
+            }
+          >
+            <Ionicons
+              name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
+              size={22}
+              color={iconColor}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   )
 }
@@ -304,4 +402,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
+  inputContainer: {
+  position: 'relative',
+  justifyContent: 'center',
+},
+
+eyeButton: {
+  position: 'absolute',
+  right: 16,
+  height: '100%',
+  justifyContent: 'center',
+},
+
 })
