@@ -21,6 +21,7 @@ export interface CreatePlaceInput {
   longitude: number;
   rating_avg: number; // to be calculated later in code
   approved: boolean
+  created_at: string
 }
 
 export interface UpdatePlaceInput {
@@ -30,6 +31,7 @@ export interface UpdatePlaceInput {
   latitude?: number;
   longitude?: number;
   approved?: boolean;
+  updated_at: string
 }
 
 // Get all places

@@ -13,6 +13,7 @@ interface UpdateProfileInput {
   full_name?: string
   avatar_url?: string
   website?: string
+  updated_at: string
 }
 
 export async function getUsernameById(userId: string) {

@@ -22,6 +22,7 @@ export interface CreateReviewInput {
 export interface UpdateReviewInput {
   comment?: string;
   rating?: number;
+  updated_at: string;
 }
 
 // Get all reviews

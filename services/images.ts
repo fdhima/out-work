@@ -12,6 +12,7 @@ export interface Image {
 export interface CreateImageInput {
   place_id: number,
   url: string,
+  created_at: string
 }
 
 export async function uploadImage(

@@ -12,12 +12,14 @@ export interface CreateUserInput {
   username: string
   email: string
   password_hash: string
+  created_at: string
 }
 
 export interface UpdateUserInput {
   username?: string
   email?: string
   password_hash?: string
+  updated_at: string
 }
 
 export async function getUserId() {
