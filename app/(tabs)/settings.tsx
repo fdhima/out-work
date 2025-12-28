@@ -3,21 +3,42 @@ import { ThemedView } from '@/components/themed-view'
 import { useAuth } from '@/context/AuthContext'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useThemeColor } from '@/hooks/use-theme-color'
+import { supabase } from '@/lib/supabase'
 import { getUsernameById, updateProfile } from '@/services/profiles'
 import { getUserId } from '@/services/users'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native'
+
+function Input({ label, textColor, iconColor, backgroundColor, style, ...props }: any) {
+  return (
+    <View style={styles.inputGroup}>
+      <ThemedText style={styles.label}>{label}</ThemedText>
+      <TextInput
+        {...props}
+        style={[
+          styles.input,
+          {
+            backgroundColor,
+            color: textColor,
+            borderColor: backgroundColor === 'rgba(255, 255, 255, 0.1)' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+          },
+          style,
+        ]}
+        placeholderTextColor={iconColor}
+      />
+    </View>
+  )
+}
 
 export default function Profile() {
   const { session, signOut } = useAuth()
@@ -34,35 +55,56 @@ export default function Profile() {
   const [newPassword, setNewPassword] = useState('')
   const [profileLoading, setProfileLoading] = useState(true)
 
+  const inputBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f3f4f6'
+  const cardBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.95)'
+
   const handleSignOut = async () => {
     await signOut()
     router.replace('/auth/signin')
   }
 
   const handleUpdateProfile = async () => {
-    // Basic validation
-    if (!full_name && !currentPassword && !newPassword) {
-      Alert.alert("Error", "Please fill in all fields");
-      console.log(full_name, currentPassword, newPassword, await getUserId())
-      return;
-    }
     setLoading(true)
+
     try {
       const userId = await getUserId()
-      if (!userId) throw new Error("No user id")
+      if (!userId) throw new Error('No user id')
 
-      await updateProfile(userId, {
-        full_name
-      })
-    } catch (err) {
+      if (full_name.trim().length > 0) {
+        await updateProfile(userId, { full_name })
+      }
+
+      if (currentPassword && newPassword) {
+        // Re-authenticate
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email: session?.user.email!,
+          password: currentPassword,
+        })
+
+        if (authError) {
+          throw new Error('Current password is incorrect')
+        }
+
+        // Update password
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: newPassword,
+        })
+
+        if (updateError) {
+          throw updateError
+        } else {
+          alert("Details updated successfully")
+        }
+      }
+
+    } catch (err: any) {
       console.error(err)
+      alert(err.message ?? 'Something went wrong')
     } finally {
       setLoading(false)
     }
-  }
+}
 
-  const inputBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f3f4f6'
-  const cardBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.95)'
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -176,28 +218,6 @@ export default function Profile() {
         </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
-  )
-}
-
-// Reusable Input Component (Matching your Login screen)
-function Input({ label, textColor, iconColor, backgroundColor, style, ...props }: any) {
-  return (
-    <View style={styles.inputGroup}>
-      <ThemedText style={styles.label}>{label}</ThemedText>
-      <TextInput
-        {...props}
-        style={[
-          styles.input,
-          {
-            backgroundColor,
-            color: textColor,
-            borderColor: backgroundColor === 'rgba(255, 255, 255, 0.1)' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-          },
-          style,
-        ]}
-        placeholderTextColor={iconColor}
-      />
-    </View>
   )
 }
 

@@ -42,7 +42,6 @@ export async function updateProfile(
       updated_at: new Date().toISOString(),
     })
     .eq('id', profileId)
-    .select('id, username, full_name, avatar_url, website, updated_at')
     .single()
 
   if (error) throw error

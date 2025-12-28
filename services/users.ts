@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase'
  * Types
  * -------------------------------------------------- */
 
+const SALT_ROUNDS = 10 // same as Supabase
+
 export interface User {
   id: number
   username: string
@@ -122,6 +124,16 @@ export async function updateUser(
   if (error) throw error
   return data
 }
+
+// export async function updateUserPassword(
+//   userId: number,
+//   newPassword: string
+// ): Promise<User> {
+//   const { error } = await supabase.auth.updateUser({
+//     password: newPassword,
+//   })
+
+// }
 
 /**
  * Delete user
