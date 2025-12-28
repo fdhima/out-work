@@ -3,8 +3,10 @@ import { ThemedView } from '@/components/themed-view'
 import { useAuth } from '@/context/AuthContext'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useThemeColor } from '@/hooks/use-theme-color'
+import { supabase } from '@/lib/supabase'
+import { getUsernameById } from '@/services/profiles'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -25,10 +27,11 @@ export default function Profile() {
 
   // Form States
   const [loading, setLoading] = useState(false)
-  const [name, setName] = useState(session?.user?.user_metadata?.full_name || '')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState(session?.user?.email || '')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [profileLoading, setProfileLoading] = useState(true)
 
   const handleSignOut = async () => {
     await signOut()
@@ -43,6 +46,33 @@ export default function Profile() {
 
   const inputBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f3f4f6'
   const cardBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.95)'
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setProfileLoading(true)
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+      console.log(user?.id)
+      console.log(typeof(user?.id))
+
+      if (userError || !user) {
+        console.error(userError)
+        setProfileLoading(false)
+        return
+      }
+
+      const fullname = await getUsernameById(user.id)
+
+      setName(fullname ?? '')
+
+      setProfileLoading(false)
+    }
+
+    fetchProfile()
+  }, [])
 
   return (
     <ThemedView style={styles.container}>
@@ -65,7 +95,7 @@ export default function Profile() {
             {/* Account Details Section */}
             <Input
               label="Full Name"
-              placeholder="John Doe"
+              placeholder={profileLoading ? 'Loading...' : name}
               value={name}
               onChangeText={setName}
               textColor={textColor}
@@ -77,7 +107,7 @@ export default function Profile() {
               label="Email Address"
               placeholder="you@example.com"
               value={email}
-              editable={false} // Usually email is locked or requires specific flow
+              editable={false} // Usually email is locked
               textColor={textColor}
               iconColor={iconColor}
               backgroundColor={inputBg}

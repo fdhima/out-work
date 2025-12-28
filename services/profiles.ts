@@ -1,11 +1,16 @@
 import { supabase } from "@/lib/supabase";
 
 export async function getUsernameById(userId: string) {
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
-    .select('username')
+    .select('full_name')
     .eq('id', userId)
     .single()
-  if (error) throw error;
-  return data;
+
+  if (error) {
+    console.error(error)
+    return null
+  }
+
+  return data.full_name
 }
