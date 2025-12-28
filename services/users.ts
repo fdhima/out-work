@@ -38,8 +38,12 @@ export interface UpdateUserInput {
 
 
 export async function getUserId() {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user?.id; // string or null
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
+  if (error) throw error;
+  return user?.id
 }
 
 /**

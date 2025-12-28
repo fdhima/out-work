@@ -1,5 +1,20 @@
 import { supabase } from "@/lib/supabase";
 
+interface Profile {
+  id: string
+  username: string
+  full_name: string
+  avatar_url: string
+  website: string
+  updated_at: string | null
+}
+interface UpdateProfileInput {
+  username?: string
+  full_name?: string
+  avatar_url?: string
+  website?: string
+}
+
 export async function getUsernameById(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
@@ -13,4 +28,23 @@ export async function getUsernameById(userId: string) {
   }
 
   return data.full_name
+}
+
+export async function updateProfile(
+  profileId: string,
+  updates: UpdateProfileInput
+): Promise<Profile> {
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', profileId)
+    .select('id, username, full_name, avatar_url, website, updated_at')
+    .single()
+
+  if (error) throw error
+  return data
 }

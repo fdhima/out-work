@@ -3,12 +3,13 @@ import { ThemedView } from '@/components/themed-view'
 import { useAuth } from '@/context/AuthContext'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useThemeColor } from '@/hooks/use-theme-color'
-import { supabase } from '@/lib/supabase'
-import { getUsernameById } from '@/services/profiles'
+import { getUsernameById, updateProfile } from '@/services/profiles'
+import { getUserId } from '@/services/users'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -27,7 +28,7 @@ export default function Profile() {
 
   // Form States
   const [loading, setLoading] = useState(false)
-  const [name, setName] = useState('')
+  const [full_name, setName] = useState('')
   const [email, setEmail] = useState(session?.user?.email || '')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -39,9 +40,25 @@ export default function Profile() {
   }
 
   const handleUpdateProfile = async () => {
+    // Basic validation
+    if (!full_name && !currentPassword && !newPassword) {
+      Alert.alert("Error", "Please fill in all fields");
+      console.log(full_name, currentPassword, newPassword, await getUserId())
+      return;
+    }
     setLoading(true)
-    // Add your supabase.auth.updateUser logic here
-    setTimeout(() => setLoading(false), 1000) 
+    try {
+      const userId = await getUserId()
+      if (!userId) throw new Error("No user id")
+
+      await updateProfile(userId, {
+        full_name
+      })
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const inputBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f3f4f6'
@@ -51,20 +68,9 @@ export default function Profile() {
     const fetchProfile = async () => {
       setProfileLoading(true)
 
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser()
-      console.log(user?.id)
-      console.log(typeof(user?.id))
+      const userId = await getUserId()
 
-      if (userError || !user) {
-        console.error(userError)
-        setProfileLoading(false)
-        return
-      }
-
-      const fullname = await getUsernameById(user.id)
+      const fullname = await getUsernameById(userId!)
 
       setName(fullname ?? '')
 
@@ -95,8 +101,8 @@ export default function Profile() {
             {/* Account Details Section */}
             <Input
               label="Full Name"
-              placeholder={profileLoading ? 'Loading...' : name}
-              value={name}
+              placeholder={profileLoading ? 'Loading...' : full_name}
+              value={full_name}
               onChangeText={setName}
               textColor={textColor}
               iconColor={iconColor}
