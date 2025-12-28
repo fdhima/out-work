@@ -30,7 +30,7 @@ export default function ProfileScreen() {
   const textColor = useThemeColor({}, 'text')
   const iconColor = useThemeColor({}, 'icon')
   const backgroundColor = useThemeColor({}, 'background')
-  const primaryColor = '#ff6b35' // WorkSpot Orange
+  const primaryColor = '#ff6b35' // OutWork Orange
   const inputBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f9fafb'
 
   // Data State

@@ -39,7 +39,7 @@ export default function HomeScreen() {
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   // const tintColor = useThemeColor({}, "tint"); // Replaced with custom orange
-  const primaryColor = "#ff6b35"; // WorkSpot Orange
+  const primaryColor = "#ff6b35"; // OutWork Orange
   const iconColor = useThemeColor({}, "icon");
 
   const [places, setPlaces] = useState<PlaceWithImages[]>([]);
@@ -276,7 +276,7 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       {/* If detailed view is active, show it fully OVER everything else */}
       {selectedPlace ? (
-          <KeyboardAvoidingView
+        <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={{ flex: 1 }}
         >
@@ -285,13 +285,13 @@ export default function HomeScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-           {/* Detailed View Header */}
-           <View style={{position: 'absolute', top: 50, left: 20, zIndex: 10 }}>
+            {/* Detailed View Header */}
+            <View style={{ position: 'absolute', top: 50, left: 20, zIndex: 10 }}>
               <TouchableOpacity
                 style={styles.circleButton}
                 onPress={() => setSelectedPlace(null)}
               >
-                  <MaterialIcons name="arrow-back" size={20} color="#000" />
+                <MaterialIcons name="arrow-back" size={20} color="#000" />
               </TouchableOpacity>
             </View>
 
@@ -305,7 +305,7 @@ export default function HomeScreen() {
               }}
             />
             {/* ... Rest of detail content ... */}
-             <View style={styles.detailContent}>
+            <View style={styles.detailContent}>
               <ThemedText type="title" style={styles.detailTitle}>
                 {selectedPlace.name}
               </ThemedText>
@@ -315,271 +315,271 @@ export default function HomeScreen() {
               </ThemedText>
 
               {/* Meta Info */}
-               <View
-                  style={[
-                    styles.detailMeta,
-                    {
-                      borderTopColor:
-                        colorScheme === "dark"
-                          ? "rgba(255, 255, 255, 0.1)"
-                          : "rgba(0, 0, 0, 0.1)",
-                    },
-                  ]}
-                >
-                  <View style={styles.metaRow}>
-                    <MaterialIcons
-                      name="location-on"
-                      size={18}
-                      color={iconColor}
-                    />
-                    <ThemedText style={styles.metaText}>
-                      {selectedPlace.latitude.toFixed(4)}, {selectedPlace.longitude.toFixed(4)}
-                    </ThemedText>
+              <View
+                style={[
+                  styles.detailMeta,
+                  {
+                    borderTopColor:
+                      colorScheme === "dark"
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(0, 0, 0, 0.1)",
+                  },
+                ]}
+              >
+                <View style={styles.metaRow}>
+                  <MaterialIcons
+                    name="location-on"
+                    size={18}
+                    color={iconColor}
+                  />
+                  <ThemedText style={styles.metaText}>
+                    {selectedPlace.latitude.toFixed(4)}, {selectedPlace.longitude.toFixed(4)}
+                  </ThemedText>
+                </View>
+                <View style={styles.metaRow}>
+                  <MaterialIcons
+                    name={selectedPlace.approved ? "check-circle" : "cancel"}
+                    size={18}
+                    color={selectedPlace.approved ? "#10b981" : iconColor}
+                  />
+                  <ThemedText style={styles.metaText}>
+                    {selectedPlace.approved ? "Approved" : "Pending Approval"}
+                  </ThemedText>
+                </View>
+              </View>
+
+              {/* Reviews */}
+              <View style={styles.reviewsContainer}>
+                <ThemedText type="title" style={styles.sectionTitle}>
+                  Reviews
+                </ThemedText>
+
+                {/* Review Form */}
+                <View style={styles.reviewFormCard}>
+                  <ThemedText style={styles.writeReviewTitle}>
+                    Write a review
+                  </ThemedText>
+                  <View style={styles.starSelector}>
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <TouchableOpacity key={s} onPress={() => setReviewRating(s)}>
+                        <MaterialIcons
+                          name={s <= reviewRating ? "star" : "star-border"}
+                          size={28}
+                          color={primaryColor}
+                        />
+                      </TouchableOpacity>
+                    ))}
                   </View>
-                  <View style={styles.metaRow}>
-                    <MaterialIcons
-                      name={selectedPlace.approved ? "check-circle" : "cancel"}
-                      size={18}
-                      color={selectedPlace.approved ? "#10b981" : iconColor}
-                    />
-                    <ThemedText style={styles.metaText}>
-                      {selectedPlace.approved ? "Approved" : "Pending Approval"}
-                    </ThemedText>
-                  </View>
+                  <TextInput
+                    value={reviewText}
+                    onChangeText={setReviewText}
+                    placeholder="Share your experience…"
+                    placeholderTextColor={
+                      colorScheme === "dark" ? "#9ca3af" : "#6b7280"
+                    }
+                    multiline
+                    style={[
+                      styles.reviewInput,
+                      {
+                        color: textColor,
+                        backgroundColor:
+                          colorScheme === "dark"
+                            ? "rgba(255,255,255,0.06)"
+                            : "#f9fafb",
+                      },
+                    ]}
+                  />
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={submitReview}
+                    disabled={!reviewText.trim() || submittingReview || !session?.user}
+                    style={[
+                      styles.submitButton,
+                      {
+                        backgroundColor: primaryColor,
+                        opacity: !reviewText.trim() || submittingReview || !session?.user ? 0.6 : 1,
+                      },
+                    ]}
+                  >
+                    {submittingReview ? (
+                      <ActivityIndicator color="#ffffffff" />
+                    ) : (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <MaterialIcons name="send" size={18} color="#fff" />
+                        <ThemedText style={{ color: '#fff', fontWeight: 'bold' }}>Post review</ThemedText>
+                      </View>
+                    )}
+                  </TouchableOpacity>
                 </View>
 
-                {/* Reviews */}
-                <View style={styles.reviewsContainer}>
-                  <ThemedText type="title" style={styles.sectionTitle}>
-                    Reviews
-                  </ThemedText>
-
-                  {/* Review Form */}
-                   <View style={styles.reviewFormCard}>
-                      <ThemedText style={styles.writeReviewTitle}>
-                        Write a review
-                      </ThemedText>
-                       <View style={styles.starSelector}>
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <TouchableOpacity key={s} onPress={() => setReviewRating(s)}>
-                          <MaterialIcons
-                            name={s <= reviewRating ? "star" : "star-border"}
-                            size={28}
-                            color={primaryColor}
-                          />
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                     <TextInput
-                      value={reviewText}
-                      onChangeText={setReviewText}
-                      placeholder="Share your experience…"
-                      placeholderTextColor={
-                        colorScheme === "dark" ? "#9ca3af" : "#6b7280"
-                      }
-                      multiline
-                      style={[
-                        styles.reviewInput,
-                        {
-                          color: textColor,
-                          backgroundColor:
-                            colorScheme === "dark"
-                              ? "rgba(255,255,255,0.06)"
-                              : "#f9fafb",
-                        },
-                      ]}
-                    />
-                     <TouchableOpacity
-                      activeOpacity={0.85}
-                      onPress={submitReview}
-                      disabled={!reviewText.trim() || submittingReview || !session?.user}
-                      style={[
-                        styles.submitButton,
-                        {
-                          backgroundColor: primaryColor,
-                          opacity: !reviewText.trim() || submittingReview || !session?.user ? 0.6 : 1,
-                        },
-                      ]}
-                    >
-                      {submittingReview ? (
-                        <ActivityIndicator color="#ffffffff" />
-                      ) : (
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                          <MaterialIcons name="send" size={18} color="#fff"/>
-                          <ThemedText style={{color: '#fff', fontWeight: 'bold'}}>Post review</ThemedText>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                   </View>
-
-                   {/* Reviews List */}
-                   {visibleReviews.length ? (
-                    <>
-                      {visibleReviews.map((r) => (
-                        <View key={r.id} style={styles.reviewCard}>
-                          <View style={styles.reviewHeader}>
-                            <View style={styles.reviewAuthorRow}>
-                              {[1, 2, 3, 4, 5].map((i) => (
-                                <MaterialIcons
-                                  key={i}
-                                  name={i <= Math.round(r.rating) ? "star" : "star-border"}
-                                  size={14}
-                                  color={primaryColor}
-                                />
-                              ))}
-                              <ThemedText style={styles.reviewAuthor}>
-                                {r.username}
-                              </ThemedText>
-                            </View>
-                            <ThemedText style={styles.reviewDate}>
-                              {new Date(r.created_at).toLocaleDateString()}
+                {/* Reviews List */}
+                {visibleReviews.length ? (
+                  <>
+                    {visibleReviews.map((r) => (
+                      <View key={r.id} style={styles.reviewCard}>
+                        <View style={styles.reviewHeader}>
+                          <View style={styles.reviewAuthorRow}>
+                            {[1, 2, 3, 4, 5].map((i) => (
+                              <MaterialIcons
+                                key={i}
+                                name={i <= Math.round(r.rating) ? "star" : "star-border"}
+                                size={14}
+                                color={primaryColor}
+                              />
+                            ))}
+                            <ThemedText style={styles.reviewAuthor}>
+                              {r.username}
                             </ThemedText>
                           </View>
-
-                          <ThemedText style={styles.reviewText}>
-                            {r.comment}
+                          <ThemedText style={styles.reviewDate}>
+                            {new Date(r.created_at).toLocaleDateString()}
                           </ThemedText>
                         </View>
-                      ))}
 
-                      {hasMoreReviews && (
-                        <TouchableOpacity
-                          onPress={() => setShowAllReviews((v) => !v)}
-                          style={styles.showMoreButton}
-                          activeOpacity={0.7}
-                        >
-                          <ThemedText style={{ color: primaryColor, fontWeight: "600" }}>
-                            {showAllReviews ? "Show less" : "Show more reviews"}
-                          </ThemedText>
-                        </TouchableOpacity>
-                      )}
-                    </>
-                  ) : (
-                    <ThemedText style={styles.noReviewsText}>
-                      No reviews yet — be the first ✨
-                    </ThemedText>
-                  )}
+                        <ThemedText style={styles.reviewText}>
+                          {r.comment}
+                        </ThemedText>
+                      </View>
+                    ))}
 
-                </View>
-             </View>
+                    {hasMoreReviews && (
+                      <TouchableOpacity
+                        onPress={() => setShowAllReviews((v) => !v)}
+                        style={styles.showMoreButton}
+                        activeOpacity={0.7}
+                      >
+                        <ThemedText style={{ color: primaryColor, fontWeight: "600" }}>
+                          {showAllReviews ? "Show less" : "Show more reviews"}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                ) : (
+                  <ThemedText style={styles.noReviewsText}>
+                    No reviews yet — be the first ✨
+                  </ThemedText>
+                )}
+
+              </View>
+            </View>
           </ScrollView>
-           <FullscreenGallery
-              visible={galleryVisible}
-              images={galleryImages}
-              initialIndex={galleryIndex}
-              onRequestClose={() => setGalleryVisible(false)}
-            />
+          <FullscreenGallery
+            visible={galleryVisible}
+            images={galleryImages}
+            initialIndex={galleryIndex}
+            onRequestClose={() => setGalleryVisible(false)}
+          />
         </KeyboardAvoidingView>
       ) : (
         <>
-        <SearchHeader />
-        
-        {viewMode === "list" ? (
-           <FlatList
-           data={places}
-           keyExtractor={(item) => item.id.toString()}
-           showsVerticalScrollIndicator={false}
-           contentContainerStyle={styles.listContent}
-           renderItem={({ item }) => (
-             <TouchableOpacity
-               style={styles.card}
-               onPress={() => setSelectedPlace(item)}
-               activeOpacity={0.9}
-             >
-               <ImageCarousel
-                 images={item.images ?? [`https://picsum.photos/400/250?random=${item.id}`]}
-                 height={280} // Taller image for Airbnb feel
-                 onPress={(i) => {
-                   setGalleryImages(item.images ?? [`https://picsum.photos/400/250?random=${item.id}`]);
-                   setGalleryIndex(i);
-                   setGalleryVisible(true);
-                 }}
-               />
-               
-               {/* Heart Icon Overlay */}
-                <View style={styles.heartOverlay}>
-                  <MaterialIcons name="favorite-border" size={24} color="#fff" />
-                </View>
+          <SearchHeader />
 
-               <View style={styles.cardContent}>
-                  <View style={styles.cardHeaderRow}>
-                    <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
-                      {item.name}
-                    </ThemedText>
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 2}}>
-                       <MaterialIcons name="star" size={14} color={primaryColor} />
-                       <ThemedText style={{fontSize: 14}}>{item.rating_avg.toFixed(1)}</ThemedText>
-                    </View>
+          {viewMode === "list" ? (
+            <FlatList
+              data={places}
+              keyExtractor={(item) => item.id.toString()}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContent}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.card}
+                  onPress={() => setSelectedPlace(item)}
+                  activeOpacity={0.9}
+                >
+                  <ImageCarousel
+                    images={item.images ?? [`https://picsum.photos/400/250?random=${item.id}`]}
+                    height={280} // Taller image for Airbnb feel
+                    onPress={(i) => {
+                      setGalleryImages(item.images ?? [`https://picsum.photos/400/250?random=${item.id}`]);
+                      setGalleryIndex(i);
+                      setGalleryVisible(true);
+                    }}
+                  />
+
+                  {/* Heart Icon Overlay */}
+                  <View style={styles.heartOverlay}>
+                    <MaterialIcons name="favorite-border" size={24} color="#fff" />
                   </View>
-                
-                 <ThemedText
-                   style={styles.cardDescription}
-                   numberOfLines={1}
-                 >
-                   Hosted by WorkSpot
-                 </ThemedText>
-                  <ThemedText
-                   style={styles.cardDescription}
-                   numberOfLines={1}
-                   ellipsizeMode="tail"
-                 >
-                   {item.description}
-                 </ThemedText>
-                 {/* <View style={{marginTop: 6}}>
+
+                  <View style={styles.cardContent}>
+                    <View style={styles.cardHeaderRow}>
+                      <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
+                        {item.name}
+                      </ThemedText>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                        <MaterialIcons name="star" size={14} color={primaryColor} />
+                        <ThemedText style={{ fontSize: 14 }}>{item.rating_avg.toFixed(1)}</ThemedText>
+                      </View>
+                    </View>
+
+                    <ThemedText
+                      style={styles.cardDescription}
+                      numberOfLines={1}
+                    >
+                      Hosted by OutWork
+                    </ThemedText>
+                    <ThemedText
+                      style={styles.cardDescription}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {item.description}
+                    </ThemedText>
+                    {/* <View style={{marginTop: 6}}>
                      <ThemedText style={{fontSize: 15, fontWeight: '600'}}>
                        $20 <ThemedText style={{fontWeight: '400'}}>night</ThemedText>
                      </ThemedText>
                  </View> */}
-               </View>
-             </TouchableOpacity>
-           )}
-           ListEmptyComponent={
-             <View style={styles.emptyContainer}>
-               <MaterialIcons name="place" size={48} color={iconColor} />
-               <ThemedText style={styles.emptyText}>
-                 No places found
-               </ThemedText>
-             </View>
-           }
-         />
-        ) : (
-          <View style={{flex: 1}}>
-             <MapView
-              ref={mapRef}
-              provider={PROVIDER_DEFAULT} 
-              style={StyleSheet.absoluteFill}
-              initialRegion={{
-                latitude: 37.9838,
-                longitude: 23.7275,
-                latitudeDelta: 0.05,
-                longitudeDelta: 0.05,
-              }}
-            >
-              {places.map((place) => (
-                <Marker
-                  key={place.id}
-                  coordinate={{
-                    latitude: place.latitude,
-                    longitude: place.longitude,
-                  }}
-                  title={place.name}
-                  onPress={() => setSelectedPlace(place)}
-                >
-                  <View style={[styles.mapMarker, {backgroundColor: primaryColor}]}>
-                     <ThemedText style={styles.mapMarkerText}>
-                      <MaterialIcons name="star" size={14} color="#fff" />
-                      {place.rating_avg.toFixed(1)}
-                     </ThemedText>
                   </View>
-                </Marker>
-              ))}
-            </MapView>
-          </View>
-        )}
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <MaterialIcons name="place" size={48} color={iconColor} />
+                  <ThemedText style={styles.emptyText}>
+                    No places found
+                  </ThemedText>
+                </View>
+              }
+            />
+          ) : (
+            <View style={{ flex: 1 }}>
+              <MapView
+                ref={mapRef}
+                provider={PROVIDER_DEFAULT}
+                style={StyleSheet.absoluteFill}
+                initialRegion={{
+                  latitude: 37.9838,
+                  longitude: 23.7275,
+                  latitudeDelta: 0.05,
+                  longitudeDelta: 0.05,
+                }}
+              >
+                {places.map((place) => (
+                  <Marker
+                    key={place.id}
+                    coordinate={{
+                      latitude: place.latitude,
+                      longitude: place.longitude,
+                    }}
+                    title={place.name}
+                    onPress={() => setSelectedPlace(place)}
+                  >
+                    <View style={[styles.mapMarker, { backgroundColor: primaryColor }]}>
+                      <ThemedText style={styles.mapMarkerText}>
+                        <MaterialIcons name="star" size={14} color="#fff" />
+                        {place.rating_avg.toFixed(1)}
+                      </ThemedText>
+                    </View>
+                  </Marker>
+                ))}
+              </MapView>
+            </View>
+          )}
 
-        {/* Floating Map Button always visible on top level */}
-        <FloatingMapButton />
-         <FullscreenGallery
+          {/* Floating Map Button always visible on top level */}
+          <FloatingMapButton />
+          <FullscreenGallery
             visible={galleryVisible}
             images={galleryImages}
             initialIndex={galleryIndex}
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
     right: 16,
     zIndex: 5,
   },
-  
+
   // Detail
   detailContainer: {
     paddingBottom: 40,
@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 15,
   },
-  
+
   // Reviews
   reviewsContainer: {
     marginTop: 32,
@@ -733,10 +733,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   reviewFormCard: {
-     marginBottom: 24,
-     padding: 16,
-     backgroundColor: 'rgba(0,0,0,0.03)',
-     borderRadius: 12,
+    marginBottom: 24,
+    padding: 16,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 12,
   },
   writeReviewTitle: {
     fontWeight: '600',
@@ -765,7 +765,7 @@ const styles = StyleSheet.create({
   },
   reviewHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between', 
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   reviewAuthorRow: {
@@ -829,7 +829,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     opacity: 0.6,
   },
-  
+
   // Floating Map Button
   floatingButtonContainer: {
     position: 'absolute',
@@ -850,7 +850,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  
+
   // Map Custom Marker
   mapMarker: {
     backgroundColor: '#fff',

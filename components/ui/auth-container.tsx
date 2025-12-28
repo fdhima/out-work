@@ -43,7 +43,7 @@ export function AuthContainer({
             { color: textColor, fontWeight: 'bold' },
           ]}
         >
-          WorkSpot
+          OutWork
         </ThemedText>
         <ThemedText
           style={[

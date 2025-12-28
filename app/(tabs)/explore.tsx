@@ -28,7 +28,7 @@ export default function CreatePlaceScreen() {
   const iconColor = useThemeColor({}, "icon");
   const backgroundColor = useThemeColor({}, "background");
 
-  // WorkSpot Theme
+  // OutWork Theme
   const primaryColor = "#ff6b35";
 
   const [name, setName] = useState("");
