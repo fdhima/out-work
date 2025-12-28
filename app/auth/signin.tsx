@@ -1,36 +1,71 @@
+import { AuthContainer } from '@/components/ui/auth-container'
+import { AuthInput } from '@/components/ui/auth-input'
+import { GradientButton } from '@/components/ui/gradient-button'
+import { SocialButton } from '@/components/ui/social-button'
 import { ThemedText } from '@/components/themed-text'
 import { ThemedView } from '@/components/themed-view'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useThemeColor } from '@/hooks/use-theme-color'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useRouter, useLocalSearchParams } from 'expo-router'
+import { useState, useEffect } from 'react'
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native'
 
-export default function LoginScreen() {
+export default function AuthScreen() {
   const router = useRouter()
+  const params = useLocalSearchParams<{ tab?: string }>()
+  
+  // Determine initial tab from route params or default to signin
+  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>(() => {
+    const tab = params.tab as 'signin' | 'signup' | undefined
+    return tab === 'signup' ? 'signup' : 'signin'
+  })
+
+  // Sign in state
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
   const [reset, setReset] = useState(false)
   const [resetSent, setResetSent] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
 
+  // Sign up state
+  const [fullName, setFullName] = useState('')
+  const [username, setUsername] = useState('')
+  const [signupEmail, setSignupEmail] = useState('')
+  const [signupPassword, setSignupPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  // Shared state
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
   const colorScheme = useColorScheme() ?? 'light'
   const textColor = useThemeColor({}, 'text')
-  const tintColor = useThemeColor({}, 'tint')
   const iconColor = useThemeColor({}, 'icon')
+  const inputBg =
+    colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f3f4f6'
+  const borderColor = colorScheme === 'dark' ? '#9BA1A6' : '#d1d5db'
+
+  // Clear errors when switching tabs
+  useEffect(() => {
+    setError(null)
+    setMessage(null)
+    setReset(false)
+    setResetSent(false)
+  }, [activeTab])
 
   const resetPassword = async () => {
     try {
@@ -73,6 +108,275 @@ export default function LoginScreen() {
     }
   }
 
+  const signUp = async () => {
+    if (!username.trim()) {
+      setError('Username is required')
+      return
+    }
+
+    if (!fullName.trim()) {
+      setError('Full name is required')
+      return
+    }
+
+    if (signupPassword !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      setMessage(null)
+
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: signupEmail,
+        password: signupPassword,
+        options: {
+          data: {
+            username,
+          },
+        },
+      })
+
+      if (signUpError) {
+        setError(signUpError.message)
+        return
+      }
+
+      const user = data.user
+      if (!user) {
+        setError('User creation failed')
+        return
+      }
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          full_name: fullName,
+        })
+
+      if (profileError) {
+        setError(profileError.message)
+        return
+      }
+
+      setMessage('Check your email to confirm your account')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    // TODO: Implement Google sign in
+    console.log('Google sign in')
+  }
+
+  const handleAppleSignIn = async () => {
+    // TODO: Implement Apple sign in
+    console.log('Apple sign in')
+  }
+
+  const renderSignInForm = () => (
+    <>
+      <AuthInput
+        label="Email Address"
+        placeholder="you@example.com"
+        autoCapitalize="none"
+        keyboardType="email-address"
+        value={email}
+        onChangeText={setEmail}
+        icon="mail-outline"
+        textColor={textColor}
+        iconColor={iconColor}
+        backgroundColor={inputBg}
+      />
+
+      <AuthInput
+        label="Password"
+        placeholder="••••••••"
+        secureTextEntry
+        value={password}
+        onChangeText={setPassword}
+        icon="lock-closed-outline"
+        textColor={textColor}
+        iconColor={iconColor}
+        backgroundColor={inputBg}
+      />
+
+      <View style={styles.rememberForgotRow}>
+        <TouchableOpacity
+          style={styles.checkboxContainer}
+          onPress={() => setRememberMe(!rememberMe)}
+        >
+          <View
+            style={[
+              styles.checkbox,
+              {
+                borderColor: borderColor,
+                backgroundColor: rememberMe ? '#ff6b35' : 'transparent',
+              },
+            ]}
+          >
+            {rememberMe && (
+              <ThemedText style={styles.checkmark}>✓</ThemedText>
+            )}
+          </View>
+          <ThemedText style={[styles.checkboxLabel, { color: textColor }]}>
+            Remember me
+          </ThemedText>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => {
+            setReset(true)
+            setResetSent(false)
+            setResetEmail(email)
+          }}
+        >
+          <ThemedText style={[styles.forgotPassword, { color: '#ff6b35' }]}>
+            Forgot password?
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+
+      {reset && (
+        <>
+          <AuthInput
+            label="Reset email"
+            placeholder="you@example.com"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={resetEmail}
+            onChangeText={setResetEmail}
+            icon="mail-outline"
+            textColor={textColor}
+            iconColor={iconColor}
+            backgroundColor={inputBg}
+          />
+
+          <TouchableOpacity
+            style={[
+              styles.secondaryButton,
+              {
+                backgroundColor:
+                  colorScheme === 'dark'
+                    ? 'rgba(255, 255, 255, 0.15)'
+                    : '#e5e7eb',
+              },
+            ]}
+            onPress={resetPassword}
+            disabled={resetLoading}
+          >
+            {resetLoading ? (
+              <ActivityIndicator color={textColor} />
+            ) : (
+              <ThemedText style={[styles.secondaryText, { color: textColor }]}>
+                Send reset email
+              </ThemedText>
+            )}
+          </TouchableOpacity>
+        </>
+      )}
+
+      {resetSent && (
+        <ThemedText
+          style={{
+            textAlign: 'center',
+            marginVertical: 10,
+            color: '#22c55e',
+            fontWeight: '500',
+          }}
+        >
+          Password reset email sent 📧
+        </ThemedText>
+      )}
+
+      <GradientButton
+        title="Sign In"
+        onPress={signIn}
+        loading={loading}
+        disabled={loading}
+      />
+    </>
+  )
+
+  const renderSignUpForm = () => (
+    <>
+      <AuthInput
+        label="Full name"
+        placeholder="John Doe"
+        value={fullName}
+        onChangeText={setFullName}
+        icon="person-outline"
+        textColor={textColor}
+        iconColor={iconColor}
+        backgroundColor={inputBg}
+      />
+
+      <AuthInput
+        label="Username"
+        placeholder="your_username"
+        autoCapitalize="none"
+        value={username}
+        onChangeText={setUsername}
+        icon="at-outline"
+        textColor={textColor}
+        iconColor={iconColor}
+        backgroundColor={inputBg}
+      />
+
+      <AuthInput
+        label="Email Address"
+        placeholder="you@example.com"
+        autoCapitalize="none"
+        keyboardType="email-address"
+        value={signupEmail}
+        onChangeText={setSignupEmail}
+        icon="mail-outline"
+        textColor={textColor}
+        iconColor={iconColor}
+        backgroundColor={inputBg}
+      />
+
+      <AuthInput
+        label="Password"
+        placeholder="••••••••"
+        secureTextEntry={!showPassword}
+        showToggle
+        onToggleSecure={() => setShowPassword((v) => !v)}
+        value={signupPassword}
+        onChangeText={setSignupPassword}
+        icon="lock-closed-outline"
+        textColor={textColor}
+        iconColor={iconColor}
+        backgroundColor={inputBg}
+      />
+
+      <AuthInput
+        label="Confirm password"
+        placeholder="••••••••"
+        secureTextEntry={!showConfirmPassword}
+        showToggle
+        onToggleSecure={() => setShowConfirmPassword((v) => !v)}
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        icon="lock-closed-outline"
+        textColor={textColor}
+        iconColor={iconColor}
+        backgroundColor={inputBg}
+      />
+
+      <GradientButton
+        title="Sign Up"
+        onPress={signUp}
+        loading={loading}
+        disabled={loading}
+      />
+    </>
+  )
+
   return (
     <ThemedView style={styles.container}>
       <KeyboardAvoidingView
@@ -83,218 +387,50 @@ export default function LoginScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor:
-                  colorScheme === 'dark'
-                    ? 'rgba(255, 255, 255, 0.08)'
-                    : 'rgba(255, 255, 255, 0.95)',
-              },
-            ]}
+          <AuthContainer
+            activeTab={activeTab}
+            onTabChange={(tab) => setActiveTab(tab)}
           >
-            <ThemedText type="title" style={styles.title}>
-              Welcome back
-            </ThemedText>
-            <ThemedText type="subtitle" style={styles.subtitle}>
-              Sign in to continue
-            </ThemedText>
+            {activeTab === 'signin' ? renderSignInForm() : renderSignUpForm()}
 
-            <Input
-              label="Email"
-              placeholder="you@example.com"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              textColor={textColor}
-              iconColor={iconColor}
-              backgroundColor={
-                colorScheme === 'dark'
-                  ? 'rgba(255, 255, 255, 0.1)'
-                  : '#f3f4f6'
-              }
-            />
-
-            <Input
-              label="Password"
-              placeholder="••••••••"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              textColor={textColor}
-              iconColor={iconColor}
-              backgroundColor={
-                colorScheme === 'dark'
-                  ? 'rgba(255, 255, 255, 0.1)'
-                  : '#f3f4f6'
-              }
-            />
-            <TouchableOpacity
-              onPress={() => {
-                setReset(true)
-                setResetSent(false)
-                setResetEmail(email)
-              }}
-            >
-              <ThemedText
-                style={{
-                  textAlign: 'center',
-                  marginBottom: 12,
-                  fontSize: 14,
-                  opacity: 0.8,
-                }}
-              >
-                Forgot password?
-              </ThemedText>
-            </TouchableOpacity>
-
-            {error ? (
+            {error && (
               <ThemedText style={[styles.error, { color: '#ef4444' }]}>
                 {error}
               </ThemedText>
-            ) : null}
-
-            {reset && (
-              <>
-                <Input
-                  label="Reset email"
-                  placeholder="you@example.com"
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  value={resetEmail}
-                  onChangeText={setResetEmail}
-                  textColor={textColor}
-                  iconColor={iconColor}
-                  backgroundColor={
-                    colorScheme === 'dark'
-                      ? 'rgba(255, 255, 255, 0.1)'
-                      : '#f3f4f6'
-                  }
-                />
-
-                <TouchableOpacity
-                  style={[
-                    styles.secondaryButton,
-                    {
-                      backgroundColor:
-                        colorScheme === 'dark'
-                          ? 'rgba(255, 255, 255, 0.15)'
-                          : '#e5e7eb',
-                    },
-                  ]}
-                  onPress={resetPassword}
-                  disabled={resetLoading}
-                >
-                  {resetLoading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <ThemedText style={styles.secondaryText}>
-                      Send reset email
-                    </ThemedText>
-                  )}
-                </TouchableOpacity>
-              </>
             )}
 
-            {resetSent && (
-              <ThemedText
-                style={{
-                  textAlign: 'center',
-                  marginVertical: 10,
-                  color: '#22c55e',
-                  fontWeight: '500',
-                }}
-              >
-                Password reset email sent 📧
+            {message && (
+              <ThemedText style={[styles.success, { color: '#16a34a' }]}>
+                {message}
               </ThemedText>
             )}
 
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                {
-                  backgroundColor:
-                    colorScheme === 'dark'
-                      ? 'rgba(255, 255, 255, 0.15)'
-                      : '#e5e7eb',
-                },
-              ]}
-              onPress={signIn}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <ThemedText
-                  lightColor="#fff"
-                  darkColor="#fff"
-                  style={styles.primaryText}
-                >
-                  Sign In
-                </ThemedText>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.secondaryButton,
-                {
-                  backgroundColor:
-                    colorScheme === 'dark'
-                      ? 'rgba(255, 255, 255, 0.15)'
-                      : '#e5e7eb',
-                },
-              ]}
-              onPress={() => router.push('/auth/signup')}
-              disabled={loading}
-            >
-              <ThemedText style={styles.secondaryText}>
-                Create an account
+            <View style={styles.divider}>
+              <View style={[styles.dividerLine, { backgroundColor: borderColor }]} />
+              <ThemedText style={[styles.dividerText, { color: iconColor }]}>
+                or continue with
               </ThemedText>
-            </TouchableOpacity>
-          </View>
+              <View style={[styles.dividerLine, { backgroundColor: borderColor }]} />
+            </View>
+
+            <View style={styles.socialButtons}>
+              <SocialButton
+                provider="google"
+                onPress={handleGoogleSignIn}
+                textColor={textColor}
+                borderColor={borderColor}
+              />
+              <SocialButton
+                provider="apple"
+                onPress={handleAppleSignIn}
+                textColor={textColor}
+                borderColor={borderColor}
+              />
+            </View>
+          </AuthContainer>
         </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
-  )
-}
-
-interface InputProps {
-  label: string
-  textColor: string
-  iconColor: string
-  backgroundColor: string
-  [key: string]: any
-}
-
-function Input({
-  label,
-  textColor,
-  iconColor,
-  backgroundColor,
-  ...props
-}: InputProps) {
-  return (
-    <View style={styles.inputGroup}>
-      <ThemedText style={styles.label}>{label}</ThemedText>
-      <TextInput
-        {...props}
-        style={[
-          styles.input,
-          {
-            backgroundColor,
-            color: textColor,
-            borderColor:
-              backgroundColor === 'rgba(255, 255, 255, 0.1)'
-                ? 'rgba(255, 255, 255, 0.2)'
-                : 'transparent',
-          },
-        ]}
-        placeholderTextColor={iconColor}
-      />
-    </View>
   )
 }
 
@@ -307,50 +443,38 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 16,
-    paddingTop: 24,
-    paddingBottom: 32,
     justifyContent: 'center',
   },
-  card: {
-    borderRadius: 20,
-    padding: 24,
-    paddingBottom: 28,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-    gap: 12,
-  },
-  title: {
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  subtitle: {
-    textAlign: 'center',
+  rememberForgotRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
-    opacity: 0.7,
   },
-  inputGroup: {
-    marginBottom: 14,
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  label: {
-    marginBottom: 8,
-    fontSize: 15,
-    fontWeight: '600',
-    opacity: 0.9,
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  input: {
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    minHeight: 52,
-    borderWidth: 1,
+  checkmark: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+  },
+  forgotPassword: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   error: {
     textAlign: 'center',
@@ -358,25 +482,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  primaryButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    minHeight: 52,
-    justifyContent: 'center',
-    alignItems: 'center',
-    // shadowColor: '#0a7ea4',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  primaryText: {
-    fontWeight: '600',
-    fontSize: 16,
+  success: {
+    textAlign: 'center',
+    marginVertical: 8,
+    fontSize: 14,
+    fontWeight: '500',
   },
   secondaryButton: {
     paddingVertical: 14,
@@ -385,10 +495,27 @@ const styles = StyleSheet.create({
     minHeight: 52,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 12,
   },
   secondaryText: {
     fontWeight: '600',
     fontSize: 16,
   },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+    gap: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontSize: 14,
+  },
+  socialButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
 })
-
