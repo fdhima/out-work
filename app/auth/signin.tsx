@@ -22,11 +22,35 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+  const [reset, setReset] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
 
   const colorScheme = useColorScheme() ?? 'light'
   const textColor = useThemeColor({}, 'text')
   const tintColor = useThemeColor({}, 'tint')
   const iconColor = useThemeColor({}, 'icon')
+
+  const resetPassword = async () => {
+    try {
+      setResetLoading(true)
+      setError(null)
+
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: 'https://out-work.online/reset-password',
+      })
+
+      if (error) {
+        setError(error.message)
+        return
+      }
+
+      setResetSent(true)
+    } finally {
+      setResetLoading(false)
+    }
+  }
 
   const signIn = async () => {
     try {
@@ -107,12 +131,85 @@ export default function LoginScreen() {
                   : '#f3f4f6'
               }
             />
+            <TouchableOpacity
+              onPress={() => {
+                setReset(true)
+                setResetSent(false)
+                setResetEmail(email)
+              }}
+            >
+              <ThemedText
+                style={{
+                  textAlign: 'center',
+                  marginBottom: 12,
+                  fontSize: 14,
+                  opacity: 0.8,
+                }}
+              >
+                Forgot password?
+              </ThemedText>
+            </TouchableOpacity>
 
             {error ? (
               <ThemedText style={[styles.error, { color: '#ef4444' }]}>
                 {error}
               </ThemedText>
             ) : null}
+
+            {reset && (
+              <>
+                <Input
+                  label="Reset email"
+                  placeholder="you@example.com"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={resetEmail}
+                  onChangeText={setResetEmail}
+                  textColor={textColor}
+                  iconColor={iconColor}
+                  backgroundColor={
+                    colorScheme === 'dark'
+                      ? 'rgba(255, 255, 255, 0.1)'
+                      : '#f3f4f6'
+                  }
+                />
+
+                <TouchableOpacity
+                  style={[
+                    styles.secondaryButton,
+                    {
+                      backgroundColor:
+                        colorScheme === 'dark'
+                          ? 'rgba(255, 255, 255, 0.15)'
+                          : '#e5e7eb',
+                    },
+                  ]}
+                  onPress={resetPassword}
+                  disabled={resetLoading}
+                >
+                  {resetLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <ThemedText style={styles.secondaryText}>
+                      Send reset email
+                    </ThemedText>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+
+            {resetSent && (
+              <ThemedText
+                style={{
+                  textAlign: 'center',
+                  marginVertical: 10,
+                  color: '#22c55e',
+                  fontWeight: '500',
+                }}
+              >
+                Password reset email sent 📧
+              </ThemedText>
+            )}
 
             <TouchableOpacity
               style={[

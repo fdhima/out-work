@@ -8,6 +8,7 @@
     "scheme": "out-work",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "deepLinks": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dflorjan.outwork"
