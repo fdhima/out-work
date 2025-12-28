@@ -4,6 +4,7 @@ import FullscreenGallery from "@/components/ui/fullscreen-gallery";
 import { useAuth } from "@/context/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { getPlacesByCategory } from "@/services/categories";
 import { getImagesForPlace } from "@/services/images";
 import { getPlaces, Place } from "@/services/places";
 import { createReview, getReviewsByPlaceId, Review } from "@/services/reviews";
@@ -33,6 +34,15 @@ const CATEGORIES = [
   { id: "wifi", label: "Fast Wifi", icon: "wifi" },
   { id: "late", label: "Late Night", icon: "nightlight" },
 ];
+
+const CATEGORY_API_MAP: Record<string, string[]> = {
+  all: [],
+  quiet: ["quiet"],
+  meeting: ["meeting"],
+  wifi: ["wifi"],
+  late: ["late_night"],
+};
+
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? "light";
@@ -71,14 +81,19 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchPlaces();
-    }, [])
+      fetchPlaces(selectedCategory);
+    }, [selectedCategory])
   );
 
-  const fetchPlaces = async () => {
+  const fetchPlaces = async (categoryId: string) => {
     try {
       setLoading(true);
-      const data = await getPlaces();
+      const apiCategories = CATEGORY_API_MAP[categoryId];
+      const data =
+        categoryId === "all"
+          ? await getPlaces()
+          : await getPlacesByCategory(apiCategories);     
+      console.log(`Fetched places: ${data}`)
       if (!data) return;
 
       const placesWithImages = await Promise.all(
@@ -236,6 +251,7 @@ export default function HomeScreen() {
                 size={24}
                 color={isActive ? "#000" : "#888"} // Active is always blackish on light, handling dark mode via opacity if needed
                 style={{ opacity: isActive ? 1 : 0.6 }}
+                onPress={() => setSelectedCategory(cat.id)}
               />
               <ThemedText
                 style={[
