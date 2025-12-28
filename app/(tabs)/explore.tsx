@@ -10,7 +10,9 @@ import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert, Image, KeyboardAvoidingView,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -18,14 +20,16 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 
-
-export default function CreatePlace() {
+export default function CreatePlaceScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const textColor = useThemeColor({}, "text");
-  const tintColor = useThemeColor({}, "tint");
   const iconColor = useThemeColor({}, "icon");
+  const backgroundColor = useThemeColor({}, "background");
+
+  // WorkSpot Theme
+  const primaryColor = "#ff6b35";
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -36,7 +40,6 @@ export default function CreatePlace() {
   const [loading, setLoading] = useState(false);
 
   const inputBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f3f4f6';
-  const cardBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.95)';
 
   const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -62,10 +65,8 @@ export default function CreatePlace() {
   };
 
   const handleCreatePlace = async () => {
-    // Basic validation
     if (!name || !description || !latitude || !longitude) {
       Alert.alert("Error", "Please fill in all fields");
-      console.log(name, description, latitude, longitude, await getUserId())
       return;
     }
 
@@ -78,13 +79,13 @@ export default function CreatePlace() {
         description,
         latitude: latitude,
         longitude: longitude,
-        rating_avg: rating > 0 ? rating : 5, // Use user rating if selected, otherwise default to 5
+        rating_avg: rating > 0 ? rating : 5,
         approved: true,
       });
-      
+
       for (let i = 0; i < images.length; i++) {
         const url = await uploadImage(images[i].uri, newPlace.id, i);
-        await createImage({url: url, place_id: newPlace.id});
+        await createImage({ url: url, place_id: newPlace.id });
       }
       Alert.alert("Success", "Place created successfully!");
       // Reset form
@@ -93,13 +94,13 @@ export default function CreatePlace() {
       setLatitude(null);
       setLongitude(null);
       setRating(0);
+      setImages([]);
     } catch (error: any) {
       console.error(error);
       Alert.alert("Error", error.message || "Failed to create place");
     } finally {
       setLoading(false);
     }
-
   };
 
   return (
@@ -112,51 +113,83 @@ export default function CreatePlace() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.card, { backgroundColor: cardBg }]}>
+          <View style={styles.header}>
             <ThemedText type="title" style={styles.title}>
-              Create Place
+              List your space
             </ThemedText>
-            <ThemedText type="subtitle" style={styles.subtitle}>
-              Add a new place to explore
+            <ThemedText style={styles.subtitle}>
+              Share your perfect work spot with others
             </ThemedText>
+          </View>
 
-            <Input
-              label="Name"
-              placeholder="Enter place name"
-              value={name}
-              onChangeText={setName}
-              textColor={textColor}
-              iconColor={iconColor}
-              backgroundColor={inputBg}
-            />
-
-            <Input
-              label="Description"
-              placeholder="Enter description"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              textColor={textColor}
-              iconColor={iconColor}
-              backgroundColor={inputBg}
-              style={styles.multilineInput}
-            />
-
+          <View style={styles.formContainer}>
+            {/* Name Input */}
             <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Select Location</ThemedText>
-              <View
+              <ThemedText style={styles.label}>Name your place</ThemedText>
+              <TextInput
                 style={[
-                  styles.mapContainer,
-                  {
-                    borderColor:
-                      colorScheme === "dark"
-                        ? "rgba(255, 255, 255, 0.2)"
-                        : "rgba(0, 0, 0, 0.1)",
-                  },
+                  styles.input,
+                  { backgroundColor: inputBg, color: textColor }
                 ]}
-              >
+                placeholder="e.g. Cozy Corner Cafe"
+                placeholderTextColor={iconColor}
+                value={name}
+                onChangeText={setName}
+              />
+            </View>
+
+            {/* Description Input */}
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.label}>Description</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.textArea,
+                  { backgroundColor: inputBg, color: textColor }
+                ]}
+                placeholder="What makes this spot great for working?"
+                placeholderTextColor={iconColor}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+
+            {/* Images Section */}
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.label}>Photos ({images.length}/4)</ThemedText>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photosScroll}>
+                <TouchableOpacity
+                  style={[styles.addPhotoButton, { borderColor: iconColor }]}
+                  onPress={pickImages}
+                  disabled={images.length >= 4}
+                >
+                  <MaterialIcons name="add-a-photo" size={28} color={primaryColor} />
+                  <ThemedText style={{ fontSize: 12, marginTop: 4, fontWeight: '500' }}>Add Photo</ThemedText>
+                </TouchableOpacity>
+
+                {images.map((img) => (
+                  <View key={img.uri} style={styles.photoContainer}>
+                    <Image source={{ uri: img.uri }} style={styles.photo} />
+                    <TouchableOpacity
+                      style={styles.removePhotoButton}
+                      onPress={() => removeImage(img.uri)}
+                    >
+                      <MaterialIcons name="close" size={16} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Map Selection */}
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.label}>Location</ThemedText>
+              <View style={styles.mapWrapper}>
                 <MapView
                   style={styles.map}
+                  provider={PROVIDER_DEFAULT}
                   initialRegion={{
                     latitude: 37.9838,
                     longitude: 23.7275,
@@ -166,183 +199,60 @@ export default function CreatePlace() {
                   onPress={selectPlace}
                 >
                   {latitude !== null && longitude !== null && (
-                    <Marker coordinate={{ latitude, longitude }} />
+                    <Marker coordinate={{ latitude, longitude }}>
+                      <View style={[styles.mapMarker, { backgroundColor: primaryColor }]}>
+                        <MaterialIcons name="location-on" size={20} color="#fff" />
+                      </View>
+                    </Marker>
                   )}
                 </MapView>
+                <View style={styles.mapOverlay}>
+                  {latitude ? (
+                    <ThemedText style={styles.locationText}>
+                      Location selected ✓
+                    </ThemedText>
+                  ) : (
+                    <ThemedText style={styles.locationText}>
+                      Tap to select location
+                    </ThemedText>
+                  )}
+                </View>
               </View>
-              {latitude !== null && longitude !== null ? (
-                <ThemedText style={styles.mapHint}>
-                  Location selected: {latitude.toFixed(4)}, {longitude.toFixed(4)}
-                </ThemedText>
-              ) : (
-                <ThemedText style={styles.mapHint}>
-                  Tap on the map to select a location
-                </ThemedText>
-              )}
             </View>
 
-            <StarRating
-              label="Rating (optional)"
-              value={rating}
-              onValueChange={setRating}
-              tintColor={tintColor}
-              iconColor={iconColor}
-            />
-
+            {/* Rating */}
             <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>
-                Images ({images.length}/4)
-              </ThemedText>
-
-              <View style={styles.imageGrid}>
-                {images.map((img) => (
-                  <View key={img.uri} style={styles.imageWrapper}>
-                    <Image
-                      source={{ uri: img.uri }}
-                      style={styles.image}
-                    />
-
-                    <TouchableOpacity 
-                      style={styles.removeImage}
-                      onPress={() => removeImage(img.uri)}
-                    >
-                      <MaterialIcons name="close" size={18} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-
-                {images.length < 4 && (
-                  <TouchableOpacity
-                    style={styles.addImage}
-                    onPress={pickImages}
-                  >
+              <ThemedText style={styles.label}>Initial Rating</ThemedText>
+              <View style={styles.ratingContainer}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity key={star} onPress={() => setRating(star === rating ? 0 : star)}>
                     <MaterialIcons
-                      name="add-photo-alternate"
+                      name={star <= rating ? "star" : "star-border"}
                       size={32}
-                      color={iconColor}
+                      color={star <= rating ? primaryColor : iconColor}
                     />
                   </TouchableOpacity>
-                )}
+                ))}
+              </View>
             </View>
 
-
             <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                {
-                  backgroundColor:
-                    colorScheme === 'dark'
-                      ? 'rgba(255, 255, 255, 0.08)'
-                      : 'rgba(255, 255, 255, 0.95)',
-                },
-              ]}
+              style={[styles.submitButton, { backgroundColor: primaryColor }]}
               onPress={handleCreatePlace}
               disabled={loading}
+              activeOpacity={0.8}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <ThemedText
-                  lightColor="#fff"
-                  darkColor="#fff"
-                  style={styles.primaryButtonText}
-                >
-                  Create Place
-                </ThemedText>
+                <ThemedText style={styles.submitButtonText}>Publish Listing</ThemedText>
               )}
             </TouchableOpacity>
-          </View>
+
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
-  );
-}
-
-interface InputProps {
-  label: string;
-  textColor: string;
-  iconColor: string;
-  backgroundColor: string;
-  style?: any;
-  [key: string]: any;
-}
-
-function Input({
-  label,
-  textColor,
-  iconColor,
-  backgroundColor,
-  style,
-  ...props
-}: InputProps) {
-  return (
-    <View style={styles.inputGroup}>
-      <ThemedText style={styles.label}>{label}</ThemedText>
-      <TextInput
-        {...props}
-        style={[
-          styles.input,
-          {
-            backgroundColor,
-            color: textColor,
-            borderColor:
-              backgroundColor === "rgba(255, 255, 255, 0.1)"
-                ? "rgba(255, 255, 255, 0.2)"
-                : "transparent",
-          },
-          style,
-        ]}
-        placeholderTextColor={iconColor}
-      />
-    </View>
-  );
-}
-
-interface StarRatingProps {
-  label: string;
-  value: number;
-  onValueChange: (value: number) => void;
-  tintColor: string;
-  iconColor: string;
-}
-
-function StarRating({
-  label,
-  value,
-  onValueChange,
-  tintColor,
-  iconColor,
-}: StarRatingProps) {
-  const handleStarPress = (starIndex: number) => {
-    // If clicking the same star that's already selected, unselect (set to 0)
-    if (value === starIndex) {
-      onValueChange(0);
-    } else {
-      onValueChange(starIndex);
-    }
-  };
-
-  return (
-    <View style={styles.inputGroup}>
-      <ThemedText style={styles.label}>{label}</ThemedText>
-      <View style={styles.starContainer}>
-        {[1, 2, 3, 4, 5].map((starIndex) => (
-          <TouchableOpacity
-            key={starIndex}
-            onPress={() => handleStarPress(starIndex)}
-            activeOpacity={0.7}
-            style={styles.starButton}
-          >
-            <MaterialIcons
-              name={starIndex <= value ? "star" : "star-border"}
-              size={40}
-              color={starIndex <= value ? tintColor : iconColor}
-            />
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
   );
 }
 
@@ -354,138 +264,121 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
-    padding: 16,
-    paddingTop: 60,
-    paddingBottom: 32,
-  },
-  card: {
-    borderRadius: 20,
     padding: 24,
-    paddingBottom: 28,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-    gap: 8,
+    paddingTop: Platform.OS === 'android' ? 40 : 60,
+  },
+  header: {
+    marginBottom: 32,
   },
   title: {
-    textAlign: "center",
+    fontSize: 34,
+    fontWeight: '800',
     marginBottom: 8,
-    fontSize: 32,
   },
   subtitle: {
-    textAlign: "center",
-    marginBottom: 32,
-    opacity: 0.7,
     fontSize: 16,
-    fontWeight: "400",
+    opacity: 0.6,
+  },
+  formContainer: {
+    gap: 24,
   },
   inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    marginBottom: 8,
-    fontSize: 15,
-    fontWeight: "600",
-    opacity: 0.9,
-  },
-  input: {
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    minHeight: 52,
-    borderWidth: 1,
-  },
-  multilineInput: {
-    minHeight: 100,
-    textAlignVertical: "top",
-    paddingTop: 14,
-  },
-  mapContainer: {
-    borderRadius: 12,
-    overflow: "hidden",
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  map: {
-    width: "100%",
-    height: 250,
-  },
-  mapHint: {
-    fontSize: 13,
-    opacity: 0.6,
-    fontStyle: "italic",
-  },
-  primaryButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    minHeight: 52,
-    justifyContent: "center",
-    alignItems: "center",
-    // shadowColor: "#0a7ea4",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-    marginTop: 8,
-  },
-  primaryButtonText: {
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  starContainer: {
-    flexDirection: "row",
-    alignItems: "center",
     gap: 8,
   },
-  starButton: {
-    padding: 4,
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  imageGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  input: {
+    fontSize: 16,
+    padding: 16,
+    borderRadius: 12,
+  },
+  textArea: {
+    minHeight: 120,
+  },
+  photosScroll: {
     gap: 12,
   },
-
-  imageWrapper: {
-    position: "relative",
-  },
-
-  image: {
-    width: 90,
-    height: 90,
-    borderRadius: 12,
-  },
-
-  removeImage: {
-    position: "absolute",
-    top: -6,
-    right: -6,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    borderRadius: 12,
-    padding: 4,
-  },
-
-  addImage: {
-    width: 90,
-    height: 90,
+  addPhotoButton: {
+    width: 100,
+    height: 100,
     borderRadius: 12,
     borderWidth: 1,
-    borderStyle: "dashed",
-    justifyContent: "center",
-    alignItems: "center",
-    opacity: 0.7,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-
+  photoContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  photo: {
+    width: '100%',
+    height: '100%',
+  },
+  removePhotoButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 10,
+    padding: 2,
+  },
+  mapWrapper: {
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
+  mapMarker: {
+    padding: 6,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  mapOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 8,
+    alignItems: 'center',
+  },
+  locationText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  submitButton: {
+    marginTop: 16,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: "#ff6b35",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  }
 });
-
