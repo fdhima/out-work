@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 
 export interface Place {
   id: number;
-  user_id: string,
+  profile_id: string,
   name: string;
   description: string;
   rating_avg: number;
@@ -14,7 +14,7 @@ export interface Place {
 }
 
 export interface CreatePlaceInput {
-  user_id: string;
+  profile_id: string;
   name: string;
   description: string;
   latitude: number;

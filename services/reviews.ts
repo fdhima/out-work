@@ -5,7 +5,7 @@ export interface Review {
   comment: string;
   rating: number;
   place_id: number;
-  user_id: string;
+  profile_id: string;
   created_at: string | null;
   updated_at: string | null;
   username: string;
@@ -15,7 +15,7 @@ export interface CreateReviewInput {
   comment: string;
   rating: number;
   place_id: number;
-  user_id: string;
+  profile_id: string;
   created_at: string;
 }
 
@@ -54,7 +54,7 @@ export async function getReviewsByPlaceId(placeId: number): Promise<Review[]> {
       comment,
       rating,
       place_id,
-      user_id,
+      profile_id,
       created_at,
       profiles (
         username
@@ -81,7 +81,7 @@ export async function getReviewsByUserId(userId: string): Promise<Review[]> {
   const { data, error } = await supabase
     .from('reviews')
     .select('*')
-    .eq('user_id', userId);
+    .eq('profile_id', userId);
   if (error) throw error;
   return data;
 }

@@ -73,7 +73,7 @@ export default function CreatePlace() {
 
     try {
       const newPlace = await createPlace({
-        user_id: await getUserId() ?? '',
+        profile_id: await getUserId() ?? '',
         name,
         description,
         latitude: latitude,

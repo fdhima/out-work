@@ -196,7 +196,7 @@ export default function HomeScreen() {
         comment: reviewText.trim(),
         rating: reviewRating,
         place_id: placeId,
-        user_id: session.user.id,
+        profile_id: session.user.id,
         created_at: new Date().toISOString(),
       });
 
