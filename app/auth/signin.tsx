@@ -1,14 +1,16 @@
-import { AuthContainer } from '@/components/ui/auth-container'
-import { AuthInput } from '@/components/ui/auth-input'
-import { GradientButton } from '@/components/ui/gradient-button'
-import { SocialButton } from '@/components/ui/social-button'
-import { ThemedText } from '@/components/themed-text'
-import { ThemedView } from '@/components/themed-view'
-import { useColorScheme } from '@/hooks/use-color-scheme'
-import { useThemeColor } from '@/hooks/use-theme-color'
-import { supabase } from '@/lib/supabase'
-import { useRouter, useLocalSearchParams } from 'expo-router'
-import { useState, useEffect } from 'react'
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { AuthContainer } from '@/components/ui/auth-container';
+import { AuthInput } from '@/components/ui/auth-input';
+import { GradientButton } from '@/components/ui/gradient-button';
+import { SocialButton } from '@/components/ui/social-button';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { supabase } from '@/lib/supabase';
+import * as AuthSession from 'expo-auth-session';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -17,167 +19,178 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-} from 'react-native'
+} from 'react-native';
+
+WebBrowser.maybeCompleteAuthSession(); // Needed for Expo
+
+function useGoogleOAuth() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Check if user is already signed in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) router.replace('/');
+    };
+    checkSession();
+
+    // Listen to OAuth redirects
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          router.replace('/');
+        }
+      }
+    );
+
+    return () => authListener.subscription.unsubscribe();
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const redirectUri = AuthSession.makeRedirectUri({
+        useProxy: true,
+        native: 'out-work://auth/callback',
+      });
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUri,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
+        if (result.type === 'success') {
+          // The session handling is done via the onAuthStateChange listener
+        }
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { handleGoogleSignIn, loading, error };
+}
 
 export default function AuthScreen() {
-  const router = useRouter()
-  const params = useLocalSearchParams<{ tab?: string }>()
-  
-  // Determine initial tab from route params or default to signin
-  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>(() => {
-    const tab = params.tab as 'signin' | 'signup' | undefined
-    return tab === 'signup' ? 'signup' : 'signin'
-  })
+  const router = useRouter();
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>(
+    () => (params.tab === 'signup' ? 'signup' : 'signin')
+  );
 
   // Sign in state
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
-  const [resetLoading, setResetLoading] = useState(false)
-  const [reset, setReset] = useState(false)
-  const [resetSent, setResetSent] = useState(false)
-  const [resetEmail, setResetEmail] = useState('')
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [reset, setReset] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   // Sign up state
-  const [fullName, setFullName] = useState('')
-  const [username, setUsername] = useState('')
-  const [signupEmail, setSignupEmail] = useState('')
-  const [signupPassword, setSignupPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Shared state
-  const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const colorScheme = useColorScheme() ?? 'light'
-  const textColor = useThemeColor({}, 'text')
-  const iconColor = useThemeColor({}, 'icon')
-  const inputBg =
-    colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f3f4f6'
-  const borderColor = colorScheme === 'dark' ? '#9BA1A6' : '#d1d5db'
+  const colorScheme = useColorScheme() ?? 'light';
+  const textColor = useThemeColor({}, 'text');
+  const iconColor = useThemeColor({}, 'icon');
+  const inputBg = colorScheme === 'dark' ? 'rgba(255,255,255,0.1)' : '#f3f4f6';
+  const borderColor = colorScheme === 'dark' ? '#9BA1A6' : '#d1d5db';
 
-  // Clear errors when switching tabs
+  const { handleGoogleSignIn, loading: googleLoading, error: googleError } =
+    useGoogleOAuth();
+
   useEffect(() => {
-    setError(null)
-    setMessage(null)
-    setReset(false)
-    setResetSent(false)
-  }, [activeTab])
+    setError(null);
+    setMessage(null);
+    setReset(false);
+    setResetSent(false);
+  }, [activeTab]);
 
   const resetPassword = async () => {
     try {
-      setResetLoading(true)
-      setError(null)
-
+      setResetLoading(true);
+      setError(null);
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: 'https://out-work.online/reset-password',
-      })
-
-      if (error) {
-        setError(error.message)
-        return
-      }
-
-      setResetSent(true)
+      });
+      if (error) setError(error.message);
+      else setResetSent(true);
     } finally {
-      setResetLoading(false)
+      setResetLoading(false);
     }
-  }
+  };
 
   const signIn = async () => {
     try {
-      setLoading(true)
-      setError(null)
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error) {
-        setError(error.message)
-        return
-      }
-
-      router.replace('/')
+      setLoading(true);
+      setError(null);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) setError(error.message);
+      else router.replace('/');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const signUp = async () => {
-    if (!username.trim()) {
-      setError('Username is required')
-      return
-    }
-
-    if (!fullName.trim()) {
-      setError('Full name is required')
-      return
-    }
-
-    if (signupPassword !== confirmPassword) {
-      setError('Passwords do not match')
-      return
-    }
+    if (!username.trim()) return setError('Username is required');
+    if (!fullName.trim()) return setError('Full name is required');
+    if (signupPassword !== confirmPassword) return setError('Passwords do not match');
 
     try {
-      setLoading(true)
-      setError(null)
-      setMessage(null)
+      setLoading(true);
+      setError(null);
+      setMessage(null);
 
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
-        options: {
-          data: {
-            username,
-          },
-        },
-      })
+        options: { data: { username } },
+      });
+      if (signUpError) return setError(signUpError.message);
 
-      if (signUpError) {
-        setError(signUpError.message)
-        return
-      }
+      const user = data.user;
+      if (!user) return setError('User creation failed');
 
-      const user = data.user
-      if (!user) {
-        setError('User creation failed')
-        return
-      }
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: user.id,
+        full_name: fullName,
+      });
+      if (profileError) return setError(profileError.message);
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: user.id,
-          full_name: fullName,
-        })
-
-      if (profileError) {
-        setError(profileError.message)
-        return
-      }
-
-      setMessage('Check your email to confirm your account')
+      setMessage('Check your email to confirm your account');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handleGoogleSignIn = async () => {
-    // TODO: Implement Google sign in
-    console.log('Google sign in')
-  }
+  const handleAppleSignIn = async () => console.log('Apple sign in');
 
-  const handleAppleSignIn = async () => {
-    // TODO: Implement Apple sign in
-    console.log('Apple sign in')
-  }
-
+  // Forms
   const renderSignInForm = () => (
     <>
       <AuthInput
@@ -192,7 +205,6 @@ export default function AuthScreen() {
         iconColor={iconColor}
         backgroundColor={inputBg}
       />
-
       <AuthInput
         label="Password"
         placeholder="••••••••"
@@ -204,7 +216,6 @@ export default function AuthScreen() {
         iconColor={iconColor}
         backgroundColor={inputBg}
       />
-
       <View style={styles.rememberForgotRow}>
         <TouchableOpacity
           style={styles.checkboxContainer}
@@ -213,26 +224,20 @@ export default function AuthScreen() {
           <View
             style={[
               styles.checkbox,
-              {
-                borderColor: borderColor,
-                backgroundColor: rememberMe ? '#ff6b35' : 'transparent',
-              },
+              { borderColor, backgroundColor: rememberMe ? '#ff6b35' : 'transparent' },
             ]}
           >
-            {rememberMe && (
-              <ThemedText style={styles.checkmark}>✓</ThemedText>
-            )}
+            {rememberMe && <ThemedText style={styles.checkmark}>✓</ThemedText>}
           </View>
           <ThemedText style={[styles.checkboxLabel, { color: textColor }]}>
             Remember me
           </ThemedText>
         </TouchableOpacity>
-
         <TouchableOpacity
           onPress={() => {
-            setReset(true)
-            setResetSent(false)
-            setResetEmail(email)
+            setReset(true);
+            setResetSent(false);
+            setResetEmail(email);
           }}
         >
           <ThemedText style={[styles.forgotPassword, { color: '#ff6b35' }]}>
@@ -255,16 +260,10 @@ export default function AuthScreen() {
             iconColor={iconColor}
             backgroundColor={inputBg}
           />
-
           <TouchableOpacity
             style={[
               styles.secondaryButton,
-              {
-                backgroundColor:
-                  colorScheme === 'dark'
-                    ? 'rgba(255, 255, 255, 0.15)'
-                    : '#e5e7eb',
-              },
+              { backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.15)' : '#e5e7eb' },
             ]}
             onPress={resetPassword}
             disabled={resetLoading}
@@ -281,26 +280,14 @@ export default function AuthScreen() {
       )}
 
       {resetSent && (
-        <ThemedText
-          style={{
-            textAlign: 'center',
-            marginVertical: 10,
-            color: '#22c55e',
-            fontWeight: '500',
-          }}
-        >
+        <ThemedText style={{ textAlign: 'center', marginVertical: 10, color: '#22c55e', fontWeight: '500' }}>
           Password reset email sent 📧
         </ThemedText>
       )}
 
-      <GradientButton
-        title="Sign In"
-        onPress={signIn}
-        loading={loading}
-        disabled={loading}
-      />
+      <GradientButton title="Sign In" onPress={signIn} loading={loading} disabled={loading} />
     </>
-  )
+  );
 
   const renderSignUpForm = () => (
     <>
@@ -314,7 +301,6 @@ export default function AuthScreen() {
         iconColor={iconColor}
         backgroundColor={inputBg}
       />
-
       <AuthInput
         label="Username"
         placeholder="your_username"
@@ -326,7 +312,6 @@ export default function AuthScreen() {
         iconColor={iconColor}
         backgroundColor={inputBg}
       />
-
       <AuthInput
         label="Email Address"
         placeholder="you@example.com"
@@ -339,7 +324,6 @@ export default function AuthScreen() {
         iconColor={iconColor}
         backgroundColor={inputBg}
       />
-
       <AuthInput
         label="Password"
         placeholder="••••••••"
@@ -353,7 +337,6 @@ export default function AuthScreen() {
         iconColor={iconColor}
         backgroundColor={inputBg}
       />
-
       <AuthInput
         label="Confirm password"
         placeholder="••••••••"
@@ -367,155 +350,54 @@ export default function AuthScreen() {
         iconColor={iconColor}
         backgroundColor={inputBg}
       />
-
-      <GradientButton
-        title="Sign Up"
-        onPress={signUp}
-        loading={loading}
-        disabled={loading}
-      />
+      <GradientButton title="Sign Up" onPress={signUp} loading={loading} disabled={loading} />
     </>
-  )
+  );
 
   return (
     <ThemedView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardView}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <AuthContainer
-            activeTab={activeTab}
-            onTabChange={(tab) => setActiveTab(tab)}
-          >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <AuthContainer activeTab={activeTab} onTabChange={setActiveTab}>
             {activeTab === 'signin' ? renderSignInForm() : renderSignUpForm()}
 
-            {error && (
-              <ThemedText style={[styles.error, { color: '#ef4444' }]}>
-                {error}
-              </ThemedText>
-            )}
-
-            {message && (
-              <ThemedText style={[styles.success, { color: '#16a34a' }]}>
-                {message}
-              </ThemedText>
-            )}
+            {error && <ThemedText style={[styles.error, { color: '#ef4444' }]}>{error}</ThemedText>}
+            {message && <ThemedText style={[styles.success, { color: '#16a34a' }]}>{message}</ThemedText>}
 
             <View style={styles.divider}>
               <View style={[styles.dividerLine, { backgroundColor: borderColor }]} />
-              <ThemedText style={[styles.dividerText, { color: iconColor }]}>
-                or continue with
-              </ThemedText>
+              <ThemedText style={[styles.dividerText, { color: iconColor }]}>or continue with</ThemedText>
               <View style={[styles.dividerLine, { backgroundColor: borderColor }]} />
             </View>
 
             <View style={styles.socialButtons}>
-              <SocialButton
-                provider="google"
-                onPress={handleGoogleSignIn}
-                textColor={textColor}
-                borderColor={borderColor}
-              />
-              <SocialButton
-                provider="apple"
-                onPress={handleAppleSignIn}
-                textColor={textColor}
-                borderColor={borderColor}
-              />
+              <SocialButton provider="google" onPress={handleGoogleSignIn} textColor={textColor} borderColor={borderColor} disabled={googleLoading} />
+              {googleError && <ThemedText style={{ color: 'red', textAlign: 'center' }}>{googleError}</ThemedText>}
+              <SocialButton provider="apple" onPress={handleAppleSignIn} textColor={textColor} borderColor={borderColor} />
             </View>
           </AuthContainer>
         </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  rememberForgotRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkmark: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  checkboxLabel: {
-    fontSize: 14,
-  },
-  forgotPassword: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  error: {
-    textAlign: 'center',
-    marginVertical: 8,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  success: {
-    textAlign: 'center',
-    marginVertical: 8,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  secondaryButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    minHeight: 52,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  secondaryText: {
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    fontSize: 14,
-  },
-  socialButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-})
+  container: { flex: 1 },
+  keyboardView: { flex: 1 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center' },
+  rememberForgotRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  checkboxContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
+  checkmark: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  checkboxLabel: { fontSize: 14 },
+  forgotPassword: { fontSize: 14, fontWeight: '500' },
+  error: { textAlign: 'center', marginVertical: 8, fontSize: 14, fontWeight: '500' },
+  success: { textAlign: 'center', marginVertical: 8, fontSize: 14, fontWeight: '500' },
+  secondaryButton: { paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, minHeight: 52, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  secondaryText: { fontWeight: '600', fontSize: 16 },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 24, gap: 12 },
+  dividerLine: { flex: 1, height: 1 },
+  dividerText: { fontSize: 14 },
+  socialButtons: { flexDirection: 'row', gap: 12 },
+});
