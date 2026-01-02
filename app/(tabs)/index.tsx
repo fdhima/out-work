@@ -10,7 +10,7 @@ import { getPlaces, Place } from "@/services/places";
 import { createReview, getReviewsByPlaceId, Review } from "@/services/reviews";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -248,7 +248,7 @@ export default function HomeScreen() {
 
   // --- Components ---
 
-  const SearchHeader = () => (
+  const SearchHeader = useMemo(() => () => (
     <View style={[styles.headerContainer, { backgroundColor, borderBottomColor: colorScheme === 'dark' ? '#333' : '#f0f0f0' }]}>
       <View style={[styles.searchBar, { backgroundColor: colorScheme === 'dark' ? '#2c2c2e' : '#ffffff' }]}>
         <MaterialIcons name="search" size={24} color={primaryColor} />
@@ -263,11 +263,6 @@ export default function HomeScreen() {
           <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={8}>
             <MaterialIcons name="close" size={20} color={primaryColor} />
           </TouchableOpacity>
-        )}
-        {!searchQuery && (
-          <View style={[styles.filterButton, { borderColor: colorScheme === 'dark' ? '#444' : '#ddd' }]}>
-            <MaterialIcons name="tune" size={16} color={iconColor} />
-          </View>
         )}
       </View>
 
@@ -307,7 +302,7 @@ export default function HomeScreen() {
         })}
       </ScrollView>
     </View>
-  );
+  ), [colorScheme, backgroundColor, primaryColor, iconColor, searchQuery, selectedCategory]);
 
   const FloatingMapButton = () => (
     <View style={styles.floatingButtonContainer}>
@@ -528,7 +523,7 @@ export default function HomeScreen() {
         </KeyboardAvoidingView>
       ) : (
         <>
-          <SearchHeader />
+          {SearchHeader()}
 
           {viewMode === "list" ? (
             <FlatList
