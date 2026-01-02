@@ -10,7 +10,7 @@ import { getPlaces, Place } from "@/services/places";
 import { createReview, getReviewsByPlaceId, Review } from "@/services/reviews";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -53,6 +53,7 @@ export default function HomeScreen() {
   const iconColor = useThemeColor({}, "icon");
 
   const [places, setPlaces] = useState<PlaceWithImages[]>([]);
+  const [allPlaces, setAllPlaces] = useState<PlaceWithImages[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlace, setSelectedPlace] = useState<PlaceWithImages | null>(null);
   const [galleryVisible, setGalleryVisible] = useState(false);
@@ -62,6 +63,7 @@ export default function HomeScreen() {
   // View Mode: 'list' | 'map'
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [reviewRating, setReviewRating] = useState<number>(5);
   const [reviewText, setReviewText] = useState<string>("");
@@ -85,6 +87,27 @@ export default function HomeScreen() {
     }, [selectedCategory])
   );
 
+  const filterPlaces = useCallback(() => {
+    let filtered = allPlaces;
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (place) =>
+          place.name.toLowerCase().includes(query) ||
+          place.description.toLowerCase().includes(query)
+      );
+    }
+
+    setPlaces(filtered);
+  }, [allPlaces, searchQuery]);
+
+  // Update displayed places when search query changes
+  useEffect(() => {
+    filterPlaces();
+  }, [searchQuery, filterPlaces]);
+
   const fetchPlaces = async (categoryId: string) => {
     try {
       setLoading(true);
@@ -92,7 +115,7 @@ export default function HomeScreen() {
       const data =
         categoryId === "all"
           ? await getPlaces()
-          : await getPlacesByCategory(apiCategories);     
+          : await getPlacesByCategory(apiCategories);
       console.log(`Fetched places: ${data}`)
       if (!data) return;
 
@@ -104,7 +127,19 @@ export default function HomeScreen() {
         })
       );
 
-      setPlaces(placesWithImages);
+      setAllPlaces(placesWithImages);
+      // Apply current search filter to new results
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const filtered = placesWithImages.filter(
+          (place) =>
+            place.name.toLowerCase().includes(query) ||
+            place.description.toLowerCase().includes(query)
+        );
+        setPlaces(filtered);
+      } else {
+        setPlaces(placesWithImages);
+      }
     } catch (err) {
       console.error("Error fetching places: ", err);
     } finally {
@@ -215,20 +250,26 @@ export default function HomeScreen() {
 
   const SearchHeader = () => (
     <View style={[styles.headerContainer, { backgroundColor, borderBottomColor: colorScheme === 'dark' ? '#333' : '#f0f0f0' }]}>
-      <TouchableOpacity activeOpacity={0.9} style={[styles.searchBar, { backgroundColor: colorScheme === 'dark' ? '#2c2c2e' : '#ffffff' }]}>
+      <View style={[styles.searchBar, { backgroundColor: colorScheme === 'dark' ? '#2c2c2e' : '#ffffff' }]}>
         <MaterialIcons name="search" size={24} color={primaryColor} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }}>
-            Where to?
-          </ThemedText>
-          <ThemedText style={{ fontSize: 12, opacity: 0.6 }}>
-            Anywhere · Any week · Add guests
-          </ThemedText>
-        </View>
-        <View style={[styles.filterButton, { borderColor: colorScheme === 'dark' ? '#444' : '#ddd' }]}>
-          <MaterialIcons name="tune" size={16} color={iconColor} />
-        </View>
-      </TouchableOpacity>
+        <TextInput
+          style={[styles.searchInput, { color: textColor }]}
+          placeholder="Where to?"
+          placeholderTextColor={colorScheme === 'dark' ? '#9ca3af' : '#6b7280'}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={8}>
+            <MaterialIcons name="close" size={20} color={primaryColor} />
+          </TouchableOpacity>
+        )}
+        {!searchQuery && (
+          <View style={[styles.filterButton, { borderColor: colorScheme === 'dark' ? '#444' : '#ddd' }]}>
+            <MaterialIcons name="tune" size={16} color={iconColor} />
+          </View>
+        )}
+      </View>
 
       <ScrollView
         horizontal
@@ -251,7 +292,6 @@ export default function HomeScreen() {
                 size={24}
                 color={isActive ? "#000" : "#888"} // Active is always blackish on light, handling dark mode via opacity if needed
                 style={{ opacity: isActive ? 1 : 0.6 }}
-                onPress={() => setSelectedCategory(cat.id)}
               />
               <ThemedText
                 style={[
@@ -636,6 +676,11 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 20,
     borderWidth: 1,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 4,
   },
   categoriesContainer: {
     paddingHorizontal: 20,
