@@ -1,5 +1,9 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
+#ui-xi-pro-max
+.agent
+.shared
+
 # dependencies
 node_modules/
 
