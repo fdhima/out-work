@@ -71,7 +71,7 @@ export default function ProfileScreen() {
 
       // 1. Update Profile Name
       if (fullName.trim()) {
-        await updateProfile(userId, { full_name: fullName })
+        await updateProfile(userId, { full_name: fullName, updated_at: new Date().toISOString() })
       }
 
       // 2. Update Password if provided
