@@ -23,6 +23,11 @@ import {
 
 WebBrowser.maybeCompleteAuthSession();
 
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('AUTH EVENT:', event);
+  console.log('SESSION:', session);
+});
+
 export default function AuthScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ tab?: string }>();
@@ -129,6 +134,9 @@ export default function AuthScreen() {
       setLoading(true);
       setError(null);
       await signInWithGoogle();
+      // After successful OAuth and session persistence, navigate to root
+      // so the `Index` redirect logic picks up the authenticated session.
+      router.replace('/');
     } catch (e: any) {
       setError(e.message ?? 'Google sign-in failed');
     } finally {
