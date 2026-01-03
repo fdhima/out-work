@@ -46,7 +46,6 @@ export default function AuthScreen() {
 
   // Sign up state
   const [fullName, setFullName] = useState('');
-  const [username, setUsername] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -98,7 +97,6 @@ export default function AuthScreen() {
   };
 
   const signUp = async () => {
-    if (!username.trim()) return setError('Username is required');
     if (!fullName.trim()) return setError('Full name is required');
     if (signupPassword !== confirmPassword) return setError('Passwords do not match');
 
@@ -110,7 +108,6 @@ export default function AuthScreen() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
-        options: { data: { username } },
       });
       if (signUpError) return setError(signUpError.message);
 
@@ -253,17 +250,6 @@ export default function AuthScreen() {
         value={fullName}
         onChangeText={setFullName}
         icon="person-outline"
-        textColor={textColor}
-        iconColor={iconColor}
-        backgroundColor={inputBg}
-      />
-      <AuthInput
-        label="Username"
-        placeholder="your_username"
-        autoCapitalize="none"
-        value={username}
-        onChangeText={setUsername}
-        icon="at-outline"
         textColor={textColor}
         iconColor={iconColor}
         backgroundColor={inputBg}
