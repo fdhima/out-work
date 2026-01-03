@@ -9,6 +9,7 @@ export interface Review {
   created_at: string | null;
   updated_at: string | null;
   username: string;
+  full_name: string;
 }
 
 export interface CreateReviewInput {
@@ -58,7 +59,8 @@ export async function getReviewsByPlaceId(placeId: number): Promise<Review[]> {
       profile_id,
       created_at,
       profiles (
-        username
+        username,
+        full_name
       )
     `)
     .eq('place_id', placeId)
@@ -68,12 +70,16 @@ export async function getReviewsByPlaceId(placeId: number): Promise<Review[]> {
     console.error(error)
     return []
   }
-
+  
   return (
-    data?.map((r: any) => ({
-      ...r,
-      username: r.profiles?.username ?? 'Unknown',
-    })) ?? []
+    data?.map((r: any) => {
+      const profile = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles
+      return {
+        ...r,
+        username: profile?.username ?? 'Unknown',
+        full_name: profile?.full_name ?? 'Unknown',
+      }
+    }) ?? []
   )
 }
 

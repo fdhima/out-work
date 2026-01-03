@@ -479,7 +479,7 @@ export default function HomeScreen() {
                               />
                             ))}
                             <ThemedText style={styles.reviewAuthor}>
-                              {r.username}
+                              {r.full_name}
                             </ThemedText>
                           </View>
                           <ThemedText style={styles.reviewDate}>
