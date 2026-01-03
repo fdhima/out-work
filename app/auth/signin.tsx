@@ -313,8 +313,12 @@ export default function AuthScreen() {
             </View>
 
             <View style={styles.socialButtons}>
-              <SocialButton provider="google" onPress={handleGoogleSignIn} textColor={textColor} borderColor={borderColor} />
-              <SocialButton provider="apple" onPress={handleAppleSignIn} textColor={textColor} borderColor={borderColor} />
+              <SocialButton
+                provider="google"
+                onPress={handleGoogleSignIn}
+                textColor={textColor}
+                borderColor={borderColor}
+              />
             </View>
           </AuthContainer>
         </ScrollView>

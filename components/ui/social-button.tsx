@@ -1,6 +1,6 @@
 import { ThemedText } from '@/components/themed-text'
-import { Ionicons } from '@expo/vector-icons'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { FontAwesome, Ionicons } from '@expo/vector-icons'
+import { StyleSheet, TouchableOpacity } from 'react-native'
 
 interface SocialButtonProps {
   provider: 'google' | 'apple'
@@ -24,9 +24,7 @@ export function SocialButton({
       activeOpacity={0.7}
     >
       {isGoogle ? (
-        <View style={styles.googleIcon}>
-          <ThemedText style={styles.googleG}>G</ThemedText>
-        </View>
+        <FontAwesome name="google" size={24} color="#4285F4" />
       ) : (
         <Ionicons name="logo-apple" size={24} color={textColor} />
       )}
@@ -48,7 +46,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     minHeight: 52,
-    gap: 12,
+    gap: 8,
   },
   googleIcon: {
     width: 24,
