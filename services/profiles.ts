@@ -16,21 +16,6 @@ interface UpdateProfileInput {
   updated_at: string
 }
 
-export async function getUsernameById(userId: string) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', userId)
-    .single()
-
-  if (error) {
-    console.error(error)
-    return null
-  }
-
-  return data.full_name
-}
-
 export async function getProfileById(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
