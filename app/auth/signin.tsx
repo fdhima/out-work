@@ -7,7 +7,6 @@ import { SocialButton } from '@/components/ui/social-button';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { supabase } from '@/lib/supabase';
-import * as AuthSession from 'expo-auth-session';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
@@ -22,67 +21,6 @@ import {
 } from 'react-native';
 
 WebBrowser.maybeCompleteAuthSession(); // Needed for Expo
-
-function useGoogleOAuth() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Check if user is already signed in
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) router.replace('/');
-    };
-    checkSession();
-
-    // Listen to OAuth redirects
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          router.replace('/');
-        }
-      }
-    );
-
-    return () => authListener.subscription.unsubscribe();
-  }, []);
-
-  const handleGoogleSignIn = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const redirectUri = AuthSession.makeRedirectUri({
-        useProxy: true,
-        native: 'out-work://auth/callback',
-      });
-
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUri,
-          skipBrowserRedirect: true,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
-        if (result.type === 'success') {
-          // The session handling is done via the onAuthStateChange listener
-        }
-      }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return { handleGoogleSignIn, loading, error };
-}
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -119,9 +57,6 @@ export default function AuthScreen() {
   const iconColor = useThemeColor({}, 'icon');
   const inputBg = colorScheme === 'dark' ? 'rgba(255,255,255,0.1)' : '#f3f4f6';
   const borderColor = colorScheme === 'dark' ? '#9BA1A6' : '#d1d5db';
-
-  const { handleGoogleSignIn, loading: googleLoading, error: googleError } =
-    useGoogleOAuth();
 
   useEffect(() => {
     setError(null);
@@ -187,6 +122,8 @@ export default function AuthScreen() {
       setLoading(false);
     }
   };
+
+  const handleGoogleSignIn = async () => console.log('Google sign in');
 
   const handleAppleSignIn = async () => console.log('Apple sign in');
 
@@ -371,8 +308,7 @@ export default function AuthScreen() {
             </View>
 
             <View style={styles.socialButtons}>
-              <SocialButton provider="google" onPress={handleGoogleSignIn} textColor={textColor} borderColor={borderColor} disabled={googleLoading} />
-              {googleError && <ThemedText style={{ color: 'red', textAlign: 'center' }}>{googleError}</ThemedText>}
+              <SocialButton provider="google" onPress={handleGoogleSignIn} textColor={textColor} borderColor={borderColor} />
               <SocialButton provider="apple" onPress={handleAppleSignIn} textColor={textColor} borderColor={borderColor} />
             </View>
           </AuthContainer>
