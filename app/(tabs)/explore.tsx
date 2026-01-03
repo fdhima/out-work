@@ -81,11 +81,12 @@ export default function CreatePlaceScreen() {
         longitude: longitude,
         rating_avg: rating > 0 ? rating : 5,
         approved: true,
+        created_at: new Date().toISOString(),
       });
 
       for (let i = 0; i < images.length; i++) {
         const url = await uploadImage(images[i].uri, newPlace.id, i);
-        await createImage({ url: url, place_id: newPlace.id });
+        await createImage({ url: url, place_id: newPlace.id, created_at: new Date().toISOString()});
       }
       Alert.alert("Success", "Place created successfully!");
       // Reset form
