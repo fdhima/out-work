@@ -6,6 +6,7 @@ import { GradientButton } from '@/components/ui/gradient-button';
 import { SocialButton } from '@/components/ui/social-button';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { signInWithGoogle } from '@/lib/auth/google';
 import { supabase } from '@/lib/supabase';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -20,7 +21,7 @@ import {
   View,
 } from 'react-native';
 
-WebBrowser.maybeCompleteAuthSession(); // Needed for Expo
+WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -123,7 +124,17 @@ export default function AuthScreen() {
     }
   };
 
-  const handleGoogleSignIn = async () => console.log('Google sign in');
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      await signInWithGoogle();
+    } catch (e: any) {
+      setError(e.message ?? 'Google sign-in failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAppleSignIn = async () => console.log('Apple sign in');
 
