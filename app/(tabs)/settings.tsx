@@ -1,5 +1,4 @@
 import { ThemedText } from '@/components/themed-text'
-import { ThemedView } from '@/components/themed-view'
 import { useAuth } from '@/context/AuthContext'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useThemeColor } from '@/hooks/use-theme-color'
@@ -28,13 +27,19 @@ export default function ProfileScreen() {
   const { session, signOut } = useAuth()
   const router = useRouter()
   const colorScheme = useColorScheme() ?? 'light'
+  const isDark = colorScheme === 'dark'
 
-  // Theme Colors
+  // Brand Colors
+  const BRAND_BLUE = "#4A90E2";
+  const primaryColor = BRAND_BLUE;
+
   const textColor = useThemeColor({}, 'text')
   const iconColor = useThemeColor({}, 'icon')
-  const backgroundColor = useThemeColor({}, 'background')
-  const primaryColor = '#ff6b35' // OutWork Orange
-  const inputBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f9fafb'
+  // Grouped list background style
+  const screenBg = isDark ? '#000' : '#f2f2f6';
+  const groupBg = isDark ? '#1c1c1e' : '#fff';
+  const separatorColor = isDark ? '#38383a' : '#e5e5ea'; // iOS separator colors
+  const placeholderColor = isDark ? '#636366' : '#c7c7cc';
 
   // Data State
   const [loading, setLoading] = useState(false)
@@ -198,8 +203,57 @@ export default function ProfileScreen() {
     )
   }
 
+  // --- UI Components for Settings ---
+
+  const SettingsGroup = ({ children, title }: { children: React.ReactNode, title?: string }) => (
+    <View style={styles.groupContainer}>
+      {title && <ThemedText style={styles.groupTitle}>{title.toUpperCase()}</ThemedText>}
+      <View style={[styles.group, { backgroundColor: groupBg }]}>
+        {children}
+      </View>
+    </View>
+  );
+
+  const SettingsItem = ({
+    label,
+    value,
+    placeholder,
+    onChangeText,
+    isLast = false,
+    readOnly = false,
+    secureTextEntry = false,
+    icon
+  }: {
+    label: string,
+    value?: string,
+    placeholder?: string,
+    onChangeText?: (text: string) => void,
+    isLast?: boolean,
+    readOnly?: boolean,
+    secureTextEntry?: boolean,
+    icon?: string
+  }) => (
+    <View style={[styles.itemRow, !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: separatorColor }]}>
+      {icon && <MaterialIcons name={icon as any} size={22} color={primaryColor} style={{ marginRight: 12 }} />}
+      <ThemedText style={styles.itemLabel}>{label}</ThemedText>
+      {readOnly ? (
+        <ThemedText style={[styles.itemValue, { color: placeholderColor }]}>{value}</ThemedText>
+      ) : (
+        <TextInput
+          style={[styles.itemInput, { color: textColor }]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={placeholderColor}
+          secureTextEntry={secureTextEntry}
+          textAlign="right"
+        />
+      )}
+    </View>
+  );
+
   return (
-    <ThemedView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: screenBg }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -210,102 +264,74 @@ export default function ProfileScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            {/* <View style={styles.avatarContainer}>
+            <TouchableOpacity onPress={pickAvatar} activeOpacity={0.8} style={styles.avatarWrapper}>
               <Image
-                source={{ uri: avatarUrl }}
+                source={{ uri: avatarUrl || 'https://via.placeholder.com/150' }}
                 style={styles.avatar}
                 resizeMode="cover"
               />
-              <View style={styles.editIconBadge}>
+              <View style={[styles.editIconBadge, { backgroundColor: BRAND_BLUE }]}>
                 <MaterialIcons name="edit" size={14} color="#fff" />
               </View>
-            </View> */}
-            <TouchableOpacity onPress={pickAvatar} activeOpacity={0.8}>
-              <View style={styles.avatarContainer}>
-                <Image
-                  source={{ uri: avatarUrl }}
-                  style={styles.avatar}
-                  resizeMode="cover"
-                />
-                <View style={styles.editIconBadge}>
-                  <MaterialIcons name="edit" size={14} color="#fff" />
-                </View>
-              </View>
             </TouchableOpacity>
-            <ThemedText type="title" style={styles.headerTitle}>Profile</ThemedText>
+            <ThemedText type="title" style={styles.headerTitle}>{fullName || 'User'}</ThemedText>
             <ThemedText style={styles.headerSubtitle}>
-              Manage your personal details
+              {email}
             </ThemedText>
           </View>
 
           {/* Form */}
-          <View style={styles.section}>
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Full Name</ThemedText>
-              <TextInput
-                style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
-                value={fullName}
-                onChangeText={setFullName}
-                placeholder="Your Name"
-                placeholderTextColor={iconColor}
-              />
-            </View>
+          <SettingsGroup title="Personal Information">
+            <SettingsItem
+              label="Full Name"
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder="Required"
+            />
+            <SettingsItem
+              label="Email"
+              value={email}
+              readOnly
+              isLast
+            />
+          </SettingsGroup>
 
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Email Address</ThemedText>
-              <View style={[styles.readOnlyInput, { backgroundColor: inputBg }]}>
-                <ThemedText style={{ color: iconColor }}>{email}</ThemedText>
-                <MaterialIcons name="lock-outline" size={16} color={iconColor} />
+
+          <SettingsGroup title="Security">
+            <TouchableOpacity
+              style={[styles.itemRowSwitch, { borderBottomWidth: showSecurity ? StyleSheet.hairlineWidth : 0, borderBottomColor: separatorColor }]}
+              onPress={() => setShowSecurity(!showSecurity)}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialIcons name="lock" size={22} color={primaryColor} style={{ marginRight: 12 }} />
+                <ThemedText style={styles.itemLabel}>Change Password</ThemedText>
               </View>
-            </View>
-          </View>
+              <MaterialIcons name={showSecurity ? "keyboard-arrow-up" : "keyboard-arrow-down"} size={22} color={placeholderColor} />
+            </TouchableOpacity>
 
-          <View style={styles.separator} />
-
-          {/* Security Toggle */}
-          <TouchableOpacity
-            style={styles.securityHeader}
-            onPress={() => setShowSecurity(!showSecurity)}
-            activeOpacity={0.7}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={[styles.iconBox, { backgroundColor: 'rgba(255, 107, 53, 0.1)' }]}>
-                <MaterialIcons name="security" size={20} color={primaryColor} />
-              </View>
-              <View>
-                <ThemedText type="defaultSemiBold">Login & Security</ThemedText>
-                <ThemedText style={{ fontSize: 13, opacity: 0.6 }}>Change password</ThemedText>
-              </View>
-            </View>
-            <MaterialIcons name={showSecurity ? "keyboard-arrow-up" : "keyboard-arrow-down"} size={24} color={iconColor} />
-          </TouchableOpacity>
-
-          {showSecurity && (
-            <View style={styles.securitySection}>
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.label}>Current Password</ThemedText>
-                <TextInput
-                  style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
+            {showSecurity && (
+              <>
+                <SettingsItem
+                  label="Current Password"
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
-                  placeholder="••••••••"
-                  placeholderTextColor={iconColor}
+                  placeholder="Required"
                   secureTextEntry
+                  icon="vpn-key" // Visual indent
                 />
-              </View>
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.label}>New Password</ThemedText>
-                <TextInput
-                  style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
+                <SettingsItem
+                  label="New Password"
                   value={newPassword}
                   onChangeText={setNewPassword}
-                  placeholder="••••••••"
-                  placeholderTextColor={iconColor}
+                  placeholder="Required"
                   secureTextEntry
+                  isLast
+                  icon="vpn-key"
                 />
-              </View>
-            </View>
-          )}
+              </>
+            )}
+          </SettingsGroup>
 
           {/* Actions */}
           <View style={styles.actionContainer}>
@@ -313,17 +339,19 @@ export default function ProfileScreen() {
               style={[styles.primaryButton, { backgroundColor: primaryColor }]}
               onPress={handleUpdateProfile}
               disabled={loading}
+              activeOpacity={0.8}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <ThemedText style={styles.primaryButtonText}>Update Profile</ThemedText>
+                <ThemedText style={styles.primaryButtonText}>Save Changes</ThemedText>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.signOutButton}
               onPress={handleSignOut}
+              activeOpacity={0.7}
             >
               <ThemedText style={styles.signOutText}>Log Out</ThemedText>
             </TouchableOpacity>
@@ -334,7 +362,7 @@ export default function ProfileScreen() {
 
         </ScrollView>
       </KeyboardAvoidingView>
-    </ThemedView>
+    </View>
   )
 }
 
@@ -343,118 +371,124 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 24,
-    paddingTop: Platform.OS === 'android' ? 50 : 70,
+    paddingTop: Platform.OS === 'android' ? 50 : 20,
+    paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
+    marginTop: 20
   },
-  avatarContainer: {
-    alignItems: "center",
-    justifyContent: "center",
+  avatarWrapper: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+    marginBottom: 16
   },
   avatar: {
     width: 100,
     height: 100,
-    borderRadius: 40,
+    borderRadius: 50,
   },
   editIconBadge: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
-    backgroundColor: '#ff6b35',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#fff',
+    // Note: Dark mode border color might need manual handling if strictly needed, but white border usually looks good on avatars
   },
   headerTitle: {
-    fontSize: 28,
-    marginBottom: 4,
+    fontSize: 24,
+    fontWeight: '700',
+    marginTop: 4,
   },
   headerSubtitle: {
+    fontSize: 15,
+    opacity: 0.5,
+    marginTop: 2
+  },
+
+  // Groups
+  groupContainer: {
+    marginBottom: 24,
+  },
+  groupTitle: {
+    fontSize: 13,
+    opacity: 0.5,
+    fontWeight: '600',
+    marginLeft: 20,
+    marginBottom: 8,
+  },
+  group: {
+    borderRadius: 12,
+    marginHorizontal: 16,
+    overflow: 'hidden',
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+    minHeight: 50
+  },
+  itemRowSwitch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+    minHeight: 50
+  },
+  itemLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  itemInput: {
+    flex: 1,
+    fontSize: 16,
+    marginLeft: 16,
+    padding: 0,
+  },
+  itemValue: {
     fontSize: 16,
     opacity: 0.6,
   },
-  section: {
-    gap: 20,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    opacity: 0.7,
-    marginLeft: 4,
-  },
-  input: {
-    height: 54,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    fontSize: 16,
-  },
-  readOnlyInput: {
-    height: 54,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    opacity: 0.7,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: 'rgba(0,0,0,0.06)',
-    marginVertical: 32,
-  },
-  securityHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  securitySection: {
-    marginTop: 24,
-    gap: 20,
-  },
+
   actionContainer: {
-    marginTop: 48,
+    marginTop: 20,
+    paddingHorizontal: 16,
     gap: 16,
   },
   primaryButton: {
-    height: 56,
-    borderRadius: 16,
+    height: 52,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: "#ff6b35",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowColor: "#4A90E2",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   primaryButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   signOutButton: {
-    height: 56,
+    height: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 12,
   },
   signOutText: {
     color: '#ef4444',

@@ -22,14 +22,46 @@ import {
 } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 
+// --- Hoisted Components for Stability ---
+// Similar to AuthInput but customized for this form if needed, 
+// or could be shared. For now, locally defining to ensure stability.
+
+const FormInput = ({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  multiline,
+  backgroundColor,
+  textColor,
+  placeholderColor
+}: any) => (
+  <View style={styles.inputGroup}>
+    <ThemedText style={styles.label}>{label}</ThemedText>
+    <TextInput
+      style={[
+        styles.input,
+        multiline && styles.textArea,
+        { backgroundColor, color: textColor }
+      ]}
+      placeholder={placeholder}
+      placeholderTextColor={placeholderColor}
+      value={value}
+      onChangeText={onChangeText}
+      multiline={multiline}
+      textAlignVertical={multiline ? "top" : "center"}
+    />
+  </View>
+);
+
 export default function CreatePlaceScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const textColor = useThemeColor({}, "text");
   const iconColor = useThemeColor({}, "icon");
-  const backgroundColor = useThemeColor({}, "background");
 
-  // OutWork Theme
-  const primaryColor = "#ff6b35";
+  // Brand Colors
+  const BRAND_BLUE = "#4A90E2";
+  const PRIMARY_COLOR = BRAND_BLUE;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -39,7 +71,8 @@ export default function CreatePlaceScreen() {
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const inputBg = colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f3f4f6';
+  const inputBg = colorScheme === 'dark' ? '#1c1c1e' : '#f3f4f6';
+  const placeholderColor = colorScheme === 'dark' ? '#636366' : '#9ca3af';
 
   const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -86,7 +119,7 @@ export default function CreatePlaceScreen() {
 
       for (let i = 0; i < images.length; i++) {
         const url = await uploadImage(images[i].uri, newPlace.id, i);
-        await createImage({ url: url, place_id: newPlace.id, created_at: new Date().toISOString()});
+        await createImage({ url: url, place_id: newPlace.id, created_at: new Date().toISOString() });
       }
       Alert.alert("Success", "Place created successfully!");
       // Reset form
@@ -115,59 +148,53 @@ export default function CreatePlaceScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <ThemedText type="title" style={styles.title}>
-              List your space
-            </ThemedText>
-            <ThemedText style={styles.subtitle}>
-              Share your perfect work spot with others
-            </ThemedText>
+            <View style={[styles.headerIcon, { backgroundColor: PRIMARY_COLOR }]}>
+              <MaterialIcons name="add-location-alt" size={24} color="#fff" />
+            </View>
+            <View>
+              <ThemedText type="title" style={styles.title}>
+                List your space
+              </ThemedText>
+              <ThemedText style={styles.subtitle}>
+                Share your perfect work spot with others
+              </ThemedText>
+            </View>
           </View>
 
           <View style={styles.formContainer}>
-            {/* Name Input */}
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Name your place</ThemedText>
-              <TextInput
-                style={[
-                  styles.input,
-                  { backgroundColor: inputBg, color: textColor }
-                ]}
-                placeholder="e.g. Cozy Corner Cafe"
-                placeholderTextColor={iconColor}
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
 
-            {/* Description Input */}
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Description</ThemedText>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.textArea,
-                  { backgroundColor: inputBg, color: textColor }
-                ]}
-                placeholder="What makes this spot great for working?"
-                placeholderTextColor={iconColor}
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                textAlignVertical="top"
-              />
-            </View>
+            <FormInput
+              label="Name your place"
+              placeholder="e.g. Cozy Corner Cafe"
+              value={name}
+              onChangeText={setName}
+              backgroundColor={inputBg}
+              textColor={textColor}
+              placeholderColor={placeholderColor}
+            />
+
+            <FormInput
+              label="Description"
+              placeholder="What makes this spot great for working?"
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              backgroundColor={inputBg}
+              textColor={textColor}
+              placeholderColor={placeholderColor}
+            />
 
             {/* Images Section */}
             <View style={styles.inputGroup}>
               <ThemedText style={styles.label}>Photos ({images.length}/4)</ThemedText>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photosScroll}>
                 <TouchableOpacity
-                  style={[styles.addPhotoButton, { borderColor: iconColor }]}
+                  style={[styles.addPhotoButton, { borderColor: iconColor, backgroundColor: inputBg }]}
                   onPress={pickImages}
                   disabled={images.length >= 4}
                 >
-                  <MaterialIcons name="add-a-photo" size={28} color={primaryColor} />
-                  <ThemedText style={{ fontSize: 12, marginTop: 4, fontWeight: '500' }}>Add Photo</ThemedText>
+                  <MaterialIcons name="add-a-photo" size={24} color={PRIMARY_COLOR} />
+                  <ThemedText style={{ fontSize: 12, marginTop: 4, fontWeight: '600', color: PRIMARY_COLOR }}>Add Photo</ThemedText>
                 </TouchableOpacity>
 
                 {images.map((img) => (
@@ -176,8 +203,9 @@ export default function CreatePlaceScreen() {
                     <TouchableOpacity
                       style={styles.removePhotoButton}
                       onPress={() => removeImage(img.uri)}
+                      activeOpacity={0.8}
                     >
-                      <MaterialIcons name="close" size={16} color="#fff" />
+                      <MaterialIcons name="close" size={14} color="#000" />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -201,36 +229,30 @@ export default function CreatePlaceScreen() {
                 >
                   {latitude !== null && longitude !== null && (
                     <Marker coordinate={{ latitude, longitude }}>
-                      <View style={[styles.mapMarker, { backgroundColor: primaryColor }]}>
+                      <View style={[styles.mapMarker, { backgroundColor: PRIMARY_COLOR }]}>
                         <MaterialIcons name="location-on" size={20} color="#fff" />
                       </View>
                     </Marker>
                   )}
                 </MapView>
-                <View style={styles.mapOverlay}>
-                  {latitude ? (
-                    <ThemedText style={styles.locationText}>
-                      Location selected ✓
-                    </ThemedText>
-                  ) : (
-                    <ThemedText style={styles.locationText}>
-                      Tap to select location
-                    </ThemedText>
-                  )}
+                <View style={[styles.mapOverlay, { backgroundColor: latitude ? PRIMARY_COLOR : 'rgba(0,0,0,0.6)' }]}>
+                  <ThemedText style={styles.locationText}>
+                    {latitude ? "Location Selected ✓" : "Tap map to select location"}
+                  </ThemedText>
                 </View>
               </View>
             </View>
 
             {/* Rating */}
             <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Initial Rating</ThemedText>
-              <View style={styles.ratingContainer}>
+              <ThemedText style={styles.label}>My Rating</ThemedText>
+              <View style={[styles.ratingContainer, { backgroundColor: inputBg }]}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <TouchableOpacity key={star} onPress={() => setRating(star === rating ? 0 : star)}>
                     <MaterialIcons
                       name={star <= rating ? "star" : "star-border"}
                       size={32}
-                      color={star <= rating ? primaryColor : iconColor}
+                      color={star <= rating ? PRIMARY_COLOR : iconColor}
                     />
                   </TouchableOpacity>
                 ))}
@@ -238,7 +260,7 @@ export default function CreatePlaceScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: primaryColor }]}
+              style={[styles.submitButton, { backgroundColor: PRIMARY_COLOR }]}
               onPress={handleCreatePlace}
               disabled={loading}
               activeOpacity={0.8}
@@ -251,6 +273,8 @@ export default function CreatePlaceScreen() {
             </TouchableOpacity>
 
           </View>
+
+          <View style={{ height: 40 }} />
         </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
@@ -266,18 +290,30 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
-    paddingTop: Platform.OS === 'android' ? 40 : 60,
+    paddingTop: Platform.OS === 'android' ? 40 : 20,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 32,
+    marginTop: 20
+  },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    transform: [{ rotate: '-5deg' }]
   },
   title: {
-    fontSize: 34,
+    fontSize: 24,
     fontWeight: '800',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     opacity: 0.6,
   },
   formContainer: {
@@ -287,17 +323,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    marginBottom: 4,
+    opacity: 0.8,
+    marginLeft: 4
   },
   input: {
     fontSize: 16,
-    padding: 16,
-    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
   },
   textArea: {
     minHeight: 120,
+    paddingTop: 14,
   },
   photosScroll: {
     gap: 12,
@@ -305,8 +344,8 @@ const styles = StyleSheet.create({
   addPhotoButton: {
     width: 100,
     height: 100,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 16,
+    borderWidth: 2,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
@@ -314,9 +353,14 @@ const styles = StyleSheet.create({
   photoContainer: {
     width: 100,
     height: 100,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   photo: {
     width: '100%',
@@ -324,58 +368,75 @@ const styles = StyleSheet.create({
   },
   removePhotoButton: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 10,
-    padding: 2,
+    top: 6,
+    right: 6,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   mapWrapper: {
     height: 200,
     borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)'
   },
   map: {
     width: '100%',
     height: '100%',
   },
   mapMarker: {
-    padding: 6,
+    padding: 8,
     borderRadius: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
+    elevation: 4
   },
   mapOverlay: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    padding: 8,
-    alignItems: 'center',
+    bottom: 16,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3
   },
   locationText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
   },
   ratingContainer: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
+    padding: 16,
+    borderRadius: 16,
+    justifyContent: 'center'
   },
   submitButton: {
     marginTop: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
+    marginBottom: 26,
+    height: 56,
+    borderRadius: 16,
     alignItems: 'center',
-    shadowColor: "#ff6b35",
+    justifyContent: 'center',
+    shadowColor: "#4A90E2",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonText: {
     color: '#fff',
