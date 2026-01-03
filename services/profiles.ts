@@ -31,6 +31,19 @@ export async function getUsernameById(userId: string) {
   return data.full_name
 }
 
+export async function getProfileById(userId: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single()
+    if (error) { 
+      console.error(error)
+      return null
+    }
+    return data;
+}
+
 export async function updateProfile(
   profileId: string,
   updates: UpdateProfileInput

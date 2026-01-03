@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useThemeColor } from '@/hooks/use-theme-color'
 import { supabase } from '@/lib/supabase'
-import { getUsernameById, updateProfile } from '@/services/profiles'
+import { getProfileById, updateProfile } from '@/services/profiles'
 import { getUserId } from '@/services/users'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import { useRouter } from 'expo-router'
@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -38,6 +39,7 @@ export default function ProfileScreen() {
   const [profileLoading, setProfileLoading] = useState(true)
   const [fullName, setFullName] = useState('')
   const [email] = useState(session?.user?.email || '')
+  const [avatarUrl, setAvatarUrl] = useState('')
 
   // Security State
   const [showSecurity, setShowSecurity] = useState(false)
@@ -53,8 +55,9 @@ export default function ProfileScreen() {
       setProfileLoading(true)
       const userId = await getUserId()
       if (userId) {
-        const name = await getUsernameById(userId)
-        setFullName(name ?? '')
+        const profile = await getProfileById(userId);
+        setFullName(profile?.full_name ?? '')
+        setAvatarUrl(profile?.avatar_url ?? 'Avatar not found');
       }
     } catch (e) {
       console.error(e)
@@ -134,9 +137,11 @@ export default function ProfileScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.avatarContainer}>
-              <ThemedText style={styles.avatarText}>
-                {fullName ? fullName.charAt(0).toUpperCase() : email.charAt(0).toUpperCase()}
-              </ThemedText>
+              <Image
+                source={{ uri: avatarUrl }}
+                style={styles.avatar}
+                resizeMode="cover"
+              />
               <View style={styles.editIconBadge}>
                 <MaterialIcons name="edit" size={14} color="#fff" />
               </View>
@@ -260,19 +265,13 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   avatarContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatar: {
     width: 100,
     height: 100,
-    borderRadius: 50,
-    backgroundColor: '#333',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    position: 'relative',
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 36,
-    fontWeight: '600',
+    borderRadius: 40,
   },
   editIconBadge: {
     position: 'absolute',
