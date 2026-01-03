@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase'
 import { getProfileById, updateProfile } from '@/services/profiles'
 import { getUserId } from '@/services/users'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
+import { File } from 'expo-file-system'
+import * as ImagePicker from 'expo-image-picker'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
@@ -106,6 +108,78 @@ export default function ProfileScreen() {
     }
   }
 
+  const pickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Please allow photo access')
+      return
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    })
+
+    if (!result.canceled) {
+      await uploadAvatar(result.assets[0].uri)
+    }
+  }
+
+  const uploadAvatar = async (uri: string) => {
+    try {
+      setLoading(true)
+
+      const userId = await getUserId()
+      if (!userId) throw new Error('No user found')
+
+      const file = new File(uri)
+      const arrayBuffer = await file.arrayBuffer()
+      const bytes = new Uint8Array(arrayBuffer)
+
+      const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg'
+      const filePath = `${userId}-avatar.${ext}`
+
+      const mimeType = ext === 'jpg' ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : `image/${ext}`
+
+      const { error } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, bytes, {
+          contentType: mimeType,
+          upsert: true,
+        })
+
+      if (error) throw error
+
+      // Try to create a signed URL (works for private buckets). Fallback to public URL if available.
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from('avatars')
+        .createSignedUrl(filePath, 60 * 60 * 24 * 7) // 7 days
+
+      let finalUrl: string | undefined = signedData?.signedUrl
+
+      if (!finalUrl) {
+        const { data } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath)
+        finalUrl = data?.publicUrl
+      }
+
+      if (!finalUrl) throw new Error('Failed to get avatar URL')
+
+      await updateProfile(userId, { avatar_url: finalUrl, updated_at: new Date().toISOString() })
+      setAvatarUrl(finalUrl)
+      Alert.alert('Success', 'Avatar uploaded')
+
+    } catch (err: any) {
+      console.error(err)
+      Alert.alert('Error', err?.message || 'Failed to upload avatar')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSignOut = async () => {
     Alert.alert(
       "Sign Out",
@@ -136,7 +210,7 @@ export default function ProfileScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.avatarContainer}>
+            {/* <View style={styles.avatarContainer}>
               <Image
                 source={{ uri: avatarUrl }}
                 style={styles.avatar}
@@ -145,7 +219,19 @@ export default function ProfileScreen() {
               <View style={styles.editIconBadge}>
                 <MaterialIcons name="edit" size={14} color="#fff" />
               </View>
-            </View>
+            </View> */}
+            <TouchableOpacity onPress={pickAvatar} activeOpacity={0.8}>
+              <View style={styles.avatarContainer}>
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={styles.avatar}
+                  resizeMode="cover"
+                />
+                <View style={styles.editIconBadge}>
+                  <MaterialIcons name="edit" size={14} color="#fff" />
+                </View>
+              </View>
+            </TouchableOpacity>
             <ThemedText type="title" style={styles.headerTitle}>Profile</ThemedText>
             <ThemedText style={styles.headerSubtitle}>
               Manage your personal details
