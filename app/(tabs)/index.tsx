@@ -47,6 +47,23 @@ const CATEGORY_API_MAP: Record<string, string[]> = {
   late: ["late_night"],
 };
 
+const COUNTRY_REGIONS: Record<string, any> = {
+  Greece: {
+    latitude: 39.0742,
+    longitude: 21.8243,
+    latitudeDelta: 6,
+    longitudeDelta: 6,
+  },
+  Italy: {
+    latitude: 41.8719,
+    longitude: 12.5674,
+    latitudeDelta: 6,
+    longitudeDelta: 6,
+  },
+};
+
+let mapInit = false;
+
 export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? "light";
   const backgroundColor = useThemeColor({}, "background");
@@ -102,12 +119,56 @@ export default function HomeScreen() {
     }, [selectedCategory])
   );
 
+  const getCountryFromCoords = async (
+    latitude: number,
+    longitude: number
+  ) => {
+    const places = await Location.reverseGeocodeAsync({
+      latitude,
+      longitude,
+    });
+
+    if (!places.length) return null;
+
+    return places[0].country;
+  };
+
+  const initializeMap = async () => {
+    if (!userLocation) return;
+
+    const country = await getCountryFromCoords(
+      userLocation.latitude,
+      userLocation.longitude
+    )
+
+    if (!country || !COUNTRY_REGIONS[country]) return ;
+
+    mapRef.current?.animateToRegion(
+      COUNTRY_REGIONS[country],
+      700
+    );
+
+    mapInit = true;
+    // mapRef.current?.animateToRegion(
+    //   {
+    //     latitude: 37.9838,
+    //     longitude: 23.7275,
+    //     latitudeDelta: 0.005,
+    //     longitudeDelta: 0.005,
+    //   },
+    //   500
+    // );
+  };
+
+  useEffect(() => {
+    initializeMap();
+  }, []);
+
   const centerOnUser = () => {
     if (!userLocation) return;
 
     centerMap(userLocation.latitude, userLocation.longitude);
   };
-
 
   async function enableTracking() {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -691,12 +752,7 @@ export default function HomeScreen() {
                   style={StyleSheet.absoluteFill}
                   showsUserLocation
                   onPress={onMapPress}
-                  initialRegion={{
-                    latitude: 37.9838,
-                    longitude: 23.7275,
-                    latitudeDelta: 0.05,
-                    longitudeDelta: 0.05,
-                  }}
+                  // initialRegion={initializeMap}
                 >
                   {/* Center on User Button */}
                   {userLocation && (
