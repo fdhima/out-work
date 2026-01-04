@@ -758,7 +758,7 @@ export default function HomeScreen() {
                       <View style={styles.previewInfo}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                           <ThemedText numberOfLines={1} style={styles.previewTitle}>{previewPlace.name}</ThemedText>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, width: "100%" }}>
                             <MaterialIcons name="star" size={12} color={isDark ? '#fff' : '#000'} />
                             <ThemedText style={{ fontSize: 12 }}>{previewPlace.rating_avg.toFixed(1)}</ThemedText>
                           </View>
@@ -956,11 +956,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
-
   // Preview Card on Map
   previewCardContainer: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 100,
     left: 20,
     right: 20,
     zIndex: 101, // Above floating button
@@ -1052,7 +1051,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 16,
   },
-
   // Review & Form
   reviewsContainer: {
     marginTop: 32,
@@ -1181,7 +1179,7 @@ const styles = StyleSheet.create({
   },
   centerUserButton: {
     position: 'absolute',
-    bottom: 150,        // Above toggle & preview card
+    bottom: 220,        // Above toggle & preview card
     right: 20,
     width: 44,
     height: 44,
