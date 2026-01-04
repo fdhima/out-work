@@ -12,7 +12,10 @@
     "deepLinks": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dflorjan.outwork"
+      "bundleIdentifier": "com.dflorjan.outwork",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to show nearby content."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +26,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.dflorjan.outwork"
+      "package": "com.dflorjan.outwork",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
     "web": {
       "output": "static",
