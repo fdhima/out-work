@@ -82,7 +82,7 @@ export default function HomeScreen() {
   const [submittingReview, setSubmittingReview] = useState<boolean>(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
-  const [trackingSub, setTrackingSub] = useState<Location.LocationSubscription | null>(null);
+  // const [trackingSub, setTrackingSub] = useState<Location.LocationSubscription | null>(null);
   const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
   const MAX_REVIEWS_PREVIEW = 3;
@@ -101,13 +101,6 @@ export default function HomeScreen() {
       fetchPlaces(selectedCategory);
     }, [selectedCategory])
   );
-
-  const centerOnUser = () => {
-    if (!userLocation) return;
-
-    centerMap(userLocation.latitude, userLocation.longitude);
-  };
-
 
   async function enableTracking() {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -131,18 +124,18 @@ export default function HomeScreen() {
     return subscription;
   }
   
-  useEffect(() => {
-    let sub: Location.LocationSubscription;
+  // useEffect(() => {
+  //   let sub: Location.LocationSubscription;
 
-    (async () => {
-      sub = await enableTracking();
-      setTrackingSub(sub);
-    })();
+  //   (async () => {
+  //     sub = await enableTracking();
+  //     setTrackingSub(sub);
+  //   })();
 
-    return () => {
-      sub?.remove();
-    };
-  }, []);
+  //   return () => {
+  //     sub?.remove();
+  //   };
+  // }, []);
 
   const filterPlaces = useCallback(() => {
     let filtered = allPlaces;
@@ -698,17 +691,6 @@ export default function HomeScreen() {
                     longitudeDelta: 0.05,
                   }}
                 >
-                  {/* Center on User Button */}
-                  {userLocation && (
-                    <TouchableOpacity
-                      onPress={centerOnUser}
-                      activeOpacity={0.85}
-                      style={styles.centerUserButton}
-                    >
-                      <MaterialIcons name="my-location" size={22} color="#000" />
-                    </TouchableOpacity>
-                  )}
-
                   {places.map((place) => {
                     const isSelected = previewPlace?.id === place.id;
                     const bg = isSelected ? BRAND_BLUE : '#fff';
@@ -1176,22 +1158,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 8,
-  },
-  centerUserButton: {
-    position: 'absolute',
-    bottom: 220,        // Above toggle & preview card
-    right: 20,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 6,
-    zIndex: 200,
-  },
+  }
 });
