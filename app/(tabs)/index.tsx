@@ -10,7 +10,6 @@ import { getPlaces, Place } from "@/services/places";
 import { createReview, getReviewsByPlaceId, Review } from "@/services/reviews";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect } from "@react-navigation/native";
-import * as Location from 'expo-location';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -82,9 +81,6 @@ export default function HomeScreen() {
   const [submittingReview, setSubmittingReview] = useState<boolean>(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
-  // const [trackingSub, setTrackingSub] = useState<Location.LocationSubscription | null>(null);
-  const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
-
   const MAX_REVIEWS_PREVIEW = 3;
   const { session } = useAuth();
   const mapRef = useRef<MapView | null>(null);
@@ -101,41 +97,6 @@ export default function HomeScreen() {
       fetchPlaces(selectedCategory);
     }, [selectedCategory])
   );
-
-  async function enableTracking() {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      console.warn('Location permission denied');
-      return;
-    }
-
-    const subscription = await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.High,
-        timeInterval: 5000,
-        distanceInterval: 10,
-      },
-      (location) => {
-        console.log(location.coords);
-        setUserLocation(location.coords);
-      }
-    );
-
-    return subscription;
-  }
-  
-  // useEffect(() => {
-  //   let sub: Location.LocationSubscription;
-
-  //   (async () => {
-  //     sub = await enableTracking();
-  //     setTrackingSub(sub);
-  //   })();
-
-  //   return () => {
-  //     sub?.remove();
-  //   };
-  // }, []);
 
   const filterPlaces = useCallback(() => {
     let filtered = allPlaces;
@@ -308,6 +269,8 @@ export default function HomeScreen() {
     );
   };
 
+  // --- Components ---
+
   const SearchHeader = useMemo(() => () => (
     <View style={[styles.headerContainer, { shadowColor: isDark ? "#000" : "#666" }]}>
       {/* Search Bar Pill */}
@@ -433,6 +396,7 @@ export default function HomeScreen() {
               <ThemedText type="title" style={styles.detailTitle}>
                 {selectedPlace.name}
               </ThemedText>
+
               <View style={styles.detailRatingRow}>
                 {renderStars(selectedPlace.rating_avg, 16, isDark ? "#fff" : "#000")}
                 <ThemedText style={{ fontSize: 14, opacity: 0.6 }}> • {selectedPlace.reviews?.length || 0} reviews</ThemedText>
@@ -682,8 +646,7 @@ export default function HomeScreen() {
                   ref={mapRef}
                   provider={PROVIDER_DEFAULT}
                   style={StyleSheet.absoluteFill}
-                  showsUserLocation
-                  onPress={onMapPress}
+                  onPress={onMapPress} // Deselect on map press
                   initialRegion={{
                     latitude: 37.9838,
                     longitude: 23.7275,
