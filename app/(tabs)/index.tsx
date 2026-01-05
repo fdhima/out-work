@@ -655,7 +655,8 @@ export default function HomeScreen() {
                   }}
                 >
                   {places.map((place) => {
-                    const isSelected = previewPlace?.id === place.id;
+                    // const isSelected = previewPlace?.id === place.id;
+                    const isSelected = false
                     const bg = isSelected ? BRAND_BLUE : '#fff';
                     const text = isSelected ? '#fff' : '#000';
                     const zIndex = isSelected ? 100 : 1;
