@@ -119,3 +119,50 @@ export async function getPlaceImages(placeId: number) {
   if (error) throw error;
   return data;
 }
+
+
+// API to grab all the places, irrespectively if category or query filtering has been applied
+export async function getPlacesEnhanced(categoryId?: number | null, query?: string) {
+  console.log(`categoryId: ${categoryId}, query: ${query}`);
+  let request = supabase
+    // .from('places')
+    // .select(`
+    //   *,
+    //   images (*),
+    //   places_categories!inner (category_id)
+    // `);
+      .from('places')
+  .select(`
+    *,
+    images!inner (*),
+    places_categories!inner (*)
+  `);
+
+  // Logic: Only apply search if query has text
+  if (query) {
+    console.log("Apply query filtering.");
+    request = request.ilike('name', `%${query.trim()}%`);
+  }
+
+  // Logic: Only apply category filter if categoryId is provided and not "all"
+  if (categoryId) {
+    console.log("Apply category filtering.");
+    request = request.eq('places_categories.category_id', categoryId);
+  }
+
+  const { data, error } = await request;
+
+  if (error) {
+    console.error('Error fetching places:', error);
+    throw error;
+  }
+
+  // CORRECT LOGGING:
+  if (data) {
+    for (const place of data) {
+      console.log(`Fetched place name: ${place.name}, Images count: ${place.images?.length}`);
+    }
+  }
+  
+  return data;
+}

@@ -1,5 +1,10 @@
 import { supabase } from "@/lib/supabase";
 
+interface Category {
+  id: number,
+  name: string,
+}
+
 export async function getPlacesByCategory(categories: string[])  {
   const { data: idsData, error: idsError } = await supabase
     .from('places_with_categories')
@@ -18,3 +23,28 @@ export async function getPlacesByCategory(categories: string[])  {
   if (placesError) throw placesError;
   return places;
 }
+
+export async function getCategories() {
+  const { data: categories, error } = await supabase
+    .from('categories')
+    .select('*')
+  if ( error ) throw error;
+  return categories;
+}
+
+export async function getCategoryIdByName(categoryName: string): Promise<number | null> {
+  console.log(`categoryName: ${categoryName}`)
+  const { data, error } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('name', categoryName)
+      .single();
+    
+    if (error) {
+      console.error("Error fetching category:", error.message);
+      throw error;
+    }
+
+    return data ? data.id : null;
+}
+
