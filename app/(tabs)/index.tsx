@@ -35,8 +35,8 @@ const CATEGORIES = [
   { id: "all", label: "All", icon: "grid-view" },
   { id: "quiet", label: "Quiet", icon: "volume-off" },
   { id: "meeting", label: "Meeting", icon: "groups" },
-  { id: "fast_wifi", label: "Fast Wifi", icon: "wifi" },
   { id: "late_night", label: "Late Night", icon: "nightlight" },
+  { id: "fast_wifi", label: "Fast Wifi", icon: "wifi" },
 ];
 
 
@@ -102,7 +102,6 @@ export default function HomeScreen() {
     centerMap(userLocation.latitude, userLocation.longitude);
   };
 
-
   async function enableTracking() {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
@@ -138,37 +137,13 @@ export default function HomeScreen() {
     };
   }, []);
 
-  const filterPlaces = useCallback(() => {
-    let filtered = allPlaces;
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (place) =>
-          place.name.toLowerCase().includes(query) ||
-          place.description.toLowerCase().includes(query)
-      );
-    }
-
-    setPlaces(filtered);
-  }, [allPlaces, searchQuery]);
-
-  // Update displayed places when search query changes
-  useEffect(() => {
-    filterPlaces();
-  }, [searchQuery, filterPlaces]);
-
   const fetchPlaces = async () => {
     try {
       setLoading(true);
 
-      const apiCategoryId = selectedCategory === "all" ? "" : selectedCategory;
       let categoryId = null;
       if (selectedCategory !== "all") {
-        console.log(`ready to find the id of ${selectedCategory}`);
         categoryId = await getCategoryIdByName(selectedCategory);
-        console.log(`categoryId: ${categoryId}`);
       }
       
       const data = await getPlacesEnhanced(categoryId, searchQuery);

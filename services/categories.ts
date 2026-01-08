@@ -33,7 +33,6 @@ export async function getCategories() {
 }
 
 export async function getCategoryIdByName(categoryName: string): Promise<number | null> {
-  console.log(`categoryName: ${categoryName}`)
   const { data, error } = await supabase
       .from('categories')
       .select('id')
