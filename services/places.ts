@@ -125,18 +125,12 @@ export async function getPlaceImages(placeId: number) {
 export async function getPlacesEnhanced(categoryId?: number | null, query?: string) {
   console.log(`categoryId: ${categoryId}, query: ${query}`);
   let request = supabase
-    // .from('places')
-    // .select(`
-    //   *,
-    //   images (*),
-    //   places_categories!inner (category_id)
-    // `);
-      .from('places')
-  .select(`
-    *,
-    images!inner (*),
-    places_categories!inner (*)
-  `);
+    .from('places')
+    .select(`
+      *,
+      images!inner (*),
+      places_categories!inner (*)
+    `);
 
   // Logic: Only apply search if query has text
   if (query) {
@@ -155,13 +149,6 @@ export async function getPlacesEnhanced(categoryId?: number | null, query?: stri
   if (error) {
     console.error('Error fetching places:', error);
     throw error;
-  }
-
-  // CORRECT LOGGING:
-  if (data) {
-    for (const place of data) {
-      console.log(`Fetched place name: ${place.name}, Images count: ${place.images?.length}`);
-    }
   }
   
   return data;
