@@ -2,12 +2,14 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { getCategories } from "@/services/categories";
 import { createImage, uploadImage } from "@/services/images";
 import { createPlace } from "@/services/places";
+import { createPlaceCategory } from "@/services/places_categories";
 import { getUserId } from "@/services/users";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -69,7 +71,27 @@ export default function CreatePlaceScreen() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [rating, setRating] = useState<number>(0);
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+  const [dbCategories, setDbCategories] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const cats = await getCategories();
+        setDbCategories(cats);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  const toggleCategory = (id: number) => {
+    setSelectedCategoryIds((prev) =>
+      prev.includes(id) ? prev.filter((catId) => catId !== id) : [...prev, id]
+    );
+  };
 
   const inputBg = colorScheme === 'dark' ? '#1c1c1e' : '#f3f4f6';
   const placeholderColor = colorScheme === 'dark' ? '#636366' : '#9ca3af';
@@ -121,6 +143,12 @@ export default function CreatePlaceScreen() {
         const url = await uploadImage(images[i].uri, newPlace.id, i);
         await createImage({ url: url, place_id: newPlace.id, created_at: new Date().toISOString() });
       }
+
+      // Create category associations
+      for (const categoryId of selectedCategoryIds) {
+        await createPlaceCategory({ place_id: newPlace.id, category_id: categoryId });
+      }
+
       Alert.alert("Success", "Place created successfully!");
       // Reset form
       setName("");
@@ -129,6 +157,7 @@ export default function CreatePlaceScreen() {
       setLongitude(null);
       setRating(0);
       setImages([]);
+      setSelectedCategoryIds([]);
     } catch (error: any) {
       console.error(error);
       Alert.alert("Error", error.message || "Failed to create place");
@@ -256,6 +285,38 @@ export default function CreatePlaceScreen() {
                     />
                   </TouchableOpacity>
                 ))}
+              </View>
+            </View>
+
+            {/* Categories Selection */}
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.label}>Categories</ThemedText>
+              <View style={styles.categoriesWrapper}>
+                {dbCategories.map((cat) => {
+                  const isSelected = selectedCategoryIds.includes(cat.id);
+                  return (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[
+                        styles.categoryChip,
+                        {
+                          backgroundColor: isSelected ? PRIMARY_COLOR : inputBg,
+                          borderColor: isSelected ? PRIMARY_COLOR : 'transparent',
+                        },
+                      ]}
+                      onPress={() => toggleCategory(cat.id)}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.categoryChipText,
+                          { color: isSelected ? "#fff" : textColor },
+                        ]}
+                      >
+                        {cat.name}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
 
@@ -442,5 +503,26 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-  }
+  },
+  categoriesWrapper: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingVertical: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  categoryChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });

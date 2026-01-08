@@ -4,14 +4,13 @@ import FullscreenGallery from "@/components/ui/fullscreen-gallery";
 import { useAuth } from "@/context/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { getPlacesByCategory } from "@/services/categories";
-import { getImagesForPlace } from "@/services/images";
-import { getPlaces, Place } from "@/services/places";
+import { getCategoryIdByName } from "@/services/categories";
+import { getPlacesEnhanced, Place } from "@/services/places";
 import { createReview, getReviewsByPlaceId, Review } from "@/services/reviews";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from 'expo-location';
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -26,6 +25,7 @@ import {
   View
 } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import { MapHeader } from "./components/MapHeader";
 
 const { width, height } = Dimensions.get('window');
 
@@ -35,17 +35,10 @@ const CATEGORIES = [
   { id: "all", label: "All", icon: "grid-view" },
   { id: "quiet", label: "Quiet", icon: "volume-off" },
   { id: "meeting", label: "Meeting", icon: "groups" },
-  { id: "wifi", label: "Fast Wifi", icon: "wifi" },
-  { id: "late", label: "Late Night", icon: "nightlight" },
+  { id: "fast_wifi", label: "Fast Wifi", icon: "wifi" },
+  { id: "late_night", label: "Late Night", icon: "nightlight" },
 ];
 
-const CATEGORY_API_MAP: Record<string, string[]> = {
-  all: [],
-  quiet: ["quiet"],
-  meeting: ["meeting"],
-  wifi: ["wifi"],
-  late: ["late_night"],
-};
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? "light";
@@ -74,7 +67,8 @@ export default function HomeScreen() {
 
   // View Mode: 'list' | 'map' - DEFAULT TO MAP
   const [viewMode, setViewMode] = useState<"list" | "map">("map");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  // const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const [reviewRating, setReviewRating] = useState<number>(5);
@@ -98,8 +92,8 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchPlaces(selectedCategory);
-    }, [selectedCategory])
+      fetchPlaces();
+    }, [selectedCategory, searchQuery]) // Re-run when either changes
   );
 
   const centerOnUser = () => {
@@ -165,40 +159,28 @@ export default function HomeScreen() {
     filterPlaces();
   }, [searchQuery, filterPlaces]);
 
-  const fetchPlaces = async (categoryId: string) => {
+  const fetchPlaces = async () => {
     try {
       setLoading(true);
-      const apiCategories = CATEGORY_API_MAP[categoryId];
-      const data =
-        categoryId === "all"
-          ? await getPlaces()
-          : await getPlacesByCategory(apiCategories);
 
-      if (!data) return;
-
-      const placesWithImages = await Promise.all(
-        data.map(async (place) => {
-          const images = await getImagesForPlace(place.id);
-          const reviews = await getReviewsByPlaceId(place.id);
-          return { ...place, images, reviews: reviews };
-        })
-      );
-
-      setAllPlaces(placesWithImages);
-      // Apply current search filter to new results
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const filtered = placesWithImages.filter(
-          (place) =>
-            place.name.toLowerCase().includes(query) ||
-            place.description.toLowerCase().includes(query)
-        );
-        setPlaces(filtered);
-      } else {
-        setPlaces(placesWithImages);
+      const apiCategoryId = selectedCategory === "all" ? "" : selectedCategory;
+      let categoryId = null;
+      if (selectedCategory !== "all") {
+        console.log(`ready to find the id of ${selectedCategory}`);
+        categoryId = await getCategoryIdByName(selectedCategory);
+        console.log(`categoryId: ${categoryId}`);
       }
+      
+      const data = await getPlacesEnhanced(categoryId, searchQuery);
+
+      if (!data) {
+        setPlaces([]);
+        return;
+      }
+
+      setPlaces(data);
     } catch (err) {
-      console.error("Error fetching places: ", err);
+      console.error("Error fetching filtered places: ", err);
     } finally {
       setLoading(false);
     }
@@ -314,67 +296,6 @@ export default function HomeScreen() {
       </View>
     );
   };
-
-  const SearchHeader = useMemo(() => () => (
-    <View style={[styles.headerContainer, { shadowColor: isDark ? "#000" : "#666" }]}>
-      {/* Search Bar Pill */}
-      <View style={[styles.searchPill, { backgroundColor: isDark ? '#2c2c2e' : '#fff', borderColor: isDark ? '#444' : '#ddd' }]}>
-        <MaterialIcons name="search" size={20} color={isDark ? "#fff" : "#000"} />
-        <TextInput
-          style={[styles.searchInput, { color: textColor }]}
-          placeholder="Where to work?"
-          placeholderTextColor={isDark ? '#9ca3af' : '#6b7280'}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 ? (
-          <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={8} style={styles.iconButton}>
-            <MaterialIcons name="close" size={18} color={isDark ? "#fff" : "#000"} />
-          </TouchableOpacity>
-        ) : (
-          <View style={[styles.filterIconCircle, { borderColor: isDark ? '#555' : '#ddd' }]}>
-            <MaterialIcons name="tune" size={14} color={isDark ? "#fff" : "#000"} />
-          </View>
-        )}
-      </View>
-
-      {/* Categories */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesContainer}
-      >
-        {CATEGORIES.map((cat) => {
-          const isActive = selectedCategory === cat.id;
-          return (
-            <TouchableOpacity
-              key={cat.id}
-              onPress={() => setSelectedCategory(cat.id)}
-              style={[
-                styles.categoryItem,
-                isActive && styles.categoryItemActive,
-              ]}
-            >
-              <MaterialIcons
-                name={cat.icon as any}
-                size={24}
-                color={isActive ? (isDark ? "#fff" : "#000") : (isDark ? "#fff" : "#666")}
-                style={isActive ? {} : { backgroundColor: '#fff', padding: 8, borderRadius: 20, overflow: 'hidden' }}
-              />
-              <ThemedText
-                style={[
-                  styles.categoryLabel,
-                  isActive ? { fontWeight: '700', color: textColor } : { color: isDark ? '#ccc' : '#444' }
-                ]}
-              >
-                {cat.label}
-              </ThemedText>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
-  ), [textColor, searchQuery, selectedCategory, isDark]);
 
   const ViewToggle = () => (
     <View style={styles.toggleContainer}>
@@ -611,11 +532,26 @@ export default function HomeScreen() {
             {/* Search Header OVERLAY */}
             {viewMode === 'map' && (
               <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 }}>
-                {SearchHeader()}
+              {
+                <MapHeader
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  selectedCategory={selectedCategory}
+                  onCategorySelect={setSelectedCategory}
+                  categories={CATEGORIES}
+                />
+              }
               </View>
             )}
-            {viewMode === 'list' && SearchHeader()}
-
+            {viewMode === 'list' &&
+              <MapHeader
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                selectedCategory={selectedCategory}
+                onCategorySelect={setSelectedCategory}
+                categories={CATEGORIES}
+              />
+            }
             {viewMode === "list" ? (
               <FlatList
                 data={places}
@@ -797,65 +733,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  headerContainer: {
-    paddingTop: Platform.OS === 'android' ? 40 : 60, // Notch height
-    paddingBottom: 0,
-    zIndex: 10,
-    borderBottomWidth: 0,
-    elevation: 0,
-    marginBottom: 10
-  },
-  searchPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    borderRadius: 50,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-    gap: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    padding: 0,
-  },
-  iconButton: {
-    padding: 4,
-  },
-  filterIconCircle: {
-    padding: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  categoriesContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    gap: 10,  // Tighter gap
-  },
-  categoryItem: {
-    alignItems: 'center',
-    paddingBottom: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-    opacity: 0.9,
-    marginRight: 24
-  },
-  categoryItemActive: {
-    borderBottomColor: 'transparent',
-    opacity: 1,
-  },
-  categoryLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 8
   },
 
   // List
