@@ -8,6 +8,10 @@ import { Platform } from 'react-native';
 const tintColorLight = '#ff6b35';
 const tintColorDark = '#ff6b35';
 
+export const MAX_REVIEWS_PREVIEW = 3;
+export const BRAND_BLUE = "#4A90E2";
+export const BRAND_PURPLE = "#8b5cf6";
+
 export const Colors = {
   light: {
     text: '#11181C',
