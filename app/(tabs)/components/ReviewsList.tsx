@@ -18,7 +18,7 @@ export function ReviewsList({
     : (reviews ?? []).slice(0, MAX_REVIEWS_PREVIEW);
 
   const hasMoreReviews =
-    (reviews.length ?? 0) > MAX_REVIEWS_PREVIEW;
+    (reviews?.length ?? 0) > MAX_REVIEWS_PREVIEW;
   
   
   return visibleReviews.length ? (
