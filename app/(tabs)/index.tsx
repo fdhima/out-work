@@ -1,43 +1,30 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import FullscreenGallery from "@/components/ui/fullscreen-gallery";
+import { BRAND_BLUE, CATEGORIES, isDark } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { getCategoryIdByName } from "@/services/categories";
 import { getPlacesEnhanced, Place } from "@/services/places";
-import { createReview, getReviewsByPlaceId, Review } from "@/services/reviews";
+import { Review } from "@/services/reviews";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
   FlatList,
   Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import { ImageCarousel } from "./components/ImageCarousel";
 import { MapHeader } from "./components/MapHeader";
-
-const { width, height } = Dimensions.get('window');
+import { PlaceDetailed } from "./components/PlaceDetailed";
 
 type PlaceWithImages = Place & { images: string[]; reviews?: Review[] };
-
-const CATEGORIES = [
-  { id: "all", label: "All", icon: "grid-view" },
-  { id: "quiet", label: "Quiet", icon: "volume-off" },
-  { id: "meeting", label: "Meeting", icon: "groups" },
-  { id: "late_night", label: "Late Night", icon: "nightlight" },
-  { id: "fast_wifi", label: "Fast Wifi", icon: "wifi" },
-];
 
 
 export default function HomeScreen() {
@@ -45,13 +32,8 @@ export default function HomeScreen() {
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
 
-  // Brand Colors
-  const BRAND_BLUE = "#4A90E2";
-  const BRAND_PURPLE = "#8b5cf6";
-  const primaryColor = BRAND_BLUE;
-
-  const iconColor = useThemeColor({}, "icon");
-  const isDark = colorScheme === 'dark';
+  // const iconColor = useThemeColor({}, "icon");
+  // const isDark = colorScheme === 'dark';
 
   const [places, setPlaces] = useState<PlaceWithImages[]>([]);
   const [allPlaces, setAllPlaces] = useState<PlaceWithImages[]>([]);
@@ -73,22 +55,21 @@ export default function HomeScreen() {
 
   const [reviewRating, setReviewRating] = useState<number>(5);
   const [reviewText, setReviewText] = useState<string>("");
-  const [submittingReview, setSubmittingReview] = useState<boolean>(false);
-  const [showAllReviews, setShowAllReviews] = useState(false);
+  // const [submittingReview, setSubmittingReview] = useState<boolean>(false);
+  // const [showAllReviews, setShowAllReviews] = useState(false);
 
   const [trackingSub, setTrackingSub] = useState<Location.LocationSubscription | null>(null);
   const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
-  const MAX_REVIEWS_PREVIEW = 3;
   const { session } = useAuth();
   const mapRef = useRef<MapView | null>(null);
 
-  const visibleReviews = showAllReviews
-    ? selectedPlace?.reviews ?? []
-    : (selectedPlace?.reviews ?? []).slice(0, MAX_REVIEWS_PREVIEW);
+  // const visibleReviews = showAllReviews
+  //   ? selectedPlace?.reviews ?? []
+  //   : (selectedPlace?.reviews ?? []).slice(0, MAX_REVIEWS_PREVIEW);
 
-  const hasMoreReviews =
-    (selectedPlace?.reviews?.length ?? 0) > MAX_REVIEWS_PREVIEW;
+  // const hasMoreReviews =
+  //   (selectedPlace?.reviews?.length ?? 0) > MAX_REVIEWS_PREVIEW;
 
   useFocusEffect(
     useCallback(() => {
@@ -123,7 +104,7 @@ export default function HomeScreen() {
 
     return subscription;
   }
-  
+
   useEffect(() => {
     let sub: Location.LocationSubscription;
 
@@ -145,7 +126,7 @@ export default function HomeScreen() {
       if (selectedCategory !== "all") {
         categoryId = await getCategoryIdByName(selectedCategory);
       }
-      
+
       const data = await getPlacesEnhanced(categoryId, searchQuery);
 
       if (!data) {
@@ -184,93 +165,93 @@ export default function HomeScreen() {
     }
   };
 
-  const submitReview = async () => {
-    if (!selectedPlace || !session?.user) return;
-    const placeId = selectedPlace.id;
-    setSubmittingReview(true);
-    try {
-      await createReview({
-        comment: reviewText.trim(),
-        rating: reviewRating,
-        place_id: placeId,
-        profile_id: session.user.id,
-        created_at: new Date().toISOString(),
-      });
-      const reviews = await getReviewsByPlaceId(placeId);
-      const avg = reviews && reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+  // const submitReview = async () => {
+  //   if (!selectedPlace || !session?.user) return;
+  //   const placeId = selectedPlace.id;
+  //   setSubmittingReview(true);
+  //   try {
+  //     await createReview({
+  //       comment: reviewText.trim(),
+  //       rating: reviewRating,
+  //       place_id: placeId,
+  //       profile_id: session.user.id,
+  //       created_at: new Date().toISOString(),
+  //     });
+  //     const reviews = await getReviewsByPlaceId(placeId);
+  //     const avg = reviews && reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
 
-      setSelectedPlace((prev) => (prev ? { ...prev, reviews, rating_avg: avg } : prev));
-      setPlaces((prev) => prev.map((p) => (p.id === placeId ? { ...p, reviews, rating_avg: avg } : p)));
+  //     setSelectedPlace((prev) => (prev ? { ...prev, reviews, rating_avg: avg } : prev));
+  //     setPlaces((prev) => prev.map((p) => (p.id === placeId ? { ...p, reviews, rating_avg: avg } : p)));
 
-      setReviewText("");
-      setReviewRating(5);
-      setShowAllReviews(true);
-    } catch (err) {
-      console.error("Error posting review:", err);
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
+  //     setReviewText("");
+  //     setReviewRating(5);
+  //     setShowAllReviews(true);
+  //   } catch (err) {
+  //     console.error("Error posting review:", err);
+  //   } finally {
+  //     setSubmittingReview(false);
+  //   }
+  // };
 
-  function ImageCarousel({ images, height, onPress, borderRadius = 0 }: { images: string[]; height: number; onPress?: (index: number) => void; borderRadius?: number }) {
-    const [index, setIndex] = useState(0);
+  // function ImageCarousel({ images, height, onPress, borderRadius = 0 }: { images: string[]; height: number; onPress?: (index: number) => void; borderRadius?: number }) {
+  //   const [index, setIndex] = useState(0);
 
-    const imgs = (images && images.length ? images.slice(0, 5) : []) as string[];
-    const placeholder = "https://via.placeholder.com/400x250?text=No+Image";
+  //   const imgs = (images && images.length ? images.slice(0, 5) : []) as string[];
+  //   const placeholder = "https://via.placeholder.com/400x250?text=No+Image";
 
-    return (
-      <View style={{ width: "100%", height, borderRadius, overflow: 'hidden' }}>
-        <FlatList
-          data={imgs.length ? imgs : [placeholder]}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(_, i) => String(i)}
-          renderItem={({ item, index: itemIndex }) => (
-            <TouchableOpacity activeOpacity={1} onPress={() => onPress?.(itemIndex)}>
-              <Image
-                source={{ uri: item }}
-                style={{ width: width - (borderRadius ? (borderRadius > 0 ? 0 : 40) : 0), height, backgroundColor: "#f3f4f6" }}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
-          )}
-          onScroll={(e) => {
-            // Basic approximate pagination
-            const offsetX = e.nativeEvent.contentOffset.x;
-            // This width calculation is simpler in this context
-            const w = width - (borderRadius ? (borderRadius > 0 ? 0 : 40) : 0);
-            const newIndex = Math.round(offsetX / w);
-            if (newIndex !== index) setIndex(newIndex);
-          }}
-          scrollEventThrottle={16}
-        />
+  //   return (
+  //     <View style={{ width: "100%", height, borderRadius, overflow: 'hidden' }}>
+  //       <FlatList
+  //         data={imgs.length ? imgs : [placeholder]}
+  //         horizontal
+  //         pagingEnabled
+  //         showsHorizontalScrollIndicator={false}
+  //         keyExtractor={(_, i) => String(i)}
+  //         renderItem={({ item, index: itemIndex }) => (
+  //           <TouchableOpacity activeOpacity={1} onPress={() => onPress?.(itemIndex)}>
+  //             <Image
+  //               source={{ uri: item }}
+  //               style={{ width: width - (borderRadius ? (borderRadius > 0 ? 0 : 40) : 0), height, backgroundColor: "#f3f4f6" }}
+  //               resizeMode="cover"
+  //             />
+  //           </TouchableOpacity>
+  //         )}
+  //         onScroll={(e) => {
+  //           // Basic approximate pagination
+  //           const offsetX = e.nativeEvent.contentOffset.x;
+  //           // This width calculation is simpler in this context
+  //           const w = width - (borderRadius ? (borderRadius > 0 ? 0 : 40) : 0);
+  //           const newIndex = Math.round(offsetX / w);
+  //           if (newIndex !== index) setIndex(newIndex);
+  //         }}
+  //         scrollEventThrottle={16}
+  //       />
 
-        {(imgs.length ? imgs : [placeholder]).length > 1 && (
-          <View style={styles.pagination} pointerEvents="none">
-            {(imgs.length ? imgs : [placeholder]).map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.dot,
-                  i === index ? { backgroundColor: '#fff', opacity: 1 } : { backgroundColor: '#fff', opacity: 0.5 }
-                ]}
-              />
-            ))}
-          </View>
-        )}
-      </View>
-    );
-  }
+  //       {(imgs.length ? imgs : [placeholder]).length > 1 && (
+  //         <View style={styles.pagination} pointerEvents="none">
+  //           {(imgs.length ? imgs : [placeholder]).map((_, i) => (
+  //             <View
+  //               key={i}
+  //               style={[
+  //                 styles.dot,
+  //                 i === index ? { backgroundColor: '#fff', opacity: 1 } : { backgroundColor: '#fff', opacity: 0.5 }
+  //               ]}
+  //             />
+  //           ))}
+  //         </View>
+  //       )}
+  //     </View>
+  //   );
+  // }
 
-  const renderStars = (rating: number, size = 14, color = primaryColor) => {
-    return (
-      <View style={styles.starContainer}>
-        <MaterialIcons name="star" size={size} color={color} />
-        <ThemedText style={[styles.ratingText, { fontSize: size }]}>{rating.toFixed(1)}</ThemedText>
-      </View>
-    );
-  };
+  // const renderStars = (rating: number, size = 14, color = primaryColor) => {
+  //   return (
+  //     <View style={styles.starContainer}>
+  //       <MaterialIcons name="star" size={size} color={color} />
+  //       <ThemedText style={[styles.ratingText, { fontSize: size }]}>{rating.toFixed(1)}</ThemedText>
+  //     </View>
+  //   );
+  // };
 
   const ViewToggle = () => (
     <View style={styles.toggleContainer}>
@@ -295,211 +276,215 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      {/* If detailed view is active, show it fully OVER everything else */}
+      {/* If detailed view is active, show it fully over everything else */}
       {selectedPlace ? (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={{ flex: 1 }}
-        >
-          <ScrollView
-            contentContainerStyle={styles.detailContainer}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Detailed View Header */}
-            <View style={{ position: 'absolute', top: 50, left: 20, zIndex: 10 }}>
-              <TouchableOpacity
-                style={styles.circleButton}
-                onPress={() => setSelectedPlace(null)}
-              >
-                <MaterialIcons name="arrow-back" size={20} color="#000" />
-              </TouchableOpacity>
-            </View>
-            <View style={{ position: 'absolute', top: 50, right: 20, zIndex: 10 }}>
-              <View style={[styles.circleButton, { gap: 15, width: 'auto', paddingHorizontal: 12 }]}>
-                <MaterialIcons name="share" size={20} color="#000" />
-                <MaterialIcons name="favorite-border" size={20} color="#000" />
-              </View>
-            </View>
+        // <KeyboardAvoidingView
+        //   behavior={Platform.OS === "ios" ? "padding" : undefined}
+        //   style={{ flex: 1 }}
+        // >
+        //   <ScrollView
+        //     contentContainerStyle={styles.detailContainer}
+        //     showsVerticalScrollIndicator={false}
+        //     keyboardShouldPersistTaps="handled"
+        //   >
+        //     {/* Detailed View Header */}
+        //     <View style={{ position: 'absolute', top: 50, left: 20, zIndex: 10 }}>
+        //       <TouchableOpacity
+        //         style={styles.circleButton}
+        //         onPress={() => setSelectedPlace(null)}
+        //       >
+        //         <MaterialIcons name="arrow-back" size={20} color="#000" />
+        //       </TouchableOpacity>
+        //     </View>
+        //     <View style={{ position: 'absolute', top: 50, right: 20, zIndex: 10 }}>
+        //       <View style={[styles.circleButton, { gap: 15, width: 'auto', paddingHorizontal: 12 }]}>
+        //         <MaterialIcons name="share" size={20} color="#000" />
+        //         <MaterialIcons name="favorite-border" size={20} color="#000" />
+        //       </View>
+        //     </View>
 
-            <ImageCarousel
-              images={selectedPlace.images ?? [`https://picsum.photos/400/250?random=${selectedPlace.id}`]}
-              height={350}
-              onPress={(i) => {
-                setGalleryImages(selectedPlace.images ?? [`https://picsum.photos/400/250?random=${selectedPlace.id}`]);
-                setGalleryIndex(i);
-                setGalleryVisible(true);
-              }}
-            />
+        //     <ImageCarousel
+        //       images={selectedPlace.images ?? [`https://picsum.photos/400/250?random=${selectedPlace.id}`]}
+        //       height={350}
+        //       onPress={(i) => {
+        //         setGalleryImages(selectedPlace.images ?? [`https://picsum.photos/400/250?random=${selectedPlace.id}`]);
+        //         setGalleryIndex(i);
+        //         setGalleryVisible(true);
+        //       }}
+        //     />
 
-            <View style={styles.detailContent}>
-              <ThemedText type="title" style={styles.detailTitle}>
-                {selectedPlace.name}
-              </ThemedText>
-              <View style={styles.detailRatingRow}>
-                {renderStars(selectedPlace.rating_avg, 16, isDark ? "#fff" : "#000")}
-                <ThemedText style={{ fontSize: 14, opacity: 0.6 }}> • {selectedPlace.reviews?.length || 0} reviews</ThemedText>
-              </View>
+        //     <View style={styles.detailContent}>
+        //       <ThemedText type="title" style={styles.detailTitle}>
+        //         {selectedPlace.name}
+        //       </ThemedText>
+        //       <View style={styles.detailRatingRow}>
+        //         {renderStars(selectedPlace.rating_avg, 16, isDark ? "#fff" : "#000")}
+        //         <ThemedText style={{ fontSize: 14, opacity: 0.6 }}> • {selectedPlace.reviews?.length || 0} reviews</ThemedText>
+        //       </View>
 
-              <ThemedText style={styles.detailDescription}>
-                {selectedPlace.description}
-              </ThemedText>
+        //       <ThemedText style={styles.detailDescription}>
+        //         {selectedPlace.description}
+        //       </ThemedText>
 
-              {/* Meta Info */}
-              <View
-                style={[
-                  styles.detailMeta,
-                  {
-                    borderTopColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
-                  },
-                ]}
-              >
-                <View style={styles.metaRow}>
-                  <MaterialIcons name="place" size={24} color={iconColor} />
-                  <View>
-                    <ThemedText style={{ fontWeight: '600' }}>Location</ThemedText>
-                    <ThemedText style={{ fontSize: 14, opacity: 0.7 }}>
-                      {selectedPlace.latitude.toFixed(4)}, {selectedPlace.longitude.toFixed(4)}
-                    </ThemedText>
-                  </View>
-                </View>
+        //       {/* Meta Info */}
+        //       <View
+        //         style={[
+        //           styles.detailMeta,
+        //           {
+        //             borderTopColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
+        //           },
+        //         ]}
+        //       >
+        //         <View style={styles.metaRow}>
+        //           <MaterialIcons name="place" size={24} color={iconColor} />
+        //           <View>
+        //             <ThemedText style={{ fontWeight: '600' }}>Location</ThemedText>
+        //             <ThemedText style={{ fontSize: 14, opacity: 0.7 }}>
+        //               {selectedPlace.latitude.toFixed(4)}, {selectedPlace.longitude.toFixed(4)}
+        //             </ThemedText>
+        //           </View>
+        //         </View>
 
-                <View style={styles.metaRow}>
-                  <MaterialIcons name="workspace-premium" size={24} color={iconColor} />
-                  <View>
-                    <ThemedText style={{ fontWeight: '600' }}>Top features</ThemedText>
-                    <ThemedText style={{ fontSize: 14, opacity: 0.7 }}>
-                      {CATEGORIES.slice(1, 4).map(c => c.label).join(' • ')}
-                    </ThemedText>
-                  </View>
-                </View>
-              </View>
+        //         <View style={styles.metaRow}>
+        //           <MaterialIcons name="workspace-premium" size={24} color={iconColor} />
+        //           <View>
+        //             <ThemedText style={{ fontWeight: '600' }}>Top features</ThemedText>
+        //             <ThemedText style={{ fontSize: 14, opacity: 0.7 }}>
+        //               {CATEGORIES.slice(1, 4).map(c => c.label).join(' • ')}
+        //             </ThemedText>
+        //           </View>
+        //         </View>
+        //       </View>
 
-              {/* Reviews */}
-              <View style={styles.reviewsContainer}>
-                <ThemedText type="title" style={styles.sectionTitle}>
-                  Reviews
-                </ThemedText>
+        //       {/* Reviews */}
+        //       <View style={styles.reviewsContainer}>
+        //         <ThemedText type="title" style={styles.sectionTitle}>
+        //           Reviews
+        //         </ThemedText>
 
-                {/* Review Form */}
-                <View style={styles.reviewFormCard}>
-                  <ThemedText style={styles.writeReviewTitle}>
-                    Write a review
-                  </ThemedText>
-                  <View style={styles.starSelector}>
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <TouchableOpacity key={s} onPress={() => setReviewRating(s)}>
-                        <MaterialIcons
-                          name={s <= reviewRating ? "star" : "star-border"}
-                          size={28}
-                          color={primaryColor}
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  <TextInput
-                    value={reviewText}
-                    onChangeText={setReviewText}
-                    placeholder="Share your experience…"
-                    placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
-                    multiline
-                    style={[
-                      styles.reviewInput,
-                      {
-                        color: textColor,
-                        backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#fff",
-                        borderColor: isDark ? "transparent" : "#e5e7eb",
-                        borderWidth: 1
-                      },
-                    ]}
-                  />
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={submitReview}
-                    disabled={!reviewText.trim() || submittingReview || !session?.user}
-                    style={[
-                      styles.submitButton,
-                      {
-                        backgroundColor: primaryColor,
-                        opacity: !reviewText.trim() || submittingReview || !session?.user ? 0.6 : 1,
-                      },
-                    ]}
-                  >
-                    {submittingReview ? (
-                      <ActivityIndicator color="#ffffffff" />
-                    ) : (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                        <ThemedText style={{ color: '#fff', fontWeight: 'bold' }}>Post</ThemedText>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                </View>
+        //         {/* Review Form */}
+        //         <View style={styles.reviewFormCard}>
+        //           <ThemedText style={styles.writeReviewTitle}>
+        //             Write a review
+        //           </ThemedText>
+        //           <View style={styles.starSelector}>
+        //             {[1, 2, 3, 4, 5].map((s) => (
+        //               <TouchableOpacity key={s} onPress={() => setReviewRating(s)}>
+        //                 <MaterialIcons
+        //                   name={s <= reviewRating ? "star" : "star-border"}
+        //                   size={28}
+        //                   color={primaryColor}
+        //                 />
+        //               </TouchableOpacity>
+        //             ))}
+        //           </View>
+        //           <TextInput
+        //             value={reviewText}
+        //             onChangeText={setReviewText}
+        //             placeholder="Share your experience…"
+        //             placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
+        //             multiline
+        //             style={[
+        //               styles.reviewInput,
+        //               {
+        //                 color: textColor,
+        //                 backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#fff",
+        //                 borderColor: isDark ? "transparent" : "#e5e7eb",
+        //                 borderWidth: 1
+        //               },
+        //             ]}
+        //           />
+        //           <TouchableOpacity
+        //             activeOpacity={0.85}
+        //             onPress={submitReview}
+        //             disabled={!reviewText.trim() || submittingReview || !session?.user}
+        //             style={[
+        //               styles.submitButton,
+        //               {
+        //                 backgroundColor: primaryColor,
+        //                 opacity: !reviewText.trim() || submittingReview || !session?.user ? 0.6 : 1,
+        //               },
+        //             ]}
+        //           >
+        //             {submittingReview ? (
+        //               <ActivityIndicator color="#ffffffff" />
+        //             ) : (
+        //               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        //                 <ThemedText style={{ color: '#fff', fontWeight: 'bold' }}>Post</ThemedText>
+        //               </View>
+        //             )}
+        //           </TouchableOpacity>
+        //         </View>
 
-                {/* Reviews List */}
-                {visibleReviews.length ? (
-                  <>
-                    {visibleReviews.map((r) => (
-                      <View key={r.id} style={styles.reviewCard}>
-                        <View style={styles.reviewHeader}>
-                          <View style={styles.avatarPlaceholder}>
-                            <ThemedText style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>{r.full_name.charAt(0)}</ThemedText>
-                          </View>
-                          <View>
-                            <ThemedText style={styles.reviewAuthor}>
-                              {r.full_name}
-                            </ThemedText>
-                            <ThemedText style={styles.reviewDate}>
-                              {new Date(r.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-                            </ThemedText>
-                          </View>
-                        </View>
+        //         {/* Reviews List */}
+        //         {visibleReviews.length ? (
+        //           <>
+        //             {visibleReviews.map((r) => (
+        //               <View key={r.id} style={styles.reviewCard}>
+        //                 <View style={styles.reviewHeader}>
+        //                   <View style={styles.avatarPlaceholder}>
+        //                     <ThemedText style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>{r.full_name.charAt(0)}</ThemedText>
+        //                   </View>
+        //                   <View>
+        //                     <ThemedText style={styles.reviewAuthor}>
+        //                       {r.full_name}
+        //                     </ThemedText>
+        //                     <ThemedText style={styles.reviewDate}>
+        //                       {new Date(r.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+        //                     </ThemedText>
+        //                   </View>
+        //                 </View>
 
-                        <ThemedText style={styles.reviewText}>
-                          {r.comment}
-                        </ThemedText>
-                      </View>
-                    ))}
+        //                 <ThemedText style={styles.reviewText}>
+        //                   {r.comment}
+        //                 </ThemedText>
+        //               </View>
+        //             ))}
 
-                    {hasMoreReviews && (
-                      <TouchableOpacity
-                        onPress={() => setShowAllReviews((v) => !v)}
-                        style={styles.showMoreButton}
-                        activeOpacity={0.7}
-                      >
-                        <ThemedText style={{ color: isDark ? "#fff" : "#000", fontWeight: "600", textDecorationLine: 'underline' }}>
-                          {showAllReviews ? "Show less" : `Show all ${selectedPlace.reviews?.length} reviews`}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    )}
-                  </>
-                ) : (
-                  <ThemedText style={styles.noReviewsText}>
-                    No reviews yet — be the first ✨
-                  </ThemedText>
-                )}
+        //             {hasMoreReviews && (
+        //               <TouchableOpacity
+        //                 onPress={() => setShowAllReviews((v) => !v)}
+        //                 style={styles.showMoreButton}
+        //                 activeOpacity={0.7}
+        //               >
+        //                 <ThemedText style={{ color: isDark ? "#fff" : "#000", fontWeight: "600", textDecorationLine: 'underline' }}>
+        //                   {showAllReviews ? "Show less" : `Show all ${selectedPlace.reviews?.length} reviews`}
+        //                 </ThemedText>
+        //               </TouchableOpacity>
+        //             )}
+        //           </>
+        //         ) : (
+        //           <ThemedText style={styles.noReviewsText}>
+        //             No reviews yet — be the first ✨
+        //           </ThemedText>
+        //         )}
 
-              </View>
-            </View>
-          </ScrollView>
+        //       </View>
+        //     </View>
+        //   </ScrollView>
 
-          {/* Sticky Bottom Bar */}
-          <View style={[styles.stickyBottomBar, { backgroundColor: isDark ? '#1a1a1a' : '#fff', borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
-            <View>
-              <ThemedText style={{ fontWeight: 'bold', fontSize: 16 }}>Free</ThemedText>
-              <ThemedText style={{ fontSize: 12, opacity: 0.6 }}>No reservation required</ThemedText>
-            </View>
-            <TouchableOpacity style={[styles.reserveButton, { backgroundColor: BRAND_BLUE }]}>
-              <ThemedText style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Directions</ThemedText>
-            </TouchableOpacity>
-          </View>
+        //   {/* Sticky Bottom Bar */}
+        //   <View style={[styles.stickyBottomBar, { backgroundColor: isDark ? '#1a1a1a' : '#fff', borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
+        //     <View>
+        //       <ThemedText style={{ fontWeight: 'bold', fontSize: 16 }}>Free</ThemedText>
+        //       <ThemedText style={{ fontSize: 12, opacity: 0.6 }}>No reservation required</ThemedText>
+        //     </View>
+        //     <TouchableOpacity style={[styles.reserveButton, { backgroundColor: BRAND_BLUE }]}>
+        //       <ThemedText style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Directions</ThemedText>
+        //     </TouchableOpacity>
+        //   </View>
 
-          <FullscreenGallery
-            visible={galleryVisible}
-            images={galleryImages}
-            initialIndex={galleryIndex}
-            onRequestClose={() => setGalleryVisible(false)}
-          />
-        </KeyboardAvoidingView>
+        //   <FullscreenGallery
+        //     visible={galleryVisible}
+        //     images={galleryImages}
+        //     initialIndex={galleryIndex}
+        //     onRequestClose={() => setGalleryVisible(false)}
+        //   />
+        // </KeyboardAvoidingView>
+        <PlaceDetailed
+          selectedPlace={selectedPlace}
+          onClose={() => setSelectedPlace(null)}
+        />
       ) : (
         <>
           {/* MAIN CONTENT: MAP OR LIST */}
@@ -507,15 +492,15 @@ export default function HomeScreen() {
             {/* Search Header OVERLAY */}
             {viewMode === 'map' && (
               <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 }}>
-              {
-                <MapHeader
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  selectedCategory={selectedCategory}
-                  onCategorySelect={setSelectedCategory}
-                  categories={CATEGORIES}
-                />
-              }
+                {
+                  <MapHeader
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    selectedCategory={selectedCategory}
+                    onCategorySelect={setSelectedCategory}
+                    categories={CATEGORIES}
+                  />
+                }
               </View>
             )}
             {viewMode === 'list' &&
@@ -587,7 +572,7 @@ export default function HomeScreen() {
                 )}
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
-                    <MaterialIcons name="place" size={48} color={iconColor} />
+                    <MaterialIcons name="place" size={48} color={BRAND_BLUE} />
                     <ThemedText style={styles.emptyText}>
                       No places found
                     </ThemedText>
@@ -743,20 +728,20 @@ const styles = StyleSheet.create({
     right: 16,
     zIndex: 5,
   },
-  pagination: {
-    position: 'absolute',
-    bottom: 16,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
+  // pagination: {
+  //   position: 'absolute',
+  //   bottom: 16,
+  //   left: 0,
+  //   right: 0,
+  //   flexDirection: 'row',
+  //   justifyContent: 'center',
+  //   gap: 6,
+  // },
+  // dot: {
+  //   width: 6,
+  //   height: 6,
+  //   borderRadius: 3,
+  // },
 
   // Toggle
   toggleContainer: {
@@ -855,152 +840,163 @@ const styles = StyleSheet.create({
   },
 
   // Detail
-  detailContainer: {
-    paddingBottom: 120, // space for sticky bar
-  },
-  circleButton: {
-    flexDirection: 'row',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  detailContent: {
-    padding: 24,
-  },
-  detailTitle: {
-    fontSize: 26,
-    lineHeight: 32,
-    marginBottom: 0,
-  },
-  detailRatingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-    gap: 4
-  },
-  detailDescription: {
-    fontSize: 16,
-    lineHeight: 24,
-    opacity: 0.8,
-    marginTop: 16,
-  },
-  detailMeta: {
-    marginTop: 24,
-    paddingTop: 24,
-    borderTopWidth: 1,
-    gap: 20,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 16,
-  },
+  // detailContainer: {
+  //   paddingBottom: 120, // space for sticky bar
+  // },
+  // circleButton: {
+  //   flexDirection: 'row',
+  //   width: 36,
+  //   height: 36,
+  //   borderRadius: 18,
+  //   backgroundColor: '#fff',
+  //   alignItems: 'center',
+  //   justifyContent: 'center',
+  //   shadowColor: "#000",
+  //   shadowOffset: { width: 0, height: 2 },
+  //   shadowOpacity: 0.1,
+  //   shadowRadius: 4,
+  //   elevation: 3,
+  // },
+  // detailContent: {
+  //   padding: 24,
+  // },
+  // detailTitle: {
+  //   fontSize: 26,
+  //   lineHeight: 32,
+  //   marginBottom: 0,
+  // },
+  // detailRatingRow: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   marginTop: 8,
+  //   marginBottom: 8,
+  //   gap: 4
+  // },
+  // detailDescription: {
+  //   fontSize: 16,
+  //   lineHeight: 24,
+  //   opacity: 0.8,
+  //   marginTop: 16,
+  // },
+  // detailMeta: {
+  //   marginTop: 24,
+  //   paddingTop: 24,
+  //   borderTopWidth: 1,
+  //   gap: 20,
+  // },
+  // metaRow: {
+  //   flexDirection: 'row',
+  //   alignItems: 'flex-start',
+  //   gap: 16,
+  // },
   // Review & Form
-  reviewsContainer: {
-    marginTop: 32,
-    paddingTop: 32,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 20,
-  },
-  reviewFormCard: {
-    marginBottom: 32,
-    padding: 0,
-  },
-  writeReviewTitle: {
-    fontWeight: '600',
-    fontSize: 16,
-    marginBottom: 12,
-  },
-  starSelector: {
-    flexDirection: 'row',
-    gap: 4,
-    marginBottom: 16,
-  },
-  reviewInput: {
-    fontSize: 16,
-    padding: 12,
-    borderRadius: 12,
-    height: 100,
-    textAlignVertical: 'top',
-    marginBottom: 16,
-  },
-  submitButton: {
-    flexDirection: 'row',
-    alignSelf: 'flex-start',
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reviewCard: {
-    marginBottom: 32,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
-  },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#222',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reviewAuthor: {
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  reviewDate: {
-    fontSize: 14,
-    opacity: 0.5,
-  },
-  reviewText: {
-    fontSize: 16,
-    lineHeight: 24,
-    opacity: 0.8,
-  },
-  showMoreButton: {
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#000',
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 24,
-    // On Darkmode this needs to handle border color manually in inline style
-  },
-  noReviewsText: {
-    opacity: 0.5,
-    fontStyle: 'italic',
-    marginTop: 10,
-  },
-  starContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  ratingText: {
-    fontWeight: '600',
-  },
+  // reviewsContainer: {
+  //   marginTop: 32,
+  //   paddingTop: 32,
+  //   borderTopWidth: 1,
+  //   borderTopColor: 'rgba(0,0,0,0.1)',
+  // },
+  // sectionTitle: {
+  //   fontSize: 22,
+  //   fontWeight: '700',
+  //   marginBottom: 20,
+  // },
+  // reviewFormCard: {
+  //   marginBottom: 32,
+  //   padding: 0,
+  // },
+  // writeReviewTitle: {
+  //   fontWeight: '600',
+  //   fontSize: 16,
+  //   marginBottom: 12,
+  // },
+  // starSelector: {
+  //   flexDirection: 'row',
+  //   gap: 4,
+  //   marginBottom: 16,
+  // },
+  // reviewInput: {
+  //   fontSize: 16,
+  //   padding: 12,
+  //   borderRadius: 12,
+  //   height: 100,
+  //   textAlignVertical: 'top',
+  //   marginBottom: 16,
+  // },
+  // submitButton: {
+  //   flexDirection: 'row',
+  //   alignSelf: 'flex-start',
+  //   paddingVertical: 10,
+  //   paddingHorizontal: 24,
+  //   borderRadius: 8,
+  //   alignItems: 'center',
+  //   justifyContent: 'center',
+  // },
+  // reviewCard: {
+  //   marginBottom: 32,
+  // },
+  // reviewHeader: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   marginBottom: 12,
+  //   gap: 12,
+  // },
+  // avatarPlaceholder: {
+  //   width: 40,
+  //   height: 40,
+  //   borderRadius: 20,
+  //   backgroundColor: '#222',
+  //   alignItems: 'center',
+  //   justifyContent: 'center',
+  // },
+  //   showMoreButton: {
+  //   paddingVertical: 12,
+  //   borderWidth: 1,
+  //   borderColor: '#000',
+  //   borderRadius: 8,
+  //   alignItems: 'center',
+  //   marginTop: 8,
+  //   alignSelf: 'flex-start',
+  //   paddingHorizontal: 24,
+  //   // On Darkmode this needs to handle border color manually in inline style
+  // },
+  // reviewAuthor: {
+  //   fontWeight: '600',
+  //   fontSize: 16,
+  // },
+  // reviewDate: {
+  //   fontSize: 14,
+  //   opacity: 0.5,
+  // },
+  // reviewText: {
+  //   fontSize: 16,
+  //   lineHeight: 24,
+  //   opacity: 0.8,
+  // },
+  // showMoreButton: {
+  //   paddingVertical: 12,
+  //   borderWidth: 1,
+  //   borderColor: '#000',
+  //   borderRadius: 8,
+  //   alignItems: 'center',
+  //   marginTop: 8,
+  //   alignSelf: 'flex-start',
+  //   paddingHorizontal: 24,
+  //   // On Darkmode this needs to handle border color manually in inline style
+  // },
+  // noReviewsText: {
+  //   opacity: 0.5,
+  //   fontStyle: 'italic',
+  //   marginTop: 10,
+  // },
+  // starContainer: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',F
+  //   gap: 2,
+  // },
+  // ratingText: {
+  //   fontWeight: '600',
+  // },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -1011,25 +1007,25 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
   },
-  stickyBottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  reserveButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-  },
+  // stickyBottomBar: {
+  //   position: 'absolute',
+  //   bottom: 0,
+  //   left: 0,
+  //   right: 0,
+  //   backgroundColor: '#fff',
+  //   borderTopWidth: 1,
+  //   paddingHorizontal: 24,
+  //   paddingVertical: 16,
+  //   paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+  //   flexDirection: 'row',
+  //   justifyContent: 'space-between',
+  //   alignItems: 'center',
+  // },
+  // reserveButton: {
+  //   paddingVertical: 14,
+  //   paddingHorizontal: 32,
+  //   borderRadius: 8,
+  // },
   centerUserButton: {
     position: 'absolute',
     bottom: 220,        // Above toggle & preview card
