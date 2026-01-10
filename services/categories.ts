@@ -39,11 +39,17 @@ export async function getCategoryIdByName(categoryName: string): Promise<number 
       .eq('name', categoryName)
       .single();
     
-    if (error) {
-      console.error("Error fetching category:", error.message);
-      throw error;
-    }
+    if (error) throw error;
 
     return data ? data.id : null;
 }
 
+export async function getCategoryNameById(categoryId: number): Promise<string> {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("name")
+    .eq("id", categoryId)
+    .single();
+  if (error) throw error;
+  return data?.name ?? "";
+}

@@ -14,3 +14,12 @@ export async function createPlaceCategory(input: CreatePlaceCategory) {
   if (error) throw error;
   return data;
 }
+
+export async function getPlaceCategoriesIds(placeId: number): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("places_categories")
+    .select("category_id")
+    .eq("place_id", placeId);
+  if (error) throw error;
+  return data?.map(row => row.category_id) ?? [];
+}
