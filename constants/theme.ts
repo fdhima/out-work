@@ -3,7 +3,6 @@
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
 
-import { useThemeColor } from '@/hooks/use-theme-color';
 import { Platform, useColorScheme } from 'react-native';
 
 const tintColorLight = '#ff6b35';
@@ -15,7 +14,6 @@ export const BRAND_PURPLE = "#8b5cf6";
 
 export const colorScheme = useColorScheme() ?? "light";
 export const isDark = colorScheme === 'dark';
-export const iconColor = useThemeColor({}, "icon");
 
 export const CATEGORIES = [
   { id: "all", label: "All", icon: "grid-view" },
