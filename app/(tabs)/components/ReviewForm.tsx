@@ -20,15 +20,14 @@ type ReviewFormProps = {
 
 export function ReviewForm({ placeForReview }: ReviewFormProps) {
   const { session } = useAuth();
-  
+
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [submittingReview, setSubmittingReview] = useState<boolean>(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
   const textColor = useThemeColor({}, "text"); //Consider remocing it or placing it into a shared file
-  
-  
+
   const submitReview = async () => {
     if (!placeForReview || !session?.user) return;
     const placeId = placeForReview.id;
@@ -56,13 +55,13 @@ export function ReviewForm({ placeForReview }: ReviewFormProps) {
       setSubmittingReview(false);
     }
   };
-  
+
   return (
     <View style={styles.reviewFormCard}>
       <ThemedText style={styles.writeReviewTitle}>
         Write a review
       </ThemedText>
-      
+
       <View style={styles.starSelector}>
         {[1, 2, 3, 4, 5].map((s) => (
           <TouchableOpacity key={s} onPress={() => setReviewRating(s)}>
@@ -95,7 +94,7 @@ export function ReviewForm({ placeForReview }: ReviewFormProps) {
       <TouchableOpacity
         activeOpacity={0.85}
         // Pass the rating and text to your submit function
-        onPress={() => submitReview}
+        onPress={() => submitReview()}
         disabled={!reviewText.trim() || submittingReview || !session?.user}
         style={[
           styles.submitButton,
