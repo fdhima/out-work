@@ -123,7 +123,6 @@ export async function getPlaceImages(placeId: number) {
 
 // API to grab all the places, irrespectively if category or query filtering has been applied
 export async function getPlacesEnhanced(categoryId?: number | null, query?: string) {
-  console.log(`categoryId: ${categoryId}, query: ${query}`);
   let request = supabase
     .from('places')
     .select(`

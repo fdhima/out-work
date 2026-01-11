@@ -32,9 +32,6 @@ export default function HomeScreen() {
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
 
-  // const iconColor = useThemeColor({}, "icon");
-  // const isDark = colorScheme === 'dark';
-
   const [places, setPlaces] = useState<PlaceWithImages[]>([]);
   const [allPlaces, setAllPlaces] = useState<PlaceWithImages[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,21 +52,12 @@ export default function HomeScreen() {
 
   const [reviewRating, setReviewRating] = useState<number>(5);
   const [reviewText, setReviewText] = useState<string>("");
-  // const [submittingReview, setSubmittingReview] = useState<boolean>(false);
-  // const [showAllReviews, setShowAllReviews] = useState(false);
 
   const [trackingSub, setTrackingSub] = useState<Location.LocationSubscription | null>(null);
   const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
   const { session } = useAuth();
   const mapRef = useRef<MapView | null>(null);
-
-  // const visibleReviews = showAllReviews
-  //   ? selectedPlace?.reviews ?? []
-  //   : (selectedPlace?.reviews ?? []).slice(0, MAX_REVIEWS_PREVIEW);
-
-  // const hasMoreReviews =
-  //   (selectedPlace?.reviews?.length ?? 0) > MAX_REVIEWS_PREVIEW;
 
   useFocusEffect(
     useCallback(() => {
@@ -164,94 +152,6 @@ export default function HomeScreen() {
       setPreviewPlace(null);
     }
   };
-
-  // const submitReview = async () => {
-  //   if (!selectedPlace || !session?.user) return;
-  //   const placeId = selectedPlace.id;
-  //   setSubmittingReview(true);
-  //   try {
-  //     await createReview({
-  //       comment: reviewText.trim(),
-  //       rating: reviewRating,
-  //       place_id: placeId,
-  //       profile_id: session.user.id,
-  //       created_at: new Date().toISOString(),
-  //     });
-  //     const reviews = await getReviewsByPlaceId(placeId);
-  //     const avg = reviews && reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
-
-  //     setSelectedPlace((prev) => (prev ? { ...prev, reviews, rating_avg: avg } : prev));
-  //     setPlaces((prev) => prev.map((p) => (p.id === placeId ? { ...p, reviews, rating_avg: avg } : p)));
-
-  //     setReviewText("");
-  //     setReviewRating(5);
-  //     setShowAllReviews(true);
-  //   } catch (err) {
-  //     console.error("Error posting review:", err);
-  //   } finally {
-  //     setSubmittingReview(false);
-  //   }
-  // };
-
-  // function ImageCarousel({ images, height, onPress, borderRadius = 0 }: { images: string[]; height: number; onPress?: (index: number) => void; borderRadius?: number }) {
-  //   const [index, setIndex] = useState(0);
-
-  //   const imgs = (images && images.length ? images.slice(0, 5) : []) as string[];
-  //   const placeholder = "https://via.placeholder.com/400x250?text=No+Image";
-
-  //   return (
-  //     <View style={{ width: "100%", height, borderRadius, overflow: 'hidden' }}>
-  //       <FlatList
-  //         data={imgs.length ? imgs : [placeholder]}
-  //         horizontal
-  //         pagingEnabled
-  //         showsHorizontalScrollIndicator={false}
-  //         keyExtractor={(_, i) => String(i)}
-  //         renderItem={({ item, index: itemIndex }) => (
-  //           <TouchableOpacity activeOpacity={1} onPress={() => onPress?.(itemIndex)}>
-  //             <Image
-  //               source={{ uri: item }}
-  //               style={{ width: width - (borderRadius ? (borderRadius > 0 ? 0 : 40) : 0), height, backgroundColor: "#f3f4f6" }}
-  //               resizeMode="cover"
-  //             />
-  //           </TouchableOpacity>
-  //         )}
-  //         onScroll={(e) => {
-  //           // Basic approximate pagination
-  //           const offsetX = e.nativeEvent.contentOffset.x;
-  //           // This width calculation is simpler in this context
-  //           const w = width - (borderRadius ? (borderRadius > 0 ? 0 : 40) : 0);
-  //           const newIndex = Math.round(offsetX / w);
-  //           if (newIndex !== index) setIndex(newIndex);
-  //         }}
-  //         scrollEventThrottle={16}
-  //       />
-
-  //       {(imgs.length ? imgs : [placeholder]).length > 1 && (
-  //         <View style={styles.pagination} pointerEvents="none">
-  //           {(imgs.length ? imgs : [placeholder]).map((_, i) => (
-  //             <View
-  //               key={i}
-  //               style={[
-  //                 styles.dot,
-  //                 i === index ? { backgroundColor: '#fff', opacity: 1 } : { backgroundColor: '#fff', opacity: 0.5 }
-  //               ]}
-  //             />
-  //           ))}
-  //         </View>
-  //       )}
-  //     </View>
-  //   );
-  // }
-
-  // const renderStars = (rating: number, size = 14, color = primaryColor) => {
-  //   return (
-  //     <View style={styles.starContainer}>
-  //       <MaterialIcons name="star" size={size} color={color} />
-  //       <ThemedText style={[styles.ratingText, { fontSize: size }]}>{rating.toFixed(1)}</ThemedText>
-  //     </View>
-  //   );
-  // };
 
   const ViewToggle = () => (
     <View style={styles.toggleContainer}>
@@ -504,20 +404,6 @@ const styles = StyleSheet.create({
     right: 16,
     zIndex: 5,
   },
-  // pagination: {
-  //   position: 'absolute',
-  //   bottom: 16,
-  //   left: 0,
-  //   right: 0,
-  //   flexDirection: 'row',
-  //   justifyContent: 'center',
-  //   gap: 6,
-  // },
-  // dot: {
-  //   width: 6,
-  //   height: 6,
-  //   borderRadius: 3,
-  // },
 
   // Toggle
   toggleContainer: {
@@ -570,209 +456,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
-  // Preview Card on Map
-  // previewCardContainer: {
-  //   position: 'absolute',
-  //   bottom: 100,
-  //   left: 20,
-  //   right: 20,
-  //   zIndex: 101, // Above floating button
-  // },
-  // previewCard: {
-  //   flexDirection: 'row',
-  //   borderRadius: 12,
-  //   padding: 12,
-  //   gap: 12,
-  //   shadowColor: "#000",
-  //   shadowOffset: { width: 0, height: 4 },
-  //   shadowOpacity: 0.2,
-  //   shadowRadius: 8,
-  //   elevation: 6,
-  //   alignItems: 'center'
-  // },
-  // previewImage: {
-  //   width: 80,
-  //   height: 80,
-  //   borderRadius: 8,
-  //   backgroundColor: '#eee'
-  // },
-  // previewInfo: {
-  //   flex: 1,
-  //   gap: 4
-  // },
-  // previewTitle: {
-  //   fontWeight: '700',
-  //   fontSize: 16,
-  //   marginRight: 4
-  // },
-  // previewClose: {
-  //   position: 'absolute',
-  //   top: 8,
-  //   right: 8,
-  //   padding: 4,
-  //   borderRadius: 12,
-  //   backgroundColor: '#f0f0f0',
-  //   opacity: 0.8
-  // },
-
-  // Detail
-  // detailContainer: {
-  //   paddingBottom: 120, // space for sticky bar
-  // },
-  // circleButton: {
-  //   flexDirection: 'row',
-  //   width: 36,
-  //   height: 36,
-  //   borderRadius: 18,
-  //   backgroundColor: '#fff',
-  //   alignItems: 'center',
-  //   justifyContent: 'center',
-  //   shadowColor: "#000",
-  //   shadowOffset: { width: 0, height: 2 },
-  //   shadowOpacity: 0.1,
-  //   shadowRadius: 4,
-  //   elevation: 3,
-  // },
-  // detailContent: {
-  //   padding: 24,
-  // },
-  // detailTitle: {
-  //   fontSize: 26,
-  //   lineHeight: 32,
-  //   marginBottom: 0,
-  // },
-  // detailRatingRow: {
-  //   flexDirection: 'row',
-  //   alignItems: 'center',
-  //   marginTop: 8,
-  //   marginBottom: 8,
-  //   gap: 4
-  // },
-  // detailDescription: {
-  //   fontSize: 16,
-  //   lineHeight: 24,
-  //   opacity: 0.8,
-  //   marginTop: 16,
-  // },
-  // detailMeta: {
-  //   marginTop: 24,
-  //   paddingTop: 24,
-  //   borderTopWidth: 1,
-  //   gap: 20,
-  // },
-  // metaRow: {
-  //   flexDirection: 'row',
-  //   alignItems: 'flex-start',
-  //   gap: 16,
-  // },
-  // Review & Form
-  // reviewsContainer: {
-  //   marginTop: 32,
-  //   paddingTop: 32,
-  //   borderTopWidth: 1,
-  //   borderTopColor: 'rgba(0,0,0,0.1)',
-  // },
-  // sectionTitle: {
-  //   fontSize: 22,
-  //   fontWeight: '700',
-  //   marginBottom: 20,
-  // },
-  // reviewFormCard: {
-  //   marginBottom: 32,
-  //   padding: 0,
-  // },
-  // writeReviewTitle: {
-  //   fontWeight: '600',
-  //   fontSize: 16,
-  //   marginBottom: 12,
-  // },
-  // starSelector: {
-  //   flexDirection: 'row',
-  //   gap: 4,
-  //   marginBottom: 16,
-  // },
-  // reviewInput: {
-  //   fontSize: 16,
-  //   padding: 12,
-  //   borderRadius: 12,
-  //   height: 100,
-  //   textAlignVertical: 'top',
-  //   marginBottom: 16,
-  // },
-  // submitButton: {
-  //   flexDirection: 'row',
-  //   alignSelf: 'flex-start',
-  //   paddingVertical: 10,
-  //   paddingHorizontal: 24,
-  //   borderRadius: 8,
-  //   alignItems: 'center',
-  //   justifyContent: 'center',
-  // },
-  // reviewCard: {
-  //   marginBottom: 32,
-  // },
-  // reviewHeader: {
-  //   flexDirection: 'row',
-  //   alignItems: 'center',
-  //   marginBottom: 12,
-  //   gap: 12,
-  // },
-  // avatarPlaceholder: {
-  //   width: 40,
-  //   height: 40,
-  //   borderRadius: 20,
-  //   backgroundColor: '#222',
-  //   alignItems: 'center',
-  //   justifyContent: 'center',
-  // },
-  //   showMoreButton: {
-  //   paddingVertical: 12,
-  //   borderWidth: 1,
-  //   borderColor: '#000',
-  //   borderRadius: 8,
-  //   alignItems: 'center',
-  //   marginTop: 8,
-  //   alignSelf: 'flex-start',
-  //   paddingHorizontal: 24,
-  //   // On Darkmode this needs to handle border color manually in inline style
-  // },
-  // reviewAuthor: {
-  //   fontWeight: '600',
-  //   fontSize: 16,
-  // },
-  // reviewDate: {
-  //   fontSize: 14,
-  //   opacity: 0.5,
-  // },
-  // reviewText: {
-  //   fontSize: 16,
-  //   lineHeight: 24,
-  //   opacity: 0.8,
-  // },
-  // showMoreButton: {
-  //   paddingVertical: 12,
-  //   borderWidth: 1,
-  //   borderColor: '#000',
-  //   borderRadius: 8,
-  //   alignItems: 'center',
-  //   marginTop: 8,
-  //   alignSelf: 'flex-start',
-  //   paddingHorizontal: 24,
-  //   // On Darkmode this needs to handle border color manually in inline style
-  // },
-  // noReviewsText: {
-  //   opacity: 0.5,
-  //   fontStyle: 'italic',
-  //   marginTop: 10,
-  // },
-  // starContainer: {
-  //   flexDirection: 'row',
-  //   alignItems: 'center',F
-  //   gap: 2,
-  // },
-  // ratingText: {
-  //   fontWeight: '600',
-  // },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -783,25 +466,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
   },
-  // stickyBottomBar: {
-  //   position: 'absolute',
-  //   bottom: 0,
-  //   left: 0,
-  //   right: 0,
-  //   backgroundColor: '#fff',
-  //   borderTopWidth: 1,
-  //   paddingHorizontal: 24,
-  //   paddingVertical: 16,
-  //   paddingBottom: Platform.OS === 'ios' ? 32 : 16,
-  //   flexDirection: 'row',
-  //   justifyContent: 'space-between',
-  //   alignItems: 'center',
-  // },
-  // reserveButton: {
-  //   paddingVertical: 14,
-  //   paddingHorizontal: 32,
-  //   borderRadius: 8,
-  // },
   centerUserButton: {
     position: 'absolute',
     bottom: 220,        // Above toggle & preview card
