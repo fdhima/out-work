@@ -16,10 +16,10 @@ import {
   View
 } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
-import { FloatingCard } from "./components/FloatingCard";
-import { ImageCarousel } from "./components/ImageCarousel";
-import { MapHeader } from "./components/MapHeader";
-import { PlaceDetailed } from "./components/PlaceDetailed";
+import ImageCarousel from "../components/ImageCarousel";
+import { FloatingCard } from "../components/FloatingCard";
+import { MapHeader } from "../components/MapHeader";
+import { PlaceDetailed } from "../components/PlaceDetailed";
 
 // type PlaceImagesReviews = Place & { images: string[]; reviews?: Review[] };
 type PlaceImagesReviews = Place & { images: string[]; reviews?: Review[] };
