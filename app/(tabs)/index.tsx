@@ -2,9 +2,6 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import FullscreenGallery from "@/components/ui/fullscreen-gallery";
 import { BRAND_BLUE, CATEGORIES, isDark } from "@/constants/theme";
-import { useAuth } from "@/context/AuthContext";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useThemeColor } from "@/hooks/use-theme-color";
 import { getCategoryIdByName } from "@/services/categories";
 import { getPlacesEnhanced, Place } from "@/services/places";
 import { Review } from "@/services/reviews";
@@ -24,21 +21,19 @@ import { ImageCarousel } from "./components/ImageCarousel";
 import { MapHeader } from "./components/MapHeader";
 import { PlaceDetailed } from "./components/PlaceDetailed";
 
-type PlaceWithImages = Place & { images: string[]; reviews?: Review[] };
+// type PlaceImagesReviews = Place & { images: string[]; reviews?: Review[] };
+type PlaceImagesReviews = Place & { images: string[]; reviews?: Review[] };
 
 
 export default function HomeScreen() {
-  const colorScheme = useColorScheme() ?? "light";
-  const backgroundColor = useThemeColor({}, "background");
-  const textColor = useThemeColor({}, "text");
-
-  const [places, setPlaces] = useState<PlaceWithImages[]>([]);
-  const [allPlaces, setAllPlaces] = useState<PlaceWithImages[]>([]);
+  const [places, setPlaces] = useState<PlaceImagesReviews[]>([]);
+  const [allPlaces, setAllPlaces] = useState<PlaceImagesReviews[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Selection State
-  const [selectedPlace, setSelectedPlace] = useState<PlaceWithImages | null>(null); // For Full Detail View
-  const [previewPlace, setPreviewPlace] = useState<PlaceWithImages | null>(null); // For Floating Card on Map
+  const [selectedPlace, setSelectedPlace] = useState<PlaceImagesReviews | null>(null); // For Full Detail View
+  const [previewPlace, setPreviewPlace] = useState<PlaceImagesReviews | null>(null); 
+  const [floatingCardDisplay, setFloadingCardDisplay] = useState<boolean>(false); // FloatingCard enabled or disabled
 
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -46,17 +41,18 @@ export default function HomeScreen() {
 
   // View Mode: 'list' | 'map' - DEFAULT TO MAP
   const [viewMode, setViewMode] = useState<"list" | "map">("map");
-  // const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const [reviewRating, setReviewRating] = useState<number>(5);
-  const [reviewText, setReviewText] = useState<string>("");
+  const [pendingCenter, setPendingCenter] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+
 
   const [trackingSub, setTrackingSub] = useState<Location.LocationSubscription | null>(null);
   const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
-  const { session } = useAuth();
   const mapRef = useRef<MapView | null>(null);
 
   useFocusEffect(
@@ -131,6 +127,7 @@ export default function HomeScreen() {
   };
 
   const centerMap = (latitude: number, longitude: number) => {
+    console.log(`centerMap with coordinates: ${latitude}, ${longitude}`);
     mapRef.current?.animateToRegion(
       {
         latitude,
@@ -142,8 +139,17 @@ export default function HomeScreen() {
     );
   };
 
-  const onMarkerPress = (place: PlaceWithImages) => {
+  useEffect(() => {
+  if (pendingCenter && mapRef.current) {
+    centerMap(pendingCenter.lat, pendingCenter.lng);
+    setPendingCenter(null);
+  }
+}, [pendingCenter]);
+
+
+  const onMarkerPress = (place: PlaceImagesReviews) => {
     setPreviewPlace(place);
+    setFloadingCardDisplay(true);
     centerMap(place.latitude, place.longitude);
   };
 
@@ -180,7 +186,14 @@ export default function HomeScreen() {
       {selectedPlace ? (
         <PlaceDetailed
           selectedPlace={selectedPlace}
-          onClose={() => setSelectedPlace(null)}
+          onClose={() => {
+            console.log(`PlaceDetailed onClose clicked.`);
+            setPendingCenter({
+              lat: selectedPlace.latitude,
+              lng: selectedPlace.longitude,
+            });
+            setSelectedPlace(null);
+          }}
         />
       ) : (
         <>
@@ -284,12 +297,6 @@ export default function HomeScreen() {
                   style={StyleSheet.absoluteFill}
                   showsUserLocation
                   onPress={onMapPress}
-                  initialRegion={{
-                    latitude: 37.9838,
-                    longitude: 23.7275,
-                    latitudeDelta: 0.05,
-                    longitudeDelta: 0.05,
-                  }}
                 >
                   {/* Center on User Button */}
                   {userLocation && (
@@ -303,8 +310,8 @@ export default function HomeScreen() {
                   )}
 
                   {places.map((place) => {
-                    // const isSelected = previewPlace?.id === place.id;
-                    const isSelected = false
+                    // const isSelected = false
+                    const isSelected = previewPlace?.id === place.id;
                     const bg = isSelected ? BRAND_BLUE : '#fff';
                     const text = isSelected ? '#fff' : '#000';
                     const zIndex = isSelected ? 100 : 1;
@@ -338,14 +345,18 @@ export default function HomeScreen() {
                 </MapView>
 
                 {/* Floating Preview Card */}
-                {previewPlace && (
+                {floatingCardDisplay && (
                   <FloatingCard
                     selectedPlace={previewPlace}
                     onPressCard={() => setSelectedPlace(previewPlace)}
-                    onClose={() => setPreviewPlace(null)}
+                    onClose={() => {
+                      setFloadingCardDisplay(false);
+                      if (previewPlace?.latitude && previewPlace?.longitude) {
+                        centerMap(previewPlace.latitude, previewPlace.longitude);
+                      }
+                    }}
                   />
                 )}
-
               </View>
             )}
 

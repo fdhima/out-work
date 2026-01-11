@@ -24,9 +24,9 @@ export function PlaceDetailed({
   selectedPlace,
   onClose
 }: PlaceDetailedProps) {
-
+  if (!selectedPlace) return null;
+  console.log(`PlaceDetailed component with pros: ${JSON.stringify(selectedPlace)} ${onClose}`);
   useEffect(() => {
-    console.log(`Place with ID: ${selectedPlace.id} has ${selectedPlace.reviews} reviews`);
     const fetchPlaceCategories = async () => {
       try {
         const ids = await getPlaceCategoriesIds(selectedPlace.id);
@@ -88,7 +88,6 @@ export function PlaceDetailed({
           }}
         />
 
-
         <View style={styles.detailContent}>
           <ThemedText type="title" style={styles.detailTitle}>
             {selectedPlace.name}
@@ -120,7 +119,9 @@ export function PlaceDetailed({
             <View style={styles.metaRow}>
               <MaterialIcons name="place" size={24} color={BRAND_BLUE} />
               <View>
-                <ThemedText style={{ fontWeight: '600' }}>Location</ThemedText>
+                <ThemedText style={{ fontWeight: '600' }}>
+                  Location
+                </ThemedText>
                 <ThemedText style={{ fontSize: 14, opacity: 0.7 }}>
                   {selectedPlace.latitude.toFixed(4)}, {selectedPlace.longitude.toFixed(4)}
                 </ThemedText>
