@@ -6,7 +6,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
 type FloatingCardProps = {
-  selectedPlace: PlaceImagesReviews;
+  selectedPlace: PlaceImagesReviews | null;
   onPressCard: () => void;
   onClose: () => void;
 };
@@ -18,6 +18,7 @@ export function FloatingCard({
   onPressCard,
   onClose,
 }: FloatingCardProps) {
+  if (!selectedPlace) return null;
   return (
     <View style={styles.previewCardContainer}>
       <TouchableOpacity
