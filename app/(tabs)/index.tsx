@@ -14,12 +14,12 @@ import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
-  Image,
   StyleSheet,
   TouchableOpacity,
   View
 } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import { FloatingCard } from "./components/FloatingCard";
 import { ImageCarousel } from "./components/ImageCarousel";
 import { MapHeader } from "./components/MapHeader";
 import { PlaceDetailed } from "./components/PlaceDetailed";
@@ -278,209 +278,6 @@ export default function HomeScreen() {
     <ThemedView style={styles.container}>
       {/* If detailed view is active, show it fully over everything else */}
       {selectedPlace ? (
-        // <KeyboardAvoidingView
-        //   behavior={Platform.OS === "ios" ? "padding" : undefined}
-        //   style={{ flex: 1 }}
-        // >
-        //   <ScrollView
-        //     contentContainerStyle={styles.detailContainer}
-        //     showsVerticalScrollIndicator={false}
-        //     keyboardShouldPersistTaps="handled"
-        //   >
-        //     {/* Detailed View Header */}
-        //     <View style={{ position: 'absolute', top: 50, left: 20, zIndex: 10 }}>
-        //       <TouchableOpacity
-        //         style={styles.circleButton}
-        //         onPress={() => setSelectedPlace(null)}
-        //       >
-        //         <MaterialIcons name="arrow-back" size={20} color="#000" />
-        //       </TouchableOpacity>
-        //     </View>
-        //     <View style={{ position: 'absolute', top: 50, right: 20, zIndex: 10 }}>
-        //       <View style={[styles.circleButton, { gap: 15, width: 'auto', paddingHorizontal: 12 }]}>
-        //         <MaterialIcons name="share" size={20} color="#000" />
-        //         <MaterialIcons name="favorite-border" size={20} color="#000" />
-        //       </View>
-        //     </View>
-
-        //     <ImageCarousel
-        //       images={selectedPlace.images ?? [`https://picsum.photos/400/250?random=${selectedPlace.id}`]}
-        //       height={350}
-        //       onPress={(i) => {
-        //         setGalleryImages(selectedPlace.images ?? [`https://picsum.photos/400/250?random=${selectedPlace.id}`]);
-        //         setGalleryIndex(i);
-        //         setGalleryVisible(true);
-        //       }}
-        //     />
-
-        //     <View style={styles.detailContent}>
-        //       <ThemedText type="title" style={styles.detailTitle}>
-        //         {selectedPlace.name}
-        //       </ThemedText>
-        //       <View style={styles.detailRatingRow}>
-        //         {renderStars(selectedPlace.rating_avg, 16, isDark ? "#fff" : "#000")}
-        //         <ThemedText style={{ fontSize: 14, opacity: 0.6 }}> • {selectedPlace.reviews?.length || 0} reviews</ThemedText>
-        //       </View>
-
-        //       <ThemedText style={styles.detailDescription}>
-        //         {selectedPlace.description}
-        //       </ThemedText>
-
-        //       {/* Meta Info */}
-        //       <View
-        //         style={[
-        //           styles.detailMeta,
-        //           {
-        //             borderTopColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
-        //           },
-        //         ]}
-        //       >
-        //         <View style={styles.metaRow}>
-        //           <MaterialIcons name="place" size={24} color={iconColor} />
-        //           <View>
-        //             <ThemedText style={{ fontWeight: '600' }}>Location</ThemedText>
-        //             <ThemedText style={{ fontSize: 14, opacity: 0.7 }}>
-        //               {selectedPlace.latitude.toFixed(4)}, {selectedPlace.longitude.toFixed(4)}
-        //             </ThemedText>
-        //           </View>
-        //         </View>
-
-        //         <View style={styles.metaRow}>
-        //           <MaterialIcons name="workspace-premium" size={24} color={iconColor} />
-        //           <View>
-        //             <ThemedText style={{ fontWeight: '600' }}>Top features</ThemedText>
-        //             <ThemedText style={{ fontSize: 14, opacity: 0.7 }}>
-        //               {CATEGORIES.slice(1, 4).map(c => c.label).join(' • ')}
-        //             </ThemedText>
-        //           </View>
-        //         </View>
-        //       </View>
-
-        //       {/* Reviews */}
-        //       <View style={styles.reviewsContainer}>
-        //         <ThemedText type="title" style={styles.sectionTitle}>
-        //           Reviews
-        //         </ThemedText>
-
-        //         {/* Review Form */}
-        //         <View style={styles.reviewFormCard}>
-        //           <ThemedText style={styles.writeReviewTitle}>
-        //             Write a review
-        //           </ThemedText>
-        //           <View style={styles.starSelector}>
-        //             {[1, 2, 3, 4, 5].map((s) => (
-        //               <TouchableOpacity key={s} onPress={() => setReviewRating(s)}>
-        //                 <MaterialIcons
-        //                   name={s <= reviewRating ? "star" : "star-border"}
-        //                   size={28}
-        //                   color={primaryColor}
-        //                 />
-        //               </TouchableOpacity>
-        //             ))}
-        //           </View>
-        //           <TextInput
-        //             value={reviewText}
-        //             onChangeText={setReviewText}
-        //             placeholder="Share your experience…"
-        //             placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
-        //             multiline
-        //             style={[
-        //               styles.reviewInput,
-        //               {
-        //                 color: textColor,
-        //                 backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#fff",
-        //                 borderColor: isDark ? "transparent" : "#e5e7eb",
-        //                 borderWidth: 1
-        //               },
-        //             ]}
-        //           />
-        //           <TouchableOpacity
-        //             activeOpacity={0.85}
-        //             onPress={submitReview}
-        //             disabled={!reviewText.trim() || submittingReview || !session?.user}
-        //             style={[
-        //               styles.submitButton,
-        //               {
-        //                 backgroundColor: primaryColor,
-        //                 opacity: !reviewText.trim() || submittingReview || !session?.user ? 0.6 : 1,
-        //               },
-        //             ]}
-        //           >
-        //             {submittingReview ? (
-        //               <ActivityIndicator color="#ffffffff" />
-        //             ) : (
-        //               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        //                 <ThemedText style={{ color: '#fff', fontWeight: 'bold' }}>Post</ThemedText>
-        //               </View>
-        //             )}
-        //           </TouchableOpacity>
-        //         </View>
-
-        //         {/* Reviews List */}
-        //         {visibleReviews.length ? (
-        //           <>
-        //             {visibleReviews.map((r) => (
-        //               <View key={r.id} style={styles.reviewCard}>
-        //                 <View style={styles.reviewHeader}>
-        //                   <View style={styles.avatarPlaceholder}>
-        //                     <ThemedText style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>{r.full_name.charAt(0)}</ThemedText>
-        //                   </View>
-        //                   <View>
-        //                     <ThemedText style={styles.reviewAuthor}>
-        //                       {r.full_name}
-        //                     </ThemedText>
-        //                     <ThemedText style={styles.reviewDate}>
-        //                       {new Date(r.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-        //                     </ThemedText>
-        //                   </View>
-        //                 </View>
-
-        //                 <ThemedText style={styles.reviewText}>
-        //                   {r.comment}
-        //                 </ThemedText>
-        //               </View>
-        //             ))}
-
-        //             {hasMoreReviews && (
-        //               <TouchableOpacity
-        //                 onPress={() => setShowAllReviews((v) => !v)}
-        //                 style={styles.showMoreButton}
-        //                 activeOpacity={0.7}
-        //               >
-        //                 <ThemedText style={{ color: isDark ? "#fff" : "#000", fontWeight: "600", textDecorationLine: 'underline' }}>
-        //                   {showAllReviews ? "Show less" : `Show all ${selectedPlace.reviews?.length} reviews`}
-        //                 </ThemedText>
-        //               </TouchableOpacity>
-        //             )}
-        //           </>
-        //         ) : (
-        //           <ThemedText style={styles.noReviewsText}>
-        //             No reviews yet — be the first ✨
-        //           </ThemedText>
-        //         )}
-
-        //       </View>
-        //     </View>
-        //   </ScrollView>
-
-        //   {/* Sticky Bottom Bar */}
-        //   <View style={[styles.stickyBottomBar, { backgroundColor: isDark ? '#1a1a1a' : '#fff', borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
-        //     <View>
-        //       <ThemedText style={{ fontWeight: 'bold', fontSize: 16 }}>Free</ThemedText>
-        //       <ThemedText style={{ fontSize: 12, opacity: 0.6 }}>No reservation required</ThemedText>
-        //     </View>
-        //     <TouchableOpacity style={[styles.reserveButton, { backgroundColor: BRAND_BLUE }]}>
-        //       <ThemedText style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Directions</ThemedText>
-        //     </TouchableOpacity>
-        //   </View>
-
-        //   <FullscreenGallery
-        //     visible={galleryVisible}
-        //     images={galleryImages}
-        //     initialIndex={galleryIndex}
-        //     onRequestClose={() => setGalleryVisible(false)}
-        //   />
-        // </KeyboardAvoidingView>
         <PlaceDetailed
           selectedPlace={selectedPlace}
           onClose={() => setSelectedPlace(null)}
@@ -642,32 +439,11 @@ export default function HomeScreen() {
 
                 {/* Floating Preview Card */}
                 {previewPlace && (
-                  <View style={styles.previewCardContainer}>
-                    <TouchableOpacity
-                      style={[styles.previewCard, { backgroundColor: isDark ? '#222' : '#fff' }]}
-                      onPress={() => setSelectedPlace(previewPlace)}
-                      activeOpacity={0.9}
-                    >
-                      <Image
-                        source={{ uri: previewPlace.images?.[0] ?? `https://picsum.photos/400/250?random=${previewPlace.id}` }}
-                        style={styles.previewImage}
-                      />
-                      <View style={styles.previewInfo}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                          <ThemedText numberOfLines={1} style={styles.previewTitle}>{previewPlace.name}</ThemedText>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, width: "100%" }}>
-                            <MaterialIcons name="star" size={12} color={isDark ? '#fff' : '#000'} />
-                            <ThemedText style={{ fontSize: 12 }}>{previewPlace.rating_avg.toFixed(1)}</ThemedText>
-                          </View>
-                        </View>
-                        <ThemedText numberOfLines={1} style={{ fontSize: 13, opacity: 0.6 }}>{previewPlace.description}</ThemedText>
-                        <ThemedText style={{ fontSize: 13, fontWeight: '600', marginTop: 4 }}>Free</ThemedText>
-                      </View>
-                      <TouchableOpacity style={styles.previewClose} onPress={() => setPreviewPlace(null)}>
-                        <MaterialIcons name="close" size={16} color="#000" />
-                      </TouchableOpacity>
-                    </TouchableOpacity>
-                  </View>
+                  <FloatingCard
+                    selectedPlace={previewPlace}
+                    onPressCard={() => setSelectedPlace(previewPlace)}
+                    onClose={() => setPreviewPlace(null)}
+                  />
                 )}
 
               </View>
@@ -795,49 +571,49 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   // Preview Card on Map
-  previewCardContainer: {
-    position: 'absolute',
-    bottom: 100,
-    left: 20,
-    right: 20,
-    zIndex: 101, // Above floating button
-  },
-  previewCard: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    padding: 12,
-    gap: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
-    alignItems: 'center'
-  },
-  previewImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    backgroundColor: '#eee'
-  },
-  previewInfo: {
-    flex: 1,
-    gap: 4
-  },
-  previewTitle: {
-    fontWeight: '700',
-    fontSize: 16,
-    marginRight: 4
-  },
-  previewClose: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    padding: 4,
-    borderRadius: 12,
-    backgroundColor: '#f0f0f0',
-    opacity: 0.8
-  },
+  // previewCardContainer: {
+  //   position: 'absolute',
+  //   bottom: 100,
+  //   left: 20,
+  //   right: 20,
+  //   zIndex: 101, // Above floating button
+  // },
+  // previewCard: {
+  //   flexDirection: 'row',
+  //   borderRadius: 12,
+  //   padding: 12,
+  //   gap: 12,
+  //   shadowColor: "#000",
+  //   shadowOffset: { width: 0, height: 4 },
+  //   shadowOpacity: 0.2,
+  //   shadowRadius: 8,
+  //   elevation: 6,
+  //   alignItems: 'center'
+  // },
+  // previewImage: {
+  //   width: 80,
+  //   height: 80,
+  //   borderRadius: 8,
+  //   backgroundColor: '#eee'
+  // },
+  // previewInfo: {
+  //   flex: 1,
+  //   gap: 4
+  // },
+  // previewTitle: {
+  //   fontWeight: '700',
+  //   fontSize: 16,
+  //   marginRight: 4
+  // },
+  // previewClose: {
+  //   position: 'absolute',
+  //   top: 8,
+  //   right: 8,
+  //   padding: 4,
+  //   borderRadius: 12,
+  //   backgroundColor: '#f0f0f0',
+  //   opacity: 0.8
+  // },
 
   // Detail
   // detailContainer: {
