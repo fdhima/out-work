@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/themed-text'
+import { BRAND_BLUE } from '@/constants/theme'
 import { useAuth } from '@/context/AuthContext'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useThemeColor } from '@/hooks/use-theme-color'
@@ -28,10 +29,6 @@ export default function ProfileScreen() {
   const router = useRouter()
   const colorScheme = useColorScheme() ?? 'light'
   const isDark = colorScheme === 'dark'
-
-  // Brand Colors
-  const BRAND_BLUE = "#4A90E2";
-  const primaryColor = BRAND_BLUE;
 
   const textColor = useThemeColor({}, 'text')
   const iconColor = useThemeColor({}, 'icon')
@@ -234,7 +231,7 @@ export default function ProfileScreen() {
     icon?: string
   }) => (
     <View style={[styles.itemRow, !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: separatorColor }]}>
-      {icon && <MaterialIcons name={icon as any} size={22} color={primaryColor} style={{ marginRight: 12 }} />}
+      {icon && <MaterialIcons name={icon as any} size={22} color={BRAND_BLUE} style={{ marginRight: 12 }} />}
       <ThemedText style={styles.itemLabel}>{label}</ThemedText>
       {readOnly ? (
         <ThemedText style={[styles.itemValue, { color: placeholderColor }]}>{value}</ThemedText>
@@ -261,6 +258,7 @@ export default function ProfileScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="always"
         >
           {/* Header */}
           <View style={styles.header}>
@@ -304,7 +302,7 @@ export default function ProfileScreen() {
               activeOpacity={0.7}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <MaterialIcons name="lock" size={22} color={primaryColor} style={{ marginRight: 12 }} />
+                <MaterialIcons name="lock" size={22} color={BRAND_BLUE} style={{ marginRight: 12 }} />
                 <ThemedText style={styles.itemLabel}>Change Password</ThemedText>
               </View>
               <MaterialIcons name={showSecurity ? "keyboard-arrow-up" : "keyboard-arrow-down"} size={22} color={placeholderColor} />
@@ -336,7 +334,7 @@ export default function ProfileScreen() {
           {/* Actions */}
           <View style={styles.actionContainer}>
             <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: primaryColor }]}
+              style={[styles.primaryButton, { backgroundColor: BRAND_BLUE }]}
               onPress={handleUpdateProfile}
               disabled={loading}
               activeOpacity={0.8}

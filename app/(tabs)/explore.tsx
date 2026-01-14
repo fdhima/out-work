@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { BRAND_BLUE } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { getCategories } from "@/services/categories";
@@ -23,10 +24,6 @@ import {
   View
 } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
-
-// --- Hoisted Components for Stability ---
-// Similar to AuthInput but customized for this form if needed, 
-// or could be shared. For now, locally defining to ensure stability.
 
 const FormInput = ({
   label,
@@ -62,8 +59,8 @@ export default function CreatePlaceScreen() {
   const iconColor = useThemeColor({}, "icon");
 
   // Brand Colors
-  const BRAND_BLUE = "#4A90E2";
-  const PRIMARY_COLOR = BRAND_BLUE;
+  // const BRAND_BLUEE = "#4A90E2";
+  // const BRAND_BLUE = BRAND_BLUEE;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -177,7 +174,7 @@ export default function CreatePlaceScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <View style={[styles.headerIcon, { backgroundColor: PRIMARY_COLOR }]}>
+            <View style={[styles.headerIcon, { backgroundColor: BRAND_BLUE }]}>
               <MaterialIcons name="add-location-alt" size={24} color="#fff" />
             </View>
             <View>
@@ -222,8 +219,8 @@ export default function CreatePlaceScreen() {
                   onPress={pickImages}
                   disabled={images.length >= 4}
                 >
-                  <MaterialIcons name="add-a-photo" size={24} color={PRIMARY_COLOR} />
-                  <ThemedText style={{ fontSize: 12, marginTop: 4, fontWeight: '600', color: PRIMARY_COLOR }}>Add Photo</ThemedText>
+                  <MaterialIcons name="add-a-photo" size={24} color={BRAND_BLUE} />
+                  <ThemedText style={{ fontSize: 12, marginTop: 4, fontWeight: '600', color: BRAND_BLUE }}>Add Photo</ThemedText>
                 </TouchableOpacity>
 
                 {images.map((img) => (
@@ -258,13 +255,13 @@ export default function CreatePlaceScreen() {
                 >
                   {latitude !== null && longitude !== null && (
                     <Marker coordinate={{ latitude, longitude }}>
-                      <View style={[styles.mapMarker, { backgroundColor: PRIMARY_COLOR }]}>
+                      <View style={[styles.mapMarker, { backgroundColor: BRAND_BLUE }]}>
                         <MaterialIcons name="location-on" size={20} color="#fff" />
                       </View>
                     </Marker>
                   )}
                 </MapView>
-                <View style={[styles.mapOverlay, { backgroundColor: latitude ? PRIMARY_COLOR : 'rgba(0,0,0,0.6)' }]}>
+                <View style={[styles.mapOverlay, { backgroundColor: latitude ? BRAND_BLUE : 'rgba(0,0,0,0.6)' }]}>
                   <ThemedText style={styles.locationText}>
                     {latitude ? "Location Selected ✓" : "Tap map to select location"}
                   </ThemedText>
@@ -281,7 +278,7 @@ export default function CreatePlaceScreen() {
                     <MaterialIcons
                       name={star <= rating ? "star" : "star-border"}
                       size={32}
-                      color={star <= rating ? PRIMARY_COLOR : iconColor}
+                      color={star <= rating ? BRAND_BLUE : iconColor}
                     />
                   </TouchableOpacity>
                 ))}
@@ -300,8 +297,8 @@ export default function CreatePlaceScreen() {
                       style={[
                         styles.categoryChip,
                         {
-                          backgroundColor: isSelected ? PRIMARY_COLOR : inputBg,
-                          borderColor: isSelected ? PRIMARY_COLOR : 'transparent',
+                          backgroundColor: isSelected ? BRAND_BLUE : inputBg,
+                          borderColor: isSelected ? BRAND_BLUE : 'transparent',
                         },
                       ]}
                       onPress={() => toggleCategory(cat.id)}
@@ -321,7 +318,7 @@ export default function CreatePlaceScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: PRIMARY_COLOR }]}
+              style={[styles.submitButton, { backgroundColor: BRAND_BLUE }]}
               onPress={handleCreatePlace}
               disabled={loading}
               activeOpacity={0.8}
