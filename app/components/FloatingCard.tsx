@@ -45,9 +45,6 @@ export function FloatingCard({
           <ThemedText numberOfLines={1} style={{ fontSize: 13, opacity: 0.6 }}>
             {selectedPlace.description}
           </ThemedText>
-          <ThemedText style={{ fontSize: 13, fontWeight: '600', marginTop: 4 }}>
-            Free
-          </ThemedText>
         </View>
         <TouchableOpacity style={styles.previewClose} onPress={onClose}>
           <MaterialIcons name="close" size={16} color="#000" />

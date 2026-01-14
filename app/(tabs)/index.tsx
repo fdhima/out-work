@@ -279,15 +279,6 @@ export default function HomeScreen() {
                       <ThemedText style={styles.cardSecondaryText} numberOfLines={1}>
                         {item.description}
                       </ThemedText>
-
-                      <View style={{ marginTop: 6, flexDirection: 'row', gap: 4 }}>
-                        <ThemedText style={{ fontSize: 15, fontWeight: '700' }}>
-                          Free
-                        </ThemedText>
-                        <ThemedText style={{ fontSize: 15, fontWeight: '400' }}>
-                          • Open Now
-                        </ThemedText>
-                      </View>
                     </View>
                   </TouchableOpacity>
                 )}

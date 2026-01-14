@@ -114,7 +114,7 @@ export function PlaceDetailed({
               },
             ]}
           >
-            <View style={styles.metaRow}>
+            {/* <View style={styles.metaRow}>
               <MaterialIcons name="place" size={24} color={BRAND_BLUE} />
               <View>
                 <ThemedText style={{ fontWeight: '600' }}>
@@ -124,7 +124,7 @@ export function PlaceDetailed({
                   {selectedPlace.latitude.toFixed(4)}, {selectedPlace.longitude.toFixed(4)}
                 </ThemedText>
               </View>
-            </View>
+            </View> */}
 
             <View style={styles.metaRow}>
               <MaterialIcons name="workspace-premium" size={24} color={BRAND_BLUE} />
