@@ -98,6 +98,7 @@ export default function CreatePlaceScreen() {
       allowsMultipleSelection: true,
       selectionLimit: 4,
       quality: 0.8,
+      exif: false,
     });
 
     if (!result.canceled) {
@@ -188,7 +189,14 @@ export default function CreatePlaceScreen() {
       setSelectedCategoryIds([]);
     } catch (error: any) {
       console.error(error);
-      Alert.alert("Error", error.message || "Failed to create place");
+      if (error?.code === "23505") {
+        Alert.alert(
+          "Place Already Exists",
+          "A place with this name already exists. Go and check it out!"
+        );
+      } else {
+        Alert.alert("Error", error.message || "Failed to create place");
+      }
     } finally {
       setLoading(false);
     }

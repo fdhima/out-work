@@ -18,7 +18,7 @@ type PlaceDetailedProps = {
   onClose: () => void;
 }
 
-type PlaceImagesReviews = Place & { images: string[]; reviews?: Review[] };
+type PlaceImagesReviews = Place & { images: { url: string }[]; reviews?: Review[] };
 
 export function PlaceDetailed({
   selectedPlace,
@@ -77,12 +77,10 @@ export function PlaceDetailed({
         </View>
 
         <ImageCarousel
-          // MOCK PLACE'S IMAGES, SINCE THE UPLOADING MECHANISM OF IMAGES PUSHES THE CORRUPTED IMAGES IN THE STORAGE
-          // images={selectedPlace.images ?? [`https://picsum.photos/400/250?random=${selectedPlace.id}`]}
-          images={["https://fastly.picsum.photos/id/234/400/250.jpg?hmac=lZRX-VS_E8srOFmc3zbpdKWb_P39_CbszmNnErhYFpI"]}
+          images={selectedPlace.images?.length > 0 ? selectedPlace.images.map(img => img.url) : [`https://picsum.photos/400/250?random=${selectedPlace.id}`]}
           height={350}
           onPress={(i) => {
-            setGalleryImages(selectedPlace.images ?? [`https://picsum.photos/400/250?random=${selectedPlace.id}`]);
+            setGalleryImages(selectedPlace.images?.length > 0 ? selectedPlace.images.map(img => img.url) : [`https://picsum.photos/400/250?random=${selectedPlace.id}`]);
             setGalleryIndex(i);
             setGalleryVisible(true);
           }}

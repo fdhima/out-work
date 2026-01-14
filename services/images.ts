@@ -15,44 +15,59 @@ export interface CreateImageInput {
   created_at: string,
 }
 
+/**
+ * Uploads an image to Supabase Storage.
+ * Handles React Native URIs using the modern Expo File API.
+ */
 export async function uploadImage(
   uri: string,
   placeId: number,
   index: number
 ): Promise<string> {
-  const file = new File(uri); // File points to your local file
+  try {
+    const ext = uri.split(".").pop()?.toLowerCase() ?? "jpg";
+    const fileName = `${Date.now()}-${index}.${ext}`;
+    const filePath = `${placeId}/${fileName}`;
 
-  // Convert file to Uint8Array
-  const arrayBuffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
+    // Read file using the modern File API
+    const file = new File(uri);
+    const arrayBuffer = await file.arrayBuffer();
 
-  const ext = uri.split(".").pop() ?? "jpg";
-  const filePath = `${placeId}/${Date.now()}-${index}.${ext}`;
+    // Determine content type
+    let contentType = "image/jpeg";
+    if (ext === "png") contentType = "image/png";
+    else if (ext === "webp") contentType = "image/webp";
+    else if (ext === "heic") contentType = "image/heic";
 
-  const { error } = await supabase.storage
-    .from("place-images")
-    .upload(filePath, bytes, {
-      contentType: "image/jpeg",
-      upsert: false,
-    });
+    const { error } = await supabase.storage
+      .from("place-images")
+      .upload(filePath, arrayBuffer, {
+        contentType,
+        upsert: false,
+      });
 
-  if (error) throw error;
+    if (error) throw error;
 
-  const { data } = supabase.storage
-    .from("place-images")
-    .getPublicUrl(filePath);
+    const { data } = supabase.storage
+      .from("place-images")
+      .getPublicUrl(filePath);
 
-  return data.publicUrl;
+    return data.publicUrl;
+  } catch (err) {
+    console.error("Upload error:", err);
+    throw err;
+  }
 }
 
 
-export async function createImage(input: CreateImageInput) { Promise<Image>
+export async function createImage(input: CreateImageInput): Promise<Image | void> {
   const { data, error } = await supabase
     .from('images')
     .insert(input)
     .select('*')
     .single()
   if (error) throw error;
+  return data;
 }
 
 export async function getImagesForPlace(placeId: number): Promise<string[]> {

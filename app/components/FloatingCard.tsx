@@ -11,7 +11,7 @@ type FloatingCardProps = {
   onClose: () => void;
 };
 
-type PlaceImagesReviews = Place & { images: string[]; reviews?: Review[] };
+type PlaceImagesReviews = Place & { images: { url: string }[]; reviews?: Review[] };
 
 export function FloatingCard({
   selectedPlace,
@@ -27,7 +27,7 @@ export function FloatingCard({
         activeOpacity={0.9}
       >
         <Image
-          source={{ uri: selectedPlace.images?.[0] ?? `https://picsum.photos/400/250?random=${selectedPlace.id}` }}
+          source={{ uri: selectedPlace.images?.[0]?.url ?? `https://picsum.photos/400/250?random=${selectedPlace.id}` }}
           style={styles.previewImage}
         />
         <View style={styles.previewInfo}>
@@ -42,12 +42,12 @@ export function FloatingCard({
               </ThemedText>
             </View>
           </View>
-            <ThemedText numberOfLines={1} style={{ fontSize: 13, opacity: 0.6 }}>
-              {selectedPlace.description}
-            </ThemedText>
-            <ThemedText style={{ fontSize: 13, fontWeight: '600', marginTop: 4 }}>
-              Free
-            </ThemedText>
+          <ThemedText numberOfLines={1} style={{ fontSize: 13, opacity: 0.6 }}>
+            {selectedPlace.description}
+          </ThemedText>
+          <ThemedText style={{ fontSize: 13, fontWeight: '600', marginTop: 4 }}>
+            Free
+          </ThemedText>
         </View>
         <TouchableOpacity style={styles.previewClose} onPress={onClose}>
           <MaterialIcons name="close" size={16} color="#000" />

@@ -26,7 +26,7 @@ import { MapHeader } from "../components/MapHeader";
 import { PlaceDetailed } from "../components/PlaceDetailed";
 
 // type PlaceImagesReviews = Place & { images: string[]; reviews?: Review[] };
-type PlaceImagesReviews = Place & { images: string[]; reviews?: Review[] };
+type PlaceImagesReviews = Place & { images: { url: string }[]; reviews?: Review[] };
 
 
 export default function HomeScreen() {
@@ -247,11 +247,11 @@ export default function HomeScreen() {
                   >
                     <View style={{ position: 'relative' }}>
                       <ImageCarousel
-                        images={item.images ?? [`https://picsum.photos/400/250?random=${item.id}`]}
+                        images={item.images?.length > 0 ? item.images.map(img => img.url) : [`https://picsum.photos/400/250?random=${item.id}`]}
                         height={320}
                         borderRadius={12}
                         onPress={(i) => {
-                          setGalleryImages(item.images ?? [`https://picsum.photos/400/250?random=${item.id}`]);
+                          setGalleryImages(item.images?.length > 0 ? item.images.map(img => img.url) : [`https://picsum.photos/400/250?random=${item.id}`]);
                           setGalleryIndex(i);
                           setGalleryVisible(true);
                         }}
