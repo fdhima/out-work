@@ -2,7 +2,7 @@ import { ThemedText } from "@/components/themed-text";
 import FullscreenGallery from "@/components/ui/fullscreen-gallery";
 import { BRAND_BLUE, isDark } from "@/constants/theme";
 import { getCategoryNameById } from "@/services/categories";
-import { Place } from "@/services/places";
+import { Place, PlaceEnhanced } from "@/services/places";
 import { getPlaceCategoriesIds } from "@/services/places_categories";
 import { Review } from "@/services/reviews";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -14,11 +14,9 @@ import { ReviewForm } from "./ReviewForm";
 import { ReviewsList } from "./ReviewsList";
 
 type PlaceDetailedProps = {
-  selectedPlace: PlaceImagesReviews;
+  selectedPlace: PlaceEnhanced;
   onClose: () => void;
 }
-
-type PlaceImagesReviews = Place & { images: { url: string }[]; reviews?: Review[] };
 
 export function PlaceDetailed({
   selectedPlace,

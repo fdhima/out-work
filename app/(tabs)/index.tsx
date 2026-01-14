@@ -3,7 +3,7 @@ import { ThemedView } from "@/components/themed-view";
 import FullscreenGallery from "@/components/ui/fullscreen-gallery";
 import { BRAND_BLUE, CATEGORIES, isDark } from "@/constants/theme";
 import { getCategoryIdByName } from "@/services/categories";
-import { getPlacesEnhanced, Place } from "@/services/places";
+import { getPlacesEnhanced, Place, PlaceEnhanced } from "@/services/places";
 import { Review } from "@/services/reviews";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { BlurView } from "expo-blur";
@@ -24,19 +24,16 @@ import ImageCarousel from "../components/ImageCarousel";
 import { FloatingCard } from "../components/FloatingCard";
 import { MapHeader } from "../components/MapHeader";
 import { PlaceDetailed } from "../components/PlaceDetailed";
-
-// type PlaceImagesReviews = Place & { images: string[]; reviews?: Review[] };
-type PlaceImagesReviews = Place & { images: { url: string }[]; reviews?: Review[] };
-
+// import { getProfileFullNameById } from "@/services/profiles";
 
 export default function HomeScreen() {
-  const [places, setPlaces] = useState<PlaceImagesReviews[]>([]);
-  const [allPlaces, setAllPlaces] = useState<PlaceImagesReviews[]>([]);
+  const [places, setPlaces] = useState<PlaceEnhanced[]>([]);
+  const [allPlaces, setAllPlaces] = useState<PlaceEnhanced[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Selection State
-  const [selectedPlace, setSelectedPlace] = useState<PlaceImagesReviews | null>(null); // For Full Detail View
-  const [previewPlace, setPreviewPlace] = useState<PlaceImagesReviews | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceEnhanced | null>(null); // For Full Detail View
+  const [previewPlace, setPreviewPlace] = useState<PlaceEnhanced | null>(null);
   const [floatingCardDisplay, setFloadingCardDisplay] = useState<boolean>(false); // FloatingCard enabled or disabled
 
   const [galleryVisible, setGalleryVisible] = useState(false);
@@ -151,7 +148,7 @@ export default function HomeScreen() {
   }, [pendingCenter]);
 
 
-  const onMarkerPress = (place: PlaceImagesReviews) => {
+  const onMarkerPress = (place: PlaceEnhanced) => {
     setPreviewPlace(place);
     setFloadingCardDisplay(true);
     centerMap(place.latitude, place.longitude);
@@ -274,7 +271,7 @@ export default function HomeScreen() {
                       </View>
 
                       <ThemedText style={styles.cardSecondaryText} numberOfLines={1}>
-                        Hosted by OutWork
+                        Hosted by {item.profiles?.full_name || "OutWork"}
                       </ThemedText>
                       <ThemedText style={styles.cardSecondaryText} numberOfLines={1}>
                         {item.description}

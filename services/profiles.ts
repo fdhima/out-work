@@ -22,11 +22,24 @@ export async function getProfileById(userId: string): Promise<Profile | null> {
     .select('*')
     .eq('id', userId)
     .single()
-    if (error) { 
-      console.error(error)
-      return null
-    }
-    return data;
+  if (error) {
+    console.error(error)
+    return null
+  }
+  return data;
+}
+
+export async function getProfileFullNameById(userId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', userId)
+    .single()
+  if (error) {
+    console.error(error)
+    return null
+  }
+  return data.full_name;
 }
 
 export async function updateProfile(

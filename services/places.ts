@@ -13,6 +13,12 @@ export interface Place {
   updated_at: string | null;
 }
 
+export type PlaceEnhanced = Place & {
+  images: { url: string }[];
+  reviews?: any[];
+  profiles?: { full_name: string };
+};
+
 export interface CreatePlaceInput {
   profile_id: string;
   name: string;
@@ -122,13 +128,14 @@ export async function getPlaceImages(placeId: number) {
 
 
 // API to grab all the places, irrespectively if category or query filtering has been applied
-export async function getPlacesEnhanced(categoryId?: number | null, query?: string) {
+export async function getPlacesEnhanced(categoryId?: number | null, query?: string): Promise<PlaceEnhanced[]> {
   let request = supabase
     .from('places')
     .select(`
       *,
       images!inner (*),
-      places_categories!inner (*)
+      places_categories!inner (*),
+      profiles (full_name)
     `);
 
   // Logic: Only apply search if query has text
@@ -149,6 +156,6 @@ export async function getPlacesEnhanced(categoryId?: number | null, query?: stri
     console.error('Error fetching places:', error);
     throw error;
   }
-  
+
   return data;
 }

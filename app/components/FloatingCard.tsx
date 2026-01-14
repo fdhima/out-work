@@ -1,17 +1,17 @@
 import { ThemedText } from "@/components/themed-text";
 import { isDark } from "@/constants/theme";
-import { Place } from "@/services/places";
+import { Place, PlaceEnhanced } from "@/services/places";
 import { Review } from "@/services/reviews";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
 type FloatingCardProps = {
-  selectedPlace: PlaceImagesReviews | null;
+  selectedPlace: PlaceEnhanced | null;
   onPressCard: () => void;
   onClose: () => void;
 };
 
-type PlaceImagesReviews = Place & { images: { url: string }[]; reviews?: Review[] };
+
 
 export function FloatingCard({
   selectedPlace,
