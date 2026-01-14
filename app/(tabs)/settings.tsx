@@ -283,8 +283,9 @@ export default function ProfileScreen() {
             <SettingsItem
               label="Full Name"
               value={fullName}
-              onChangeText={setFullName}
-              placeholder="Required"
+              // onChangeText={setFullName}
+              // placeholder="Required"
+              readOnly
             />
             <SettingsItem
               label="Email"
