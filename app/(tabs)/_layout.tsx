@@ -77,17 +77,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Saved', // Renaming Explore to Saved or similar if it's meant to be that? Or Keep Explore if it's list? 
-          // The prompt implied "Explore" -> "paperplane", usually list view. 
-          // But previous index.tsx has "Map first" and toggle for List. 
-          // Let's stick to "Explore" or maybe "Places" if user didn't specify. 
-          // Actually index.tsx IS the main map/list. 
-          // So "index" = "Home/Map". 
-          // What is the previous "explore" tab? It was paperplane. 
-          // Let's look at file structure... actually let's just keep "Explore" as is but use a relevant icon.
-          // Maybe "travel-explore" or "search".
+          title: 'Post',
           tabBarIcon: ({ color }) => (
-            <MaterialIcons size={28} name="explore" color={color} />
+            <MaterialIcons size={28} name="post-add" color={color} />
           ),
         }}
       />
