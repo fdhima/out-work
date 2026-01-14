@@ -3,13 +3,14 @@ import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { BlurView } from 'expo-blur';
-import { Redirect, Tabs } from 'expo-router';
+import { Redirect, Tabs, usePathname } from 'expo-router';
 import React from 'react';
 import { Platform, StyleSheet } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { session, loading } = useAuth()
+  const { session, loading } = useAuth();
+  const pathname = usePathname();
 
   if (loading) return null
   if (!session) return <Redirect href="../auth/signin" />
@@ -53,6 +54,7 @@ export default function TabLayout() {
         }),
         tabBarBackground: () => (
           <BlurView
+            key={pathname} // Force refresh on tab change
             intensity={80}
             tint={isDark ? 'dark' : 'light'}
             style={StyleSheet.absoluteFill}

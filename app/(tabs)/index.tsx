@@ -98,7 +98,7 @@ export default function HomeScreen() {
 
     (async () => {
       sub = await enableTracking();
-      setTrackingSub(sub);
+      setTrackingSub(sub ?? null);
     })();
 
     return () => {

@@ -10,7 +10,8 @@ import { createPlaceCategory } from "@/services/places_categories";
 import { getUserId } from "@/services/users";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as ImagePicker from "expo-image-picker";
-import React, { useEffect, useState } from "react";
+import * as Location from "expo-location";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -67,6 +68,8 @@ export default function CreatePlaceScreen() {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [dbCategories, setDbCategories] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const mapRef = useRef<MapView | null>(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -110,6 +113,38 @@ export default function CreatePlaceScreen() {
     const { latitude, longitude } = event.nativeEvent.coordinate;
     setLatitude(latitude);
     setLongitude(longitude);
+  };
+
+  const useCurrentLocation = async () => {
+    setLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert("Permission Denied", "Location permission is required to find your position.");
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const { latitude, longitude } = location.coords;
+      setLatitude(latitude);
+      setLongitude(longitude);
+
+      mapRef.current?.animateToRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      }, 1000);
+
+    } catch (error) {
+      console.error("Error getting location:", error);
+      Alert.alert("Error", "Could not get your current location.");
+    } finally {
+      setLocating(false);
+    }
   };
 
   const handleCreatePlace = async () => {
@@ -234,104 +269,116 @@ export default function CreatePlaceScreen() {
               </ScrollView>
             </View>
 
-            {/* Map Selection */}
-            <View style={styles.inputGroup}>
+            <View style={styles.mapHeaderRow}>
               <ThemedText style={styles.label}>Location</ThemedText>
-              <View style={styles.mapWrapper}>
-                <MapView
-                  style={styles.map}
-                  provider={PROVIDER_DEFAULT}
-                  initialRegion={{
-                    latitude: 37.9838,
-                    longitude: 23.7275,
-                    latitudeDelta: 0.05,
-                    longitudeDelta: 0.05,
-                  }}
-                  onPress={selectPlace}
-                >
-                  {latitude !== null && longitude !== null && (
-                    <Marker coordinate={{ latitude, longitude }}>
-                      <View style={[styles.mapMarker, { backgroundColor: BRAND_BLUE }]}>
-                        <MaterialIcons name="location-on" size={20} color="#fff" />
-                      </View>
-                    </Marker>
-                  )}
-                </MapView>
-                <View style={[styles.mapOverlay, { backgroundColor: latitude ? BRAND_BLUE : 'rgba(0,0,0,0.6)' }]}>
-                  <ThemedText style={styles.locationText}>
-                    {latitude ? "Location Selected ✓" : "Tap map to select location"}
-                  </ThemedText>
-                </View>
+              <TouchableOpacity
+                style={styles.locationButton}
+                onPress={useCurrentLocation}
+                disabled={locating}
+              >
+                <MaterialIcons
+                  name={locating ? "sync" : "my-location"}
+                  size={16}
+                  color={BRAND_BLUE}
+                  style={locating ? { transform: [{ rotate: '45deg' }] } : undefined}
+                />
+                <ThemedText style={styles.locationButtonText}>
+                  {locating ? "Locating..." : "Use current position"}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.mapWrapper}>
+              <MapView
+                ref={mapRef}
+                style={styles.map}
+                provider={PROVIDER_DEFAULT}
+                initialRegion={{
+                  latitude: 37.9838,
+                  longitude: 23.7275,
+                  latitudeDelta: 0.05,
+                  longitudeDelta: 0.05,
+                }}
+                onPress={selectPlace}
+              >
+                {latitude !== null && longitude !== null && (
+                  <Marker coordinate={{ latitude, longitude }}>
+                    <View style={[styles.mapMarker, { backgroundColor: BRAND_BLUE }]}>
+                      <MaterialIcons name="location-on" size={20} color="#fff" />
+                    </View>
+                  </Marker>
+                )}
+              </MapView>
+              <View style={[styles.mapOverlay, { backgroundColor: latitude ? BRAND_BLUE : 'rgba(0,0,0,0.6)' }]}>
+                <ThemedText style={styles.locationText}>
+                  {latitude ? "Location Selected ✓" : "Tap map to select location"}
+                </ThemedText>
               </View>
             </View>
-
-            {/* Rating */}
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>My Rating</ThemedText>
-              <View style={[styles.ratingContainer, { backgroundColor: inputBg }]}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <TouchableOpacity key={star} onPress={() => setRating(star === rating ? 0 : star)}>
-                    <MaterialIcons
-                      name={star <= rating ? "star" : "star-border"}
-                      size={32}
-                      color={star <= rating ? BRAND_BLUE : iconColor}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Categories Selection */}
-            <View style={styles.inputGroup}>
-              <ThemedText style={styles.label}>Categories</ThemedText>
-              <View style={styles.categoriesWrapper}>
-                {dbCategories.map((cat) => {
-                  const isSelected = selectedCategoryIds.includes(cat.id);
-                  return (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={[
-                        styles.categoryChip,
-                        {
-                          backgroundColor: isSelected ? BRAND_BLUE : inputBg,
-                          borderColor: isSelected ? BRAND_BLUE : 'transparent',
-                        },
-                      ]}
-                      onPress={() => toggleCategory(cat.id)}
-                    >
-                      <ThemedText
-                        style={[
-                          styles.categoryChipText,
-                          { color: isSelected ? "#fff" : textColor },
-                        ]}
-                      >
-                        {cat.name}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: BRAND_BLUE }]}
-              onPress={handleCreatePlace}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <ThemedText style={styles.submitButtonText}>Publish Listing</ThemedText>
-              )}
-            </TouchableOpacity>
-
           </View>
 
-          <View style={{ height: 40 }} />
+          {/* Rating */}
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>My Rating</ThemedText>
+            <View style={[styles.ratingContainer, { backgroundColor: inputBg }]}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setRating(star === rating ? 0 : star)}>
+                  <MaterialIcons
+                    name={star <= rating ? "star" : "star-border"}
+                    size={32}
+                    color={star <= rating ? BRAND_BLUE : iconColor}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Categories Selection */}
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>Categories</ThemedText>
+            <View style={styles.categoriesWrapper}>
+              {dbCategories.map((cat) => {
+                const isSelected = selectedCategoryIds.includes(cat.id);
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[
+                      styles.categoryChip,
+                      {
+                        backgroundColor: isSelected ? BRAND_BLUE : inputBg,
+                        borderColor: isSelected ? BRAND_BLUE : 'transparent',
+                      },
+                    ]}
+                    onPress={() => toggleCategory(cat.id)}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.categoryChipText,
+                        { color: isSelected ? "#fff" : textColor },
+                      ]}
+                    >
+                      {cat.name}
+                    </ThemedText>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.submitButton, { backgroundColor: BRAND_BLUE }]}
+            onPress={handleCreatePlace}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <ThemedText style={styles.submitButtonText}>Publish Listing</ThemedText>
+            )}
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ThemedView>
+    </ThemedView >
   );
 }
 
@@ -344,7 +391,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
-    paddingTop: Platform.OS === 'android' ? 40 : 20,
+    paddingTop: Platform.OS === 'android' ? 80 : 60,
+    paddingBottom: 150, // Extra space for floating tab bar
   },
   header: {
     flexDirection: 'row',
@@ -517,5 +565,26 @@ const styles = StyleSheet.create({
   categoryChipText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  mapHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(74, 144, 226, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  locationButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: BRAND_BLUE,
   },
 });
