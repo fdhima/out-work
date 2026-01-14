@@ -58,10 +58,6 @@ export default function CreatePlaceScreen() {
   const textColor = useThemeColor({}, "text");
   const iconColor = useThemeColor({}, "icon");
 
-  // Brand Colors
-  // const BRAND_BLUEE = "#4A90E2";
-  // const BRAND_BLUE = BRAND_BLUEE;
-
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);

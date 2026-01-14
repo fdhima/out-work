@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { MaterialIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import {
   Platform,
   ScrollView,
@@ -36,40 +37,53 @@ export function MapHeader({
   const isDark = (useColorScheme() ?? "light") === "dark";
 
   return (
-    <View style={[styles.headerContainer, { shadowColor: isDark ? "#000" : "#666" }]}>
+    <View style={styles.headerContainer}>
       {/* Search Bar */}
-      <View
-        style={[
-          styles.searchPill,
-          {
-            backgroundColor: isDark ? "#2c2c2e" : "#fff",
-            borderColor: isDark ? "#444" : "#ddd",
-          },
-        ]}
-      >
-        <MaterialIcons name="search" size={20} color={isDark ? "#fff" : "#000"} />
+      <View style={[styles.searchPillContainer, { shadowColor: isDark ? "#000" : "#000" }]}>
+        <BlurView
+          intensity={60}
+          tint={isDark ? "dark" : "light"}
+          style={[
+            styles.searchPillBlur,
+            {
+              backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.8)",
+              borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+            },
+          ]}
+        >
+          <MaterialIcons name="search" size={20} color={isDark ? "#fff" : "#000"} />
 
-        <TextInput
-          style={[styles.searchInput, { color: textColor }]}
-          placeholder="Where to work?"
-          placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
-          value={searchQuery}
-          onChangeText={onSearchChange}
-        />
+          <TextInput
+            style={[styles.searchInput, { color: textColor }]}
+            placeholder="Where to work?"
+            placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
+            value={searchQuery}
+            onChangeText={onSearchChange}
+          />
 
-        {searchQuery.length > 0 ? (
-          <TouchableOpacity onPress={() => onSearchChange("")} hitSlop={8}>
-            <MaterialIcons name="close" size={18} color={isDark ? "#fff" : "#000"} />
-          </TouchableOpacity>
-        ) : (
-          <View style={[styles.filterIconCircle, { borderColor: isDark ? "#555" : "#ddd" }]}>
-            <MaterialIcons name="tune" size={14} color={isDark ? "#fff" : "#000"} />
-          </View>
-        )}
+          {/* {searchQuery.length > 0 ? (
+            <TouchableOpacity onPress={() => onSearchChange("")} hitSlop={8}>
+              <MaterialIcons name="close" size={18} color={isDark ? "#fff" : "#000"} />
+            </TouchableOpacity>
+          ) : (
+            <View style={[styles.filterIconCircle, { borderColor: isDark ? "#555" : "#ddd" }]}>
+              <MaterialIcons name="tune" size={14} color={isDark ? "#fff" : "#000"} />
+            </View>
+          )} */}
+          {searchQuery.length > 0 ? (
+            <TouchableOpacity onPress={() => onSearchChange("")} hitSlop={8}>
+              <MaterialIcons name="close" size={18} color={isDark ? "#fff" : "#000"} />
+            </TouchableOpacity>
+          ) : null}
+        </BlurView>
       </View>
 
       {/* Categories */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoriesContainer}
+      >
         {categories.map((cat) => {
           const isActive = selectedCategory === cat.id;
 
@@ -77,16 +91,32 @@ export function MapHeader({
             <TouchableOpacity
               key={cat.id}
               onPress={() => onCategorySelect(cat.id)}
-              style={[styles.categoryItem, isActive && styles.categoryItemActive]}
+              activeOpacity={0.8}
             >
-              <MaterialIcons
-                name={cat.icon as any}
-                size={24}
-                color={isActive ? textColor : isDark ? "#ccc" : "#666"}
-              />
-              <ThemedText style={[styles.categoryLabel, isActive && { fontWeight: "700" }]}>
-                {cat.label}
-              </ThemedText>
+              <BlurView
+                intensity={isActive ? 80 : 40}
+                tint={isDark ? "dark" : "light"}
+                style={[
+                  styles.categoryPill,
+                  {
+                    borderColor: isActive
+                      ? (isDark ? "#fff" : "#000")
+                      : (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)"),
+                    backgroundColor: isActive
+                      ? (isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.05)")
+                      : "transparent",
+                  }
+                ]}
+              >
+                <MaterialIcons
+                  name={cat.icon as any}
+                  size={20}
+                  color={isActive ? textColor : isDark ? "#ccc" : "#666"}
+                />
+                <ThemedText style={[styles.categoryLabel, isActive && { fontWeight: "700" }]}>
+                  {cat.label}
+                </ThemedText>
+              </BlurView>
             </TouchableOpacity>
           );
         })}
@@ -104,19 +134,21 @@ const styles = StyleSheet.create({
     elevation: 0,
     marginBottom: 10
   },
-  searchPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  searchPillContainer: {
     marginHorizontal: 20,
     borderRadius: 50,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  searchPillBlur: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
     gap: 12,
   },
   searchInput: {
@@ -136,23 +168,21 @@ const styles = StyleSheet.create({
   categoriesContainer: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    gap: 10,  // Tighter gap
+    paddingBottom: 10,
+    gap: 12,
   },
-  categoryItem: {
+  categoryPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-    opacity: 0.9,
-    marginRight: 24
-  },
-  categoryItemActive: {
-    borderBottomColor: 'transparent',
-    opacity: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 25,
+    borderWidth: 1,
+    gap: 8,
+    overflow: 'hidden',
   },
   categoryLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
-    marginTop: 8
   },
-})
+});

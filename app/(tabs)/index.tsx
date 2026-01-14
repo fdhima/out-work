@@ -11,8 +11,10 @@ import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
+  Keyboard,
   StyleSheet,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View
 } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
@@ -32,7 +34,7 @@ export default function HomeScreen() {
 
   // Selection State
   const [selectedPlace, setSelectedPlace] = useState<PlaceImagesReviews | null>(null); // For Full Detail View
-  const [previewPlace, setPreviewPlace] = useState<PlaceImagesReviews | null>(null); 
+  const [previewPlace, setPreviewPlace] = useState<PlaceImagesReviews | null>(null);
   const [floatingCardDisplay, setFloadingCardDisplay] = useState<boolean>(false); // FloatingCard enabled or disabled
 
   const [galleryVisible, setGalleryVisible] = useState(false);
@@ -140,11 +142,11 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-  if (pendingCenter && mapRef.current) {
-    centerMap(pendingCenter.lat, pendingCenter.lng);
-    setPendingCenter(null);
-  }
-}, [pendingCenter]);
+    if (pendingCenter && mapRef.current) {
+      centerMap(pendingCenter.lat, pendingCenter.lng);
+      setPendingCenter(null);
+    }
+  }, [pendingCenter]);
 
 
   const onMarkerPress = (place: PlaceImagesReviews) => {
@@ -154,6 +156,7 @@ export default function HomeScreen() {
   };
 
   const onMapPress = () => {
+    Keyboard.dismiss();
     if (previewPlace) {
       setPreviewPlace(null);
     }
@@ -280,6 +283,7 @@ export default function HomeScreen() {
                     </View>
                   </TouchableOpacity>
                 )}
+                keyboardShouldPersistTaps="handled"
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
                     <MaterialIcons name="place" size={48} color={BRAND_BLUE} />
