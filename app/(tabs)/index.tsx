@@ -6,12 +6,14 @@ import { getCategoryIdByName } from "@/services/categories";
 import { getPlacesEnhanced, Place } from "@/services/places";
 import { Review } from "@/services/reviews";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { BlurView } from "expo-blur";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Keyboard,
+  Platform,
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -92,7 +94,7 @@ export default function HomeScreen() {
   }
 
   useEffect(() => {
-    let sub: Location.LocationSubscription;
+    let sub: Location.LocationSubscription | undefined;
 
     (async () => {
       sub = await enableTracking();
@@ -164,22 +166,28 @@ export default function HomeScreen() {
 
   const ViewToggle = () => (
     <View style={styles.toggleContainer}>
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => setViewMode("map")}
-        style={[styles.toggleItem, viewMode === "map" && styles.toggleItemActive]}
+      <BlurView
+        intensity={80}
+        tint={isDark ? "dark" : "light"}
+        style={styles.toggleBlur}
       >
-        <MaterialIcons name="map" size={20} color={viewMode === "map" ? "#000" : "#fff"} />
-        <ThemedText style={[styles.toggleText, viewMode === "map" && styles.toggleTextActive]}>Map</ThemedText>
-      </TouchableOpacity>
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => setViewMode("list")}
-        style={[styles.toggleItem, viewMode === "list" && styles.toggleItemActive]}
-      >
-        <MaterialIcons name="view-list" size={20} color={viewMode === "list" ? "#000" : "#fff"} />
-        <ThemedText style={[styles.toggleText, viewMode === "list" && styles.toggleTextActive]}>List</ThemedText>
-      </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => setViewMode("map")}
+          style={[styles.toggleItem, viewMode === "map" && styles.toggleItemActive]}
+        >
+          <MaterialIcons name="map" size={20} color={viewMode === "map" ? "#000" : (isDark ? "#fff" : "#000")} />
+          <ThemedText style={[styles.toggleText, viewMode === "map" && styles.toggleTextActive]}>Map</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => setViewMode("list")}
+          style={[styles.toggleItem, viewMode === "list" && styles.toggleItemActive]}
+        >
+          <MaterialIcons name="view-list" size={20} color={viewMode === "list" ? "#000" : (isDark ? "#fff" : "#000")} />
+          <ThemedText style={[styles.toggleText, viewMode === "list" && styles.toggleTextActive]}>List</ThemedText>
+        </TouchableOpacity>
+      </BlurView>
     </View>
   );
 
@@ -423,18 +431,22 @@ const styles = StyleSheet.create({
   // Toggle
   toggleContainer: {
     position: 'absolute',
-    bottom: 90,
+    bottom: Platform.OS === 'ios' ? 100 : 100,
     alignSelf: 'center',
     zIndex: 1000,
-    flexDirection: 'row',
-    backgroundColor: '#1a1a1a',
     borderRadius: 30,
-    padding: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+  },
+  toggleBlur: {
+    flexDirection: 'row',
+    padding: 4,
   },
   toggleItem: {
     flexDirection: 'row',
@@ -445,10 +457,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   toggleItemActive: {
-    backgroundColor: '#fff',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.9)',
   },
   toggleText: {
-    color: '#fff',
+    color: isDark ? '#fff' : '#000',
     fontWeight: '600',
     fontSize: 15,
   },

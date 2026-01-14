@@ -2,9 +2,10 @@ import { HapticTab } from '@/components/haptic-tab';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { BlurView } from 'expo-blur';
 import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -13,10 +14,9 @@ export default function TabLayout() {
   if (loading) return null
   if (!session) return <Redirect href="../auth/signin" />
 
-  // Design System Colors
+  const isDark = colorScheme === 'dark';
   const BRAND_BLUE = '#4A90E2';
   const INACTIVE_COLOR = '#999999';
-  const BG_COLOR = colorScheme === 'dark' ? '#1c1c1e' : '#ffffff';
 
   return (
     <Tabs
@@ -28,28 +28,36 @@ export default function TabLayout() {
         tabBarStyle: Platform.select({
           ios: {
             position: 'absolute',
-            backgroundColor: colorScheme === 'dark' ? 'rgba(28,28,30,0.9)' : 'rgba(255,255,255,0.9)',
             borderTopWidth: 0,
             elevation: 0,
             height: 85,
             paddingBottom: 25,
-            // Blur effect simulation via background opacity
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 3,
+            backgroundColor: 'transparent',
           },
           android: {
-            backgroundColor: BG_COLOR,
-            borderColor: 'rgba(0,0,0,0.05)',
-            borderTopWidth: 1,
-            height: 65,
-            paddingBottom: 10,
-            paddingTop: 10,
+            position: 'absolute',
+            borderTopWidth: 0,
             elevation: 8,
+            height: 70,
+            paddingBottom: 12,
+            paddingTop: 10,
+            backgroundColor: 'transparent',
+            marginHorizontal: 20,
+            marginBottom: 20,
+            borderRadius: 35,
+            overflow: 'hidden',
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
           },
           default: {},
         }),
+        tabBarBackground: () => (
+          <BlurView
+            intensity={80}
+            tint={isDark ? 'dark' : 'light'}
+            style={StyleSheet.absoluteFill}
+          />
+        ),
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',

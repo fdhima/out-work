@@ -39,7 +39,15 @@ export function MapHeader({
   return (
     <View style={styles.headerContainer}>
       {/* Search Bar */}
-      <View style={[styles.searchPillContainer, { shadowColor: isDark ? "#000" : "#000" }]}>
+      <View style={[styles.searchPillContainer,
+      {
+        shadowColor: isDark ? "#000" : "#000",
+        borderWidth: 1,
+        borderColor: isDark
+          ? "rgba(255,255,255,0.1)"
+          : "rgba(0,0,0,0.05)",
+      },
+      ]}>
         <BlurView
           intensity={60}
           tint={isDark ? "dark" : "light"}
@@ -61,15 +69,6 @@ export function MapHeader({
             onChangeText={onSearchChange}
           />
 
-          {/* {searchQuery.length > 0 ? (
-            <TouchableOpacity onPress={() => onSearchChange("")} hitSlop={8}>
-              <MaterialIcons name="close" size={18} color={isDark ? "#fff" : "#000"} />
-            </TouchableOpacity>
-          ) : (
-            <View style={[styles.filterIconCircle, { borderColor: isDark ? "#555" : "#ddd" }]}>
-              <MaterialIcons name="tune" size={14} color={isDark ? "#fff" : "#000"} />
-            </View>
-          )} */}
           {searchQuery.length > 0 ? (
             <TouchableOpacity onPress={() => onSearchChange("")} hitSlop={8}>
               <MaterialIcons name="close" size={18} color={isDark ? "#fff" : "#000"} />
@@ -148,7 +147,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderWidth: 1,
     gap: 12,
   },
   searchInput: {
