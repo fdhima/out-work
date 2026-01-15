@@ -7,6 +7,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
+import * as Haptics from 'expo-haptics';
+import { BlurView } from 'expo-blur';
 import {
   ActivityIndicator,
   Platform,
@@ -75,7 +77,10 @@ const SocialButton = ({
   return (
     <TouchableOpacity
       style={[styles.socialButton, { backgroundColor: config.bg }]}
-      onPress={() => onPress(provider)}
+      onPress={() => {
+        Haptics.selectionAsync();
+        onPress(provider);
+      }}
       disabled={loading}
       activeOpacity={0.8}
     >
@@ -132,18 +137,20 @@ export default function AuthScreen() {
           style={styles.content}
         >
           <View style={styles.header}>
-            {/* <View style={[styles.logoContainer, { backgroundColor: '#4A90E2' }]}> */}
-              {/* <MaterialIcons name="map" size={40} color="#fff" /> */}
-              <Image
-                source={require("../../assets/images/outwork-logo-standalone.png")}
-                style={{ width: 120, height: 120 }}
-                resizeMode="contain"
-              />
-            {/* </View> */}
+            <View style={styles.logoGlassContainer}>
+              <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.logoBlur}>
+                <Image
+                  source={require("../../assets/images/outwork-logo-standalone.png")}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
+              </BlurView>
+            </View>
+
             <View style={styles.titleWrapper}>
               <ThemedText style={styles.title}>OutWork</ThemedText>
               <ThemedText style={styles.subtitle}>
-                Your companion for finding the perfect remote workspace.
+                Find your perfect remote workspace.
               </ThemedText>
             </View>
           </View>
@@ -212,60 +219,73 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
+    marginBottom: 40,
   },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 40, // Increased from 24 to fix overlap
+  logoGlassContainer: {
+    marginBottom: 32,
+    borderRadius: 35,
+    overflow: 'hidden',
     shadowColor: "#4A90E2",
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 16,
-    elevation: 10,
-    transform: [{ rotate: '-10deg' }],
+    elevation: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)', // Subtle backing
+    transform: [{ rotate: '-6deg' }], // Slight stylish tilt
+  },
+  logoBlur: {
+    width: 130,
+    height: 130,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
   },
   titleWrapper: {
     alignItems: 'center',
+    gap: 8,
   },
   title: {
-    fontSize: 40,
-    fontWeight: '800',
-    lineHeight: 46,
-    letterSpacing: -1,
-    marginBottom: 12,
+    fontSize: 42,
+    fontWeight: '900', // Extra bold
+    lineHeight: 48,
+    letterSpacing: -1.5,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 17,
     textAlign: 'center',
-    lineHeight: 26,
-    opacity: 0.7,
-    paddingHorizontal: 20,
+    lineHeight: 24,
+    opacity: 0.6,
+    paddingHorizontal: 40,
+    fontWeight: '500',
   },
   footer: {
     width: '100%',
     alignItems: 'center',
+    paddingBottom: 20,
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 20,
-    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    marginBottom: 24,
+    gap: 10,
   },
   errorText: {
     color: '#ef4444',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   buttonStack: {
     width: '100%',
     gap: 16,
-    marginBottom: 32,
+    marginBottom: 40,
   },
   socialButton: {
     flexDirection: 'row',
@@ -273,13 +293,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
     height: 56,
-    borderRadius: 28,
+    borderRadius: 20, // Updated radius
     paddingHorizontal: 24,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
   },
   iconWrapper: {
     marginRight: 12,
@@ -288,13 +308,13 @@ const styles = StyleSheet.create({
   },
   socialButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700', // Bolder text
   },
   disclaimer: {
-    fontSize: 12,
+    fontSize: 13,
     textAlign: 'center',
-    opacity: 0.5,
+    opacity: 0.4,
     paddingHorizontal: 40,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 });
