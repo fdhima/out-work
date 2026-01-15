@@ -126,28 +126,31 @@ export async function getPlaceImages(placeId: number) {
   return data;
 }
 
-
 // API to grab all the places, irrespectively if category or query filtering has been applied
 export async function getPlacesEnhanced(categoryId?: number | null, query?: string): Promise<PlaceEnhanced[]> {
   let request = supabase
     .from('places')
     .select(`
       *,
-      images!inner (*),
-      places_categories!inner (*),
-      profiles (full_name)
+      images(*),
+      profiles(full_name)
     `);
-
-  // Logic: Only apply search if query has text
-  if (query) {
-    console.log("Apply query filtering.");
-    request = request.ilike('name', `%${query.trim()}%`);
-  }
-
+  
   // Logic: Only apply category filter if categoryId is provided and not "all"
   if (categoryId) {
-    console.log("Apply category filtering.");
-    request = request.eq('places_categories.category_id', categoryId);
+    request = request
+      .select(`
+        *,
+        images(*),
+        places_categories!inner(*),
+        profiles(full_name)
+      `)
+      .eq("places_categories.category_id", categoryId);
+  }
+
+  // Logic: Only apply search if query has text
+  if (query && query.trim().length > 0) {
+    request = request.ilike("name", `%${query.trim()}%`);
   }
 
   const { data, error } = await request;
@@ -156,6 +159,6 @@ export async function getPlacesEnhanced(categoryId?: number | null, query?: stri
     console.error('Error fetching places:', error);
     throw error;
   }
-
+  console.log(`fetched places: ${JSON.stringify(data)}`);
   return data;
 }

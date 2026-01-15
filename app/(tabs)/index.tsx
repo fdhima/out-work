@@ -35,6 +35,7 @@ export default function HomeScreen() {
   const [selectedPlace, setSelectedPlace] = useState<PlaceEnhanced | null>(null); // For Full Detail View
   const [previewPlace, setPreviewPlace] = useState<PlaceEnhanced | null>(null);
   const [floatingCardDisplay, setFloadingCardDisplay] = useState<boolean>(false); // FloatingCard enabled or disabled
+  const requestIdRef = useRef(0);
 
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -104,6 +105,8 @@ export default function HomeScreen() {
   }, []);
 
   const fetchPlaces = async () => {
+    const requestId = ++requestIdRef.current;
+
     try {
       setLoading(true);
 
@@ -113,6 +116,8 @@ export default function HomeScreen() {
       }
 
       const data = await getPlacesEnhanced(categoryId, searchQuery);
+
+      if (requestId !== requestIdRef.current) return;
 
       if (!data) {
         setPlaces([]);
@@ -124,6 +129,9 @@ export default function HomeScreen() {
       console.error("Error fetching filtered places: ", err);
     } finally {
       setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -292,6 +300,7 @@ export default function HomeScreen() {
             ) : (
               <View style={{ flex: 1 }}>
                 <MapView
+                  key={places.map(p => p.id).join(",")}
                   ref={mapRef}
                   provider={PROVIDER_DEFAULT}
                   style={StyleSheet.absoluteFill}
