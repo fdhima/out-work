@@ -7,7 +7,9 @@ import { supabase } from '@/lib/supabase'
 import { getProfileById, updateProfile } from '@/services/profiles'
 import { getUserId } from '@/services/users'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
+import { BlurView } from 'expo-blur'
 import { File } from 'expo-file-system'
+import * as Haptics from 'expo-haptics'
 import * as ImagePicker from 'expo-image-picker'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -19,10 +21,12 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   TextInput,
   TouchableOpacity,
   View
 } from 'react-native'
+import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated'
 
 export default function ProfileScreen() {
   const { session, signOut } = useAuth()
@@ -32,11 +36,12 @@ export default function ProfileScreen() {
 
   const textColor = useThemeColor({}, 'text')
   const iconColor = useThemeColor({}, 'icon')
-  // Grouped list background style
-  const screenBg = isDark ? '#000' : '#f2f2f6';
-  const groupBg = isDark ? '#1c1c1e' : '#fff';
-  const separatorColor = isDark ? '#38383a' : '#e5e5ea'; // iOS separator colors
-  const placeholderColor = isDark ? '#636366' : '#c7c7cc';
+
+  // Refined Colors for Pro Max look
+  const screenBg = isDark ? '#000000' : '#F2F2F7'; // System gray 6
+  const groupBg = isDark ? 'rgba(28, 28, 30, 0.6)' : 'rgba(255, 255, 255, 0.7)';
+  const separatorColor = isDark ? '#38383A' : '#C6C6C8';
+  const placeholderColor = isDark ? '#636366' : '#AEAEB2';
 
   // Data State
   const [loading, setLoading] = useState(false)
@@ -45,10 +50,7 @@ export default function ProfileScreen() {
   const [email] = useState(session?.user?.email || '')
   const [avatarUrl, setAvatarUrl] = useState('')
 
-  // Security State
-  const [showSecurity, setShowSecurity] = useState(false)
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
+
 
   useEffect(() => {
     fetchProfile()
@@ -61,7 +63,7 @@ export default function ProfileScreen() {
       if (userId) {
         const profile = await getProfileById(userId);
         setFullName(profile?.full_name ?? '')
-        setAvatarUrl(profile?.avatar_url ?? 'Avatar not found');
+        setAvatarUrl(profile?.avatar_url ?? '');
       }
     } catch (e) {
       console.error(e)
@@ -70,47 +72,10 @@ export default function ProfileScreen() {
     }
   }
 
-  const handleUpdateProfile = async () => {
-    setLoading(true)
-    try {
-      const userId = await getUserId()
-      if (!userId) throw new Error('No user found')
-
-      // 1. Update Profile Name
-      if (fullName.trim()) {
-        await updateProfile(userId, { full_name: fullName, updated_at: new Date().toISOString() })
-      }
-
-      // 2. Update Password if provided
-      if (currentPassword && newPassword) {
-        const { error: authError } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: currentPassword,
-        })
-        if (authError) throw new Error('Current password is incorrect')
-
-        const { error: updateError } = await supabase.auth.updateUser({
-          password: newPassword,
-        })
-        if (updateError) throw updateError
-
-        // Clear password fields
-        setCurrentPassword('')
-        setNewPassword('')
-        setShowSecurity(false)
-        Alert.alert('Success', 'Profile and password updated')
-      } else {
-        Alert.alert('Success', 'Profile updated')
-      }
-
-    } catch (err: any) {
-      Alert.alert('Error', err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const pickAvatar = async () => {
+    if (loading) return
+    Haptics.selectionAsync()
+
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (status !== 'granted') {
       Alert.alert('Permission required', 'Please allow photo access')
@@ -132,50 +97,31 @@ export default function ProfileScreen() {
   const uploadAvatar = async (uri: string) => {
     try {
       setLoading(true)
-
       const userId = await getUserId()
       if (!userId) throw new Error('No user found')
 
       const file = new File(uri)
       const arrayBuffer = await file.arrayBuffer()
       const bytes = new Uint8Array(arrayBuffer)
-
       const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg'
       const filePath = `${userId}-avatar.${ext}`
-
       const mimeType = ext === 'jpg' ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : `image/${ext}`
 
       const { error } = await supabase.storage
         .from('avatars')
-        .upload(filePath, bytes, {
-          contentType: mimeType,
-          upsert: true,
-        })
+        .upload(filePath, bytes, { contentType: mimeType, upsert: true })
 
       if (error) throw error
 
-      // Try to create a signed URL (works for private buckets). Fallback to public URL if available.
-      const { data: signedData, error: signedError } = await supabase.storage
-        .from('avatars')
-        .createSignedUrl(filePath, 60 * 60 * 24 * 7) // 7 days
-
-      let finalUrl: string | undefined = signedData?.signedUrl
-
-      if (!finalUrl) {
-        const { data } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(filePath)
-        finalUrl = data?.publicUrl
-      }
-
-      if (!finalUrl) throw new Error('Failed to get avatar URL')
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
+      const finalUrl = data.publicUrl
 
       await updateProfile(userId, { avatar_url: finalUrl, updated_at: new Date().toISOString() })
       setAvatarUrl(finalUrl)
-      Alert.alert('Success', 'Avatar uploaded')
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
 
     } catch (err: any) {
-      console.error(err)
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
       Alert.alert('Error', err?.message || 'Failed to upload avatar')
     } finally {
       setLoading(false)
@@ -183,6 +129,7 @@ export default function ProfileScreen() {
   }
 
   const handleSignOut = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
     Alert.alert(
       "Sign Out",
       "Are you sure you want to sign out?",
@@ -200,15 +147,20 @@ export default function ProfileScreen() {
     )
   }
 
-  // --- UI Components for Settings ---
-
-  const SettingsGroup = ({ children, title }: { children: React.ReactNode, title?: string }) => (
-    <View style={styles.groupContainer}>
+  const SettingsGroup = ({ children, title, delay = 0 }: { children: React.ReactNode, title?: string, delay?: number }) => (
+    <Animated.View
+      entering={FadeInDown.delay(delay).springify().damping(20)}
+      style={styles.groupContainer}
+    >
       {title && <ThemedText style={styles.groupTitle}>{title.toUpperCase()}</ThemedText>}
-      <View style={[styles.group, { backgroundColor: groupBg }]}>
-        {children}
+      <View style={styles.groupShadow}>
+        <BlurView intensity={Platform.OS === 'ios' ? 70 : 0} tint={isDark ? "dark" : "light"} style={styles.groupBlur}>
+          <View style={[styles.group, { backgroundColor: groupBg }]}>
+            {children}
+          </View>
+        </BlurView>
       </View>
-    </View>
+    </Animated.View>
   );
 
   const SettingsItem = ({
@@ -218,8 +170,9 @@ export default function ProfileScreen() {
     onChangeText,
     isLast = false,
     readOnly = false,
-    secureTextEntry = false,
-    icon
+    icon,
+    onPress,
+    rightElement
   }: {
     label: string,
     value?: string,
@@ -227,27 +180,52 @@ export default function ProfileScreen() {
     onChangeText?: (text: string) => void,
     isLast?: boolean,
     readOnly?: boolean,
-    secureTextEntry?: boolean,
-    icon?: string
-  }) => (
-    <View style={[styles.itemRow, !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: separatorColor }]}>
-      {icon && <MaterialIcons name={icon as any} size={22} color={BRAND_BLUE} style={{ marginRight: 12 }} />}
-      <ThemedText style={styles.itemLabel}>{label}</ThemedText>
-      {readOnly ? (
-        <ThemedText style={[styles.itemValue, { color: placeholderColor }]}>{value}</ThemedText>
-      ) : (
-        <TextInput
-          style={[styles.itemInput, { color: textColor }]}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={placeholderColor}
-          secureTextEntry={secureTextEntry}
-          textAlign="right"
-        />
-      )}
-    </View>
-  );
+    icon?: string,
+    onPress?: () => void,
+    rightElement?: React.ReactNode
+  }) => {
+    const Component = onPress ? TouchableOpacity : View;
+
+    return (
+      <Component
+        onPress={onPress}
+        activeOpacity={onPress ? 0.7 : 1}
+        style={[
+          styles.itemRow,
+          !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: separatorColor }
+        ]}
+      >
+        <View style={styles.itemLeft}>
+          {icon && (
+            <View style={styles.iconContainer}>
+              <MaterialIcons name={icon as any} size={20} color="#fff" />
+            </View>
+          )}
+          <ThemedText style={styles.itemLabel}>{label}</ThemedText>
+        </View>
+
+        <View style={styles.itemRight}>
+          {rightElement ? rightElement : (
+            readOnly ? (
+              <ThemedText style={[styles.itemValue, { color: placeholderColor }]}>{value}</ThemedText>
+            ) : (
+              <TextInput
+                style={[styles.itemInput, { color: textColor }]}
+                value={value}
+                onChangeText={onChangeText}
+                placeholder={placeholder}
+                placeholderTextColor={placeholderColor}
+                textAlign="right"
+              />
+            )
+          )}
+          {onPress && !rightElement && (
+            <MaterialIcons name="chevron-right" size={24} color={placeholderColor} style={{ marginLeft: 8 }} />
+          )}
+        </View>
+      </Component>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: screenBg }]}>
@@ -261,92 +239,82 @@ export default function ProfileScreen() {
           keyboardShouldPersistTaps="always"
         >
           {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={pickAvatar} activeOpacity={0.8} style={styles.avatarWrapper}>
+          <Animated.View entering={FadeInUp.springify()} style={styles.header}>
+            <TouchableOpacity
+              onPress={pickAvatar}
+              activeOpacity={0.8}
+              style={styles.avatarWrapper}
+            >
               <Image
                 source={{ uri: avatarUrl || 'https://via.placeholder.com/150' }}
                 style={styles.avatar}
                 resizeMode="cover"
               />
-              <View style={[styles.editIconBadge, { backgroundColor: BRAND_BLUE }]}>
-                <MaterialIcons name="edit" size={14} color="#fff" />
-              </View>
+              <BlurView intensity={40} tint="dark" style={styles.editIconBlur}>
+                <MaterialIcons name="camera-alt" size={16} color="#fff" />
+              </BlurView>
             </TouchableOpacity>
-            <ThemedText type="title" style={styles.headerTitle}>{fullName || 'User'}</ThemedText>
-            <ThemedText style={styles.headerSubtitle}>
-              {email}
-            </ThemedText>
-          </View>
+
+            <ThemedText type="title" style={styles.headerTitle}>{fullName || 'Display Name'}</ThemedText>
+            <ThemedText style={styles.headerSubtitle}>{email}</ThemedText>
+          </Animated.View>
 
           {/* Form */}
-          <SettingsGroup title="Personal Information">
+          <SettingsGroup title="Personal Information" delay={100}>
             <SettingsItem
-              label="Full Name"
+              label="Display Name"
               value={fullName}
-              // onChangeText={setFullName}
-              // placeholder="Required"
+              onChangeText={setFullName}
               readOnly
+              placeholder="Your Name"
             />
             <SettingsItem
               label="Email"
               value={email}
+              icon="email"
               readOnly
               isLast
             />
           </SettingsGroup>
 
-
-          <SettingsGroup title="Security">
-            <TouchableOpacity
-              style={[styles.itemRowSwitch, { borderBottomWidth: showSecurity ? StyleSheet.hairlineWidth : 0, borderBottomColor: separatorColor }]}
-              onPress={() => setShowSecurity(!showSecurity)}
-              activeOpacity={0.7}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <MaterialIcons name="lock" size={22} color={BRAND_BLUE} style={{ marginRight: 12 }} />
-                <ThemedText style={styles.itemLabel}>Change Password</ThemedText>
-              </View>
-              <MaterialIcons name={showSecurity ? "keyboard-arrow-up" : "keyboard-arrow-down"} size={22} color={placeholderColor} />
-            </TouchableOpacity>
-
-            {showSecurity && (
-              <>
-                <SettingsItem
-                  label="Current Password"
-                  value={currentPassword}
-                  onChangeText={setCurrentPassword}
-                  placeholder="Required"
-                  secureTextEntry
-                  icon="vpn-key" // Visual indent
+          <SettingsGroup title="Preferences" delay={200}>
+            <SettingsItem
+              label="Dark Mode"
+              icon="dark-mode"
+              isLast
+              rightElement={
+                <Switch
+                  value={isDark}
+                  disabled // System controlled for now
+                  trackColor={{ false: "#767577", true: BRAND_BLUE }}
+                  thumbColor={"#f4f3f4"}
                 />
-                <SettingsItem
-                  label="New Password"
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  placeholder="Required"
-                  secureTextEntry
-                  isLast
-                  icon="vpn-key"
-                />
-              </>
-            )}
+              }
+            />
+          </SettingsGroup>
+
+          <SettingsGroup title="Support" delay={300}>
+            <SettingsItem
+              label="Help & FAQ"
+              icon="help"
+              onPress={() => {
+                Haptics.selectionAsync()
+                Alert.alert('Coming Soon', 'Help center is under construction.')
+              }}
+            />
+            <SettingsItem
+              label="Privacy Policy"
+              icon="privacy-tip"
+              isLast
+              onPress={() => {
+                Haptics.selectionAsync()
+                Alert.alert('Coming Soon', 'Privacy Policy will be available soon.')
+              }}
+            />
           </SettingsGroup>
 
           {/* Actions */}
-          <View style={styles.actionContainer}>
-            <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: BRAND_BLUE }]}
-              onPress={handleUpdateProfile}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <ThemedText style={styles.primaryButtonText}>Save Changes</ThemedText>
-              )}
-            </TouchableOpacity>
-
+          <Animated.View entering={FadeInDown.delay(400).springify()} style={{ marginTop: 24, paddingHorizontal: 16 }}>
             <TouchableOpacity
               style={styles.signOutButton}
               onPress={handleSignOut}
@@ -354,10 +322,11 @@ export default function ProfileScreen() {
             >
               <ThemedText style={styles.signOutText}>Log Out</ThemedText>
             </TouchableOpacity>
-          </View>
+            <ThemedText style={styles.versionText}>Version 1.0.0</ThemedText>
+          </Animated.View>
 
-          <View style={{ height: 40 }} />
 
+          <View style={{ height: 120 }} />
 
         </ScrollView>
       </KeyboardAvoidingView>
@@ -370,7 +339,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: Platform.OS === 'android' ? 50 : 20,
+    paddingTop: Platform.OS === 'android' ? 60 : 20,
     paddingBottom: 40,
   },
   header: {
@@ -379,119 +348,178 @@ const styles = StyleSheet.create({
     marginTop: 20
   },
   avatarWrapper: {
+    marginBottom: 16,
+    position: 'relative',
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-    marginBottom: 16
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    borderWidth: 4,
+    borderColor: '#fff',
   },
-  editIconBadge: {
+  editIconBlur: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
     borderColor: '#fff',
-    // Note: Dark mode border color might need manual handling if strictly needed, but white border usually looks good on avatars
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
     marginTop: 4,
+    marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 15,
     opacity: 0.5,
-    marginTop: 2
+    fontWeight: '500'
+  },
+  editProfileButton: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  editProfileText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: BRAND_BLUE
   },
 
   // Groups
   groupContainer: {
     marginBottom: 24,
+    marginHorizontal: 16,
+  },
+  groupShadow: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    borderRadius: 16,
+  },
+  groupBlur: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  group: {
+    overflow: 'hidden',
   },
   groupTitle: {
     fontSize: 13,
     opacity: 0.5,
-    fontWeight: '600',
-    marginLeft: 20,
+    fontWeight: '700',
+    marginLeft: 12,
     marginBottom: 8,
+    letterSpacing: 0.5
   },
-  group: {
-    borderRadius: 12,
-    marginHorizontal: 16,
-    overflow: 'hidden',
-  },
+
+  // Items
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     justifyContent: 'space-between',
-    minHeight: 50
+    minHeight: 56
   },
-  itemRowSwitch: {
+  itemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
-    minHeight: 50
+    flex: 1,
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: BRAND_BLUE,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   itemLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  itemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 0.8,
+    justifyContent: 'flex-end',
   },
   itemInput: {
     flex: 1,
     fontSize: 16,
-    marginLeft: 16,
     padding: 0,
+    fontWeight: '500'
   },
   itemValue: {
     fontSize: 16,
-    opacity: 0.6,
+    fontWeight: '500'
   },
 
-  actionContainer: {
-    marginTop: 20,
-    paddingHorizontal: 16,
-    gap: 16,
-  },
-  primaryButton: {
-    height: 52,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: "#4A90E2",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  // Actions
   signOutButton: {
-    height: 52,
+    height: 56,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)', // Light red bg
   },
   signOutText: {
     color: '#ef4444',
     fontSize: 16,
-    fontWeight: '600',
-  }
+    fontWeight: '700',
+  },
+  versionText: {
+    textAlign: 'center',
+    marginTop: 20,
+    opacity: 0.3,
+    fontSize: 12
+  },
+
+  // Floating Button
+  floatingButtonContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 100 : 90,
+    left: 20,
+    right: 20,
+    borderRadius: 24,
+    shadowColor: BRAND_BLUE,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  blurButtonContainer: {
+    width: '100%',
+    padding: 4,
+  },
+  primaryButton: {
+    height: 56,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '700',
+  },
 })

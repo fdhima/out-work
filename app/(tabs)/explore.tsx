@@ -11,6 +11,7 @@ import { getUserId } from "@/services/users";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import { BlurView } from "expo-blur";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -372,19 +373,27 @@ export default function CreatePlaceScreen() {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={[styles.submitButton, { backgroundColor: BRAND_BLUE }]}
-            onPress={handleCreatePlace}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <ThemedText style={styles.submitButtonText}>Publish Listing</ThemedText>
-            )}
-          </TouchableOpacity>
         </ScrollView>
+        <View style={styles.floatingButtonContainer}>
+          <BlurView
+            intensity={80}
+            tint={colorScheme === 'dark' ? "dark" : "light"}
+            style={styles.blurButtonContainer}
+          >
+            <TouchableOpacity
+              style={[styles.submitButton, { backgroundColor: BRAND_BLUE + 'CC' }]} // Add some transparency to the button color itself for better blending
+              onPress={handleCreatePlace}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <ThemedText style={styles.submitButtonText}>Publish Listing</ThemedText>
+              )}
+            </TouchableOpacity>
+          </BlurView>
+        </View>
       </KeyboardAvoidingView>
     </ThemedView >
   );
@@ -535,18 +544,28 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: 'center'
   },
+  floatingButtonContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 100 : 90,
+    left: 20,
+    right: 20,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+    overflow: 'hidden', // Important for BlurView corner clipping
+  },
+  blurButtonContainer: {
+    width: '100%',
+    padding: 4, // creates that nice padding inside the glass
+  },
   submitButton: {
-    marginTop: 16,
-    marginBottom: 26,
     height: 56,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: "#4A90E2",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
   },
   submitButtonText: {
     color: '#fff',
