@@ -1,10 +1,13 @@
 import { AuthProvider } from '@/context/AuthContext'
+import { FavoritesProvider } from '@/context/FavoritesContext'
 import { Stack } from 'expo-router'
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }} />
-    </AuthProvider>
+    <FavoritesProvider>
+      <AuthProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </AuthProvider>
+    </FavoritesProvider>
   )
 }

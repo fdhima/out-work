@@ -12,6 +12,7 @@ import ImageCarousel from "./ImageCarousel";
 import { RenderStars } from "./RenderStars";
 import { ReviewForm } from "./ReviewForm";
 import { ReviewsList } from "./ReviewsList";
+import { useFavorites } from "@/context/FavoritesContext";
 
 type PlaceDetailedProps = {
   selectedPlace: PlaceEnhanced;
@@ -48,6 +49,9 @@ export function PlaceDetailed({
 
   const [placeCategories, setPlaceCategories] = useState<string[]>([]);
 
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const liked = isFavorite(selectedPlace.id);
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -69,8 +73,16 @@ export function PlaceDetailed({
         </View>
         <View style={{ position: 'absolute', top: 50, right: 20, zIndex: 10 }}>
           <View style={[styles.circleButton, { gap: 15, width: 'auto', paddingHorizontal: 12 }]}>
-            <MaterialIcons name="share" size={20} color="#000" />
-            <MaterialIcons name="favorite-border" size={20} color="#000" />
+            <TouchableOpacity
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              onPress={() => toggleFavorite(selectedPlace.id)}
+            >
+              <MaterialIcons
+                name={liked ? "favorite" : "favorite-border"}
+                size={20}
+                color={liked ? "#ff4081" : "#000"}
+              />
+            </TouchableOpacity>
           </View>
         </View>
 

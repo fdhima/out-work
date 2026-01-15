@@ -25,6 +25,7 @@ import { FloatingCard } from "../components/FloatingCard";
 import { MapHeader } from "../components/MapHeader";
 import { PlaceDetailed } from "../components/PlaceDetailed";
 import MapMarker from "../components/MapMarker";
+import { useFavorites } from "@/context/FavoritesContext";
 
 export default function HomeScreen() {
   const [places, setPlaces] = useState<PlaceEnhanced[]>([]);
@@ -61,6 +62,7 @@ export default function HomeScreen() {
   const [isSearchingArea, setIsSearchingArea] = useState(false);
 
   const mapRef = useRef<MapView | null>(null);
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   useFocusEffect(
     useCallback(() => {
@@ -291,8 +293,16 @@ export default function HomeScreen() {
                         }}
                       />
                       {/* Heart Icon Overlay */}
-                      <TouchableOpacity style={styles.heartOverlay}>
-                        <MaterialIcons name="favorite-border" size={26} color="#fff" />
+                      <TouchableOpacity
+                        style={styles.heartOverlay}
+                        onPress={() => toggleFavorite(item.id)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <MaterialIcons
+                          name={isFavorite(item.id) ? "favorite" : "favorite-border"}
+                          size={26}
+                          color={isFavorite(item.id) ? "#ff4081" : "#fff"}
+                        />
                       </TouchableOpacity>
                     </View>
 
@@ -358,6 +368,7 @@ export default function HomeScreen() {
                       key={place.id}
                       place={place}
                       isSelected={previewPlace?.id === place.id}
+                      isFavorite={isFavorite(place.id)}
                       onPress={onMarkerPress}
                     />
                   ))}

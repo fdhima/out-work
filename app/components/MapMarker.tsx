@@ -8,10 +8,11 @@ import { Marker } from "react-native-maps";
 interface MapMarkerProps {
     place: PlaceEnhanced;
     isSelected: boolean;
+    isFavorite: boolean;
     onPress: (place: PlaceEnhanced) => void;
 }
 
-const MapMarker = memo(({ place, isSelected, onPress }: MapMarkerProps) => {
+const MapMarker = memo(({ place, isSelected, isFavorite, onPress }: MapMarkerProps) => {
     // tracksViewChanges should be true initially to render the custom view,
     // then false for performance. We flip it when isSelected changes.
     const [tracksViewChanges, setTracksViewChanges] = useState(true);
@@ -22,11 +23,15 @@ const MapMarker = memo(({ place, isSelected, onPress }: MapMarkerProps) => {
             setTracksViewChanges(false);
         }, 300); // Give it enough time to render any changes
         return () => clearTimeout(timer);
-    }, [isSelected]);
+    }, [isSelected, isFavorite]);
 
     const bg = isSelected ? BRAND_BLUE : "#fff";
     const text = isSelected ? "#fff" : "#000";
     const zIndex = isSelected ? 100 : 1;
+
+    const borderColor = isSelected
+        ? BRAND_BLUE
+        : (isFavorite ? '#ff4081' : (isDark ? "#333" : "#ddd")); // Red/Pink for favorite
 
     return (
         <Marker
@@ -46,7 +51,8 @@ const MapMarker = memo(({ place, isSelected, onPress }: MapMarkerProps) => {
                     styles.mapPill,
                     {
                         backgroundColor: bg,
-                        borderColor: isSelected ? BRAND_BLUE : isDark ? "#333" : "#ddd",
+                        borderColor: borderColor,
+                        borderWidth: isFavorite ? 2 : 1.5,
                         transform: [{ scale: isSelected ? 1.15 : 1 }],
                     },
                 ]}
