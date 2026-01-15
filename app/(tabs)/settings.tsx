@@ -303,6 +303,14 @@ export default function ProfileScreen() {
               }}
             />
             <SettingsItem
+              label="Report NSFW Content"
+              icon="report-problem"
+              onPress={() => {
+                Haptics.selectionAsync()
+                router.push('/report-nsfw')
+              }}
+            />
+            <SettingsItem
               label="Privacy Policy"
               icon="privacy-tip"
               isLast
