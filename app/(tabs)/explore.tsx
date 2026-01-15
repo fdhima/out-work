@@ -219,7 +219,7 @@ export default function CreatePlaceScreen() {
             </View>
             <View>
               <ThemedText type="title" style={styles.title}>
-                List your space
+                List your spot
               </ThemedText>
               <ThemedText style={styles.subtitle}>
                 Share your perfect work spot with others
