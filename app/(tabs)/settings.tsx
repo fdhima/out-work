@@ -299,7 +299,7 @@ export default function ProfileScreen() {
               icon="help"
               onPress={() => {
                 Haptics.selectionAsync()
-                Alert.alert('Coming Soon', 'Help center is under construction.')
+                router.push('/help')
               }}
             />
             <SettingsItem
