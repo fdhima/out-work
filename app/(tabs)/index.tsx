@@ -19,12 +19,12 @@ import {
   TouchableWithoutFeedback,
   View
 } from "react-native";
-import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import MapView, { PROVIDER_DEFAULT, Region } from "react-native-maps";
 import ImageCarousel from "../components/ImageCarousel";
 import { FloatingCard } from "../components/FloatingCard";
 import { MapHeader } from "../components/MapHeader";
 import { PlaceDetailed } from "../components/PlaceDetailed";
-// import { getProfileFullNameById } from "@/services/profiles";
+import MapMarker from "../components/MapMarker";
 
 export default function HomeScreen() {
   const [places, setPlaces] = useState<PlaceEnhanced[]>([]);
@@ -54,6 +54,11 @@ export default function HomeScreen() {
 
   const [trackingSub, setTrackingSub] = useState<Location.LocationSubscription | null>(null);
   const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
+
+  const [mapRegion, setMapRegion] = useState<Region | null>(null);
+  const [lastSearchRegion, setLastSearchRegion] = useState<Region | null>(null);
+  const [showSearchArea, setShowSearchArea] = useState(false);
+  const [isSearchingArea, setIsSearchingArea] = useState(false);
 
   const mapRef = useRef<MapView | null>(null);
 
@@ -125,13 +130,15 @@ export default function HomeScreen() {
       }
 
       setPlaces(data);
+      setShowSearchArea(false);
+      if (mapRegion) {
+        setLastSearchRegion(mapRegion);
+      }
     } catch (err) {
       console.error("Error fetching filtered places: ", err);
     } finally {
+      setIsSearchingArea(false);
       setLoading(false);
-      if (requestId === requestIdRef.current) {
-        setLoading(false);
-      }
     }
   };
 
@@ -166,7 +173,29 @@ export default function HomeScreen() {
     Keyboard.dismiss();
     if (previewPlace) {
       setPreviewPlace(null);
+      setFloadingCardDisplay(false);
     }
+  };
+
+  const onRegionChangeComplete = (region: Region) => {
+    setMapRegion(region);
+
+    if (lastSearchRegion) {
+      const latMoved = Math.abs(region.latitude - lastSearchRegion.latitude);
+      const lngMoved = Math.abs(region.longitude - lastSearchRegion.longitude);
+
+      // If we moved more than ~200-300 meters, show the button
+      if (latMoved > 0.003 || lngMoved > 0.003) {
+        setShowSearchArea(true);
+      }
+    } else {
+      setLastSearchRegion(region);
+    }
+  };
+
+  const searchThisArea = () => {
+    setIsSearchingArea(true);
+    fetchPlaces();
   };
 
   const ViewToggle = () => (
@@ -255,7 +284,7 @@ export default function HomeScreen() {
                         images={item.images?.length > 0 ? item.images.map(img => img.url) : [`https://picsum.photos/400/250?random=${item.id}`]}
                         height={320}
                         borderRadius={12}
-                        onPress={(i) => {
+                        onPress={(i: number) => {
                           setGalleryImages(item.images?.length > 0 ? item.images.map(img => img.url) : [`https://picsum.photos/400/250?random=${item.id}`]);
                           setGalleryIndex(i);
                           setGalleryVisible(true);
@@ -300,12 +329,18 @@ export default function HomeScreen() {
             ) : (
               <View style={{ flex: 1 }}>
                 <MapView
-                  key={places.map(p => p.id).join(",")}
                   ref={mapRef}
                   provider={PROVIDER_DEFAULT}
                   style={StyleSheet.absoluteFill}
                   showsUserLocation
                   onPress={onMapPress}
+                  onRegionChangeComplete={onRegionChangeComplete}
+                  initialRegion={{
+                    latitude: 37.9838, // Default to Greece (Athens)
+                    longitude: 23.7275,
+                    latitudeDelta: 0.05,
+                    longitudeDelta: 0.05,
+                  }}
                 >
                   {/* Center on User Button */}
                   {userLocation && (
@@ -318,40 +353,50 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                   )}
 
-                  {places.map((place) => {
-                    // const isSelected = false
-                    const isSelected = previewPlace?.id === place.id;
-                    const bg = isSelected ? BRAND_BLUE : '#fff';
-                    const text = isSelected ? '#fff' : '#000';
-                    const zIndex = isSelected ? 100 : 1;
-
-                    return (
-                      <Marker
-                        key={place.id}
-                        coordinate={{
-                          latitude: place.latitude,
-                          longitude: place.longitude,
-                        }}
-                        onPress={(e) => {
-                          e.stopPropagation(); // Stop propagation to map press
-                          onMarkerPress(place);
-                        }}
-                        tracksViewChanges={false} // Performance optimization
-                        zIndex={zIndex}
-                      >
-                        <View style={[styles.mapPill, {
-                          backgroundColor: bg,
-                          borderColor: isSelected ? BRAND_BLUE : (isDark ? '#333' : '#ddd'),
-                          transform: [{ scale: isSelected ? 1.1 : 1 }]
-                        }]}>
-                          <ThemedText style={{ fontSize: 13, fontWeight: '700', color: text }}>
-                            {place.rating_avg.toFixed(1)}
-                          </ThemedText>
-                        </View>
-                      </Marker>
-                    );
-                  })}
+                  {places.map((place) => (
+                    <MapMarker
+                      key={place.id}
+                      place={place}
+                      isSelected={previewPlace?.id === place.id}
+                      onPress={onMarkerPress}
+                    />
+                  ))}
                 </MapView>
+
+                {/* Search Area Button */}
+                {showSearchArea && !loading && (
+                  <View style={styles.searchAreaButtonContainer}>
+                    <BlurView
+                      intensity={80}
+                      tint={isDark ? "dark" : "light"}
+                      style={styles.searchAreaBlur}
+                    >
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={searchThisArea}
+                        style={styles.searchAreaButton}
+                      >
+                        {isSearchingArea ? (
+                          <ThemedText style={styles.searchAreaButtonText}>Searching...</ThemedText>
+                        ) : (
+                          <>
+                            <MaterialIcons name="refresh" size={18} color={isDark ? "#fff" : BRAND_BLUE} />
+                            <ThemedText style={[styles.searchAreaButtonText, { color: isDark ? "#fff" : BRAND_BLUE }]}>Search this area</ThemedText>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    </BlurView>
+                  </View>
+                )}
+
+                {/* Updating Indicator (Airbnb style) */}
+                {isSearchingArea && (
+                  <View style={styles.updatingIndicator}>
+                    <BlurView intensity={60} tint={isDark ? "dark" : "light"} style={styles.updatingBlur}>
+                      <ThemedText style={{ fontSize: 13, fontWeight: '600' }}>Updating...</ThemedText>
+                    </BlurView>
+                  </View>
+                )}
 
                 {/* Floating Preview Card */}
                 {floatingCardDisplay && (
@@ -506,5 +551,49 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 6,
     zIndex: 200,
+  },
+  searchAreaButtonContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 160 : 160, // Above the Map/List switch (which is at 100)
+    alignSelf: 'center',
+    zIndex: 1000,
+    borderRadius: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+  },
+  searchAreaBlur: {
+    padding: 2,
+  },
+  searchAreaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 28,
+    gap: 8,
+  },
+  searchAreaButtonText: {
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  updatingIndicator: {
+    position: 'absolute',
+    top: 130, // Keep updating indicator at the top for visibility
+    alignSelf: 'center',
+    zIndex: 1001,
+  },
+  updatingBlur: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
   },
 });
