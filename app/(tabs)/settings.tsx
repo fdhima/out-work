@@ -24,7 +24,8 @@ import {
   Switch,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Linking
 } from 'react-native'
 import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated'
 
@@ -316,7 +317,7 @@ export default function ProfileScreen() {
               isLast
               onPress={() => {
                 Haptics.selectionAsync()
-                Alert.alert('Coming Soon', 'Privacy Policy will be available soon.')
+                Linking.openURL('https://out-work.online/privacy-policy')
               }}
             />
           </SettingsGroup>
