@@ -1,4 +1,5 @@
 import { ThemedText } from "@/components/themed-text";
+import { formatRelativeTime } from "@/lib/date";
 import { BRAND_BLUE, isDark, MAX_REVIEWS_PREVIEW } from "@/constants/theme";
 import { getReviewsByPlaceId, Review } from "@/services/reviews";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -70,9 +71,7 @@ export function ReviewsList({
                 {r.full_name}
               </ThemedText>
               <ThemedText style={styles.reviewDate}>
-                {r.created_at
-                  ? new Date(r.created_at.replace(" ", "T")).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-                  : ""}
+                {formatRelativeTime(r.created_at)}
               </ThemedText>
             </View>
           </View>
