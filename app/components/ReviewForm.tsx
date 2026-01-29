@@ -16,9 +16,10 @@ import {
 
 type ReviewFormProps = {
   placeForReview: Place;
+  onReviewPosted?: () => void;
 }
 
-export function ReviewForm({ placeForReview }: ReviewFormProps) {
+export function ReviewForm({ placeForReview, onReviewPosted }: ReviewFormProps) {
   const { session } = useAuth();
 
   const [reviewRating, setReviewRating] = useState(0);
@@ -40,11 +41,8 @@ export function ReviewForm({ placeForReview }: ReviewFormProps) {
         profile_id: session.user.id,
         created_at: new Date().toISOString(),
       });
-      const reviews = await getReviewsByPlaceId(placeId);
-      const avg = reviews && reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
 
-      // setSelectedPlace((prev) => (prev ? { ...prev, reviews, rating_avg: avg } : prev));
-      // setPlaces((prev) => prev.map((p) => (p.id === placeId ? { ...p, reviews, rating_avg: avg } : p)));
+      onReviewPosted?.();
 
       setReviewText("");
       setReviewRating(5);

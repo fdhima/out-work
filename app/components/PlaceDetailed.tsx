@@ -48,6 +48,7 @@ export function PlaceDetailed({
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
   const [placeCategories, setPlaceCategories] = useState<string[]>([]);
+  const [reviewsRefreshKey, setReviewsRefreshKey] = useState(0);
 
   const { isFavorite, toggleFavorite } = useFavorites();
   const liked = isFavorite(selectedPlace.id);
@@ -164,11 +165,13 @@ export function PlaceDetailed({
             {/* Review Form */}
             <ReviewForm
               placeForReview={selectedPlace}
+              onReviewPosted={() => setReviewsRefreshKey(prev => prev + 1)}
             />
 
             {/* Reviews List */}
             <ReviewsList
               placeId={selectedPlace.id}
+              refreshTrigger={reviewsRefreshKey}
             />
           </View>
         </View>

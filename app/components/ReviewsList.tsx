@@ -8,11 +8,13 @@ import { RenderStars } from "./RenderStars";
 
 type ReviewsListProps = {
   // reviews: Review[] | undefined,
-  placeId: number
+  placeId: number;
+  refreshTrigger?: number;
 }
 
 export function ReviewsList({
-  placeId
+  placeId,
+  refreshTrigger = 0,
 }: ReviewsListProps) {
 
   const [showAllReviews, setShowAllReviews] = useState(false);
@@ -32,7 +34,7 @@ export function ReviewsList({
     if (placeId) {
       loadReviews();
     }
-  }, [placeId]);
+  }, [placeId, refreshTrigger]);
   console.log(reviews);
 
   const visibleReviews = showAllReviews
