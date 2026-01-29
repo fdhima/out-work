@@ -403,6 +403,23 @@ export default function CreatePlaceScreen() {
           </BlurView>
         </View>
       </KeyboardAvoidingView>
+
+      {
+        loading && (
+          <View style={[StyleSheet.absoluteFill, styles.loadingOverlayContainer]}>
+            <BlurView
+              intensity={40}
+              tint={colorScheme === 'dark' ? 'dark' : 'light'}
+              style={[StyleSheet.absoluteFill, styles.blurOverlay]}
+            />
+            <View style={styles.loadingContent}>
+              <ActivityIndicator size="large" color={BRAND_BLUE} />
+              <ThemedText type="title" style={styles.loadingText}>Publishing...</ThemedText>
+              <ThemedText style={styles.loadingSubtext}>Sharing your spot with the world</ThemedText>
+            </View>
+          </View>
+        )
+      }
     </ThemedView >
   );
 }
@@ -621,5 +638,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: BRAND_BLUE,
+  },
+  loadingOverlayContainer: {
+    zIndex: 1000,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  blurOverlay: {
+    opacity: 0.95,
+  },
+  loadingContent: {
+    alignItems: 'center',
+    padding: 24,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)', // Subtle backing for text legibility
+    gap: 12,
+  },
+  loadingText: {
+    fontWeight: 'bold',
+  },
+  loadingSubtext: {
+    opacity: 0.7,
+    fontSize: 14,
   },
 });
