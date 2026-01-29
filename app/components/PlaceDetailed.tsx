@@ -5,6 +5,7 @@ import { getCategoryNameById } from "@/services/categories";
 import { Place, PlaceEnhanced } from "@/services/places";
 import { getPlaceCategoriesIds } from "@/services/places_categories";
 import { Review } from "@/services/reviews";
+import { addCrowdReport } from "@/services/crowd";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
@@ -13,6 +14,7 @@ import { RenderStars } from "./RenderStars";
 import { ReviewForm } from "./ReviewForm";
 import { ReviewsList } from "./ReviewsList";
 import { useFavorites } from "@/context/FavoritesContext";
+import { CrowdLevelModal } from "./CrowdLevelModal";
 
 type PlaceDetailedProps = {
   selectedPlace: PlaceEnhanced;
@@ -50,8 +52,35 @@ export function PlaceDetailed({
   const [placeCategories, setPlaceCategories] = useState<string[]>([]);
   const [reviewsRefreshKey, setReviewsRefreshKey] = useState(0);
 
+  const [crowdModalVisible, setCrowdModalVisible] = useState(false);
+
   const { isFavorite, toggleFavorite } = useFavorites();
   const liked = isFavorite(selectedPlace.id);
+
+  useEffect(() => {
+    // Show the crowd report modal after a short delay to allow the user to settle in
+    const timer = setTimeout(() => {
+      setCrowdModalVisible(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [selectedPlace.id]);
+
+  const handleCrowdSubmit = async (level: number) => {
+    try {
+      const now = new Date();
+      await addCrowdReport({
+        place_id: selectedPlace.id,
+        day_of_week: now.getDay(), // 0-6
+        time_bucket: now.getHours(), // 0-23
+        crowd_level: level,
+      });
+      console.log('Crowd report submitted');
+    } catch (e) {
+      console.error('Failed to submit crowd report', e);
+    } finally {
+      setCrowdModalVisible(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -193,6 +222,12 @@ export function PlaceDetailed({
         images={galleryImages}
         initialIndex={galleryIndex}
         onRequestClose={() => setGalleryVisible(false)}
+      />
+
+      <CrowdLevelModal
+        visible={crowdModalVisible}
+        onClose={() => setCrowdModalVisible(false)}
+        onSubmit={handleCrowdSubmit}
       />
     </KeyboardAvoidingView>
   )
