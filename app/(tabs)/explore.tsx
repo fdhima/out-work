@@ -158,8 +158,16 @@ export default function CreatePlaceScreen() {
     setLoading(true);
 
     try {
+      const userId = await getUserId();
+
+      if (!userId) {
+        Alert.alert("Error", "You must be logged in to create a place.");
+        setLoading(false);
+        return;
+      }
+
       const newPlace = await createPlace({
-        profile_id: await getUserId() ?? '',
+        profile_id: userId,
         name,
         description,
         latitude: latitude,

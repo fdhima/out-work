@@ -21,6 +21,7 @@ export const CATEGORIES = [
   { id: "meeting", label: "Meeting", icon: "groups" },
   { id: "late_night", label: "Late Night", icon: "nightlight" },
   { id: "fast_wifi", label: "Fast Wifi", icon: "wifi" },
+  { id: "socket_friendly", label: "Socket Friendly", icon: "power" },
 ];
 
 
