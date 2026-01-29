@@ -179,7 +179,7 @@ export default function CreatePlaceScreen() {
 
       for (let i = 0; i < images.length; i++) {
         const url = await uploadImage(images[i].uri, newPlace.id, i);
-        await createImage({ url: url, place_id: newPlace.id, created_at: new Date().toISOString() });
+        await createImage({ url: url, place_id: newPlace.id, profile_id: userId, created_at: new Date().toISOString() });
       }
 
       // Create category associations

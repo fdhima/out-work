@@ -12,6 +12,7 @@ export interface Image {
 export interface CreateImageInput {
   place_id: number,
   url: string,
+  profile_id: string,
   created_at: string,
 }
 
