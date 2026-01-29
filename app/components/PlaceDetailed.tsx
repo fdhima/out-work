@@ -2,10 +2,9 @@ import { ThemedText } from "@/components/themed-text";
 import FullscreenGallery from "@/components/ui/fullscreen-gallery";
 import { BRAND_BLUE, isDark } from "@/constants/theme";
 import { getCategoryNameById } from "@/services/categories";
-import { Place, PlaceEnhanced } from "@/services/places";
+import { PlaceEnhanced } from "@/services/places";
 import { getPlaceCategoriesIds } from "@/services/places_categories";
-import { Review } from "@/services/reviews";
-import { addCrowdReport } from "@/services/crowd";
+import { addCrowdReport, getCrowdStats, CrowdStats } from "@/services/crowd";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
@@ -25,7 +24,6 @@ export function PlaceDetailed({
   selectedPlace,
   onClose
 }: PlaceDetailedProps) {
-  if (!selectedPlace) return null;
   console.log(`PlaceDetailed component with pros: ${JSON.stringify(selectedPlace)} ${onClose}`);
   useEffect(() => {
     const fetchPlaceCategories = async () => {
@@ -56,6 +54,17 @@ export function PlaceDetailed({
 
   const { isFavorite, toggleFavorite } = useFavorites();
   const liked = isFavorite(selectedPlace.id);
+
+  const [crowdStats, setCrowdStats] = useState<CrowdStats | null>(null);
+
+  useEffect(() => {
+    // Fetch crowd stats when the place is opened
+    const fetchStats = async () => {
+      const stats = await getCrowdStats(selectedPlace.id);
+      setCrowdStats(stats);
+    };
+    fetchStats();
+  }, [selectedPlace.id]);
 
   useEffect(() => {
     // Show the crowd report modal after a short delay to allow the user to settle in
@@ -144,6 +153,28 @@ export function PlaceDetailed({
           <ThemedText style={styles.detailDescription}>
             {selectedPlace.description}
           </ThemedText>
+
+          {/* Crowd Stats */}
+          {crowdStats && (
+            <View style={{ marginTop: 24, padding: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderRadius: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <MaterialIcons
+                  name="groups"
+                  size={20}
+                  color={
+                    crowdStats.crowdLevel === 3 ? '#F44336' :
+                      crowdStats.crowdLevel === 2 ? '#FFC107' : '#4CAF50'
+                  }
+                />
+                <ThemedText style={{ fontWeight: '600', fontSize: 16 }}>
+                  {crowdStats.crowdLevel === 3 ? 'Busy now' : crowdStats.crowdLevel === 2 ? 'Moderate crowd' : 'Quiet now'}
+                </ThemedText>
+              </View>
+              <ThemedText style={{ fontSize: 12, opacity: 0.5, marginLeft: 28 }}>
+                Based on {crowdStats.reportCount} reports • {crowdStats.confidence === 'high' ? 'High confidence' : 'Low confidence'}
+              </ThemedText>
+            </View>
+          )}
 
           {/* Meta Info */}
           <View
