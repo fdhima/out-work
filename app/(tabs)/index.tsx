@@ -2,6 +2,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import FullscreenGallery from "@/components/ui/fullscreen-gallery";
 import { BRAND_BLUE, CATEGORIES, isDark } from "@/constants/theme";
+import { useRouter } from "expo-router";
 import { getCategoryIdByName } from "@/services/categories";
 import { getPlacesEnhanced, Place, PlaceEnhanced } from "@/services/places";
 import { Review } from "@/services/reviews";
@@ -23,17 +24,18 @@ import MapView, { PROVIDER_DEFAULT, Region } from "react-native-maps";
 import ImageCarousel from "../components/ImageCarousel";
 import { FloatingCard } from "../components/FloatingCard";
 import { MapHeader } from "../components/MapHeader";
-import { PlaceDetailed } from "../components/PlaceDetailed";
+
 import MapMarker from "../components/MapMarker";
 import { useFavorites } from "@/context/FavoritesContext";
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [places, setPlaces] = useState<PlaceEnhanced[]>([]);
   const [allPlaces, setAllPlaces] = useState<PlaceEnhanced[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Selection State
-  const [selectedPlace, setSelectedPlace] = useState<PlaceEnhanced | null>(null); // For Full Detail View
+
   const [previewPlace, setPreviewPlace] = useState<PlaceEnhanced | null>(null);
   const [floatingCardDisplay, setFloadingCardDisplay] = useState<boolean>(false); // FloatingCard enabled or disabled
   const requestIdRef = useRef(0);
@@ -230,214 +232,203 @@ export default function HomeScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* If detailed view is active, show it fully over everything else */}
-      {selectedPlace ? (
-        <PlaceDetailed
-          selectedPlace={selectedPlace}
-          onClose={() => {
-            console.log(`PlaceDetailed onClose clicked.`);
-            setPendingCenter({
-              lat: selectedPlace.latitude,
-              lng: selectedPlace.longitude,
-            });
-            setSelectedPlace(null);
-          }}
-        />
-      ) : (
-        <>
-          {/* MAIN CONTENT: MAP OR LIST */}
-          <View style={{ flex: 1 }}>
-            {/* Search Header OVERLAY */}
-            {viewMode === 'map' && (
-              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 }}>
-                {
-                  <MapHeader
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    selectedCategory={selectedCategory}
-                    onCategorySelect={setSelectedCategory}
-                    categories={CATEGORIES}
-                  />
-                }
-              </View>
-            )}
-            {viewMode === 'list' &&
-              <MapHeader
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                selectedCategory={selectedCategory}
-                onCategorySelect={setSelectedCategory}
-                categories={CATEGORIES}
-              />
-            }
-            {viewMode === "list" ? (
-              <FlatList
-                data={places}
-                keyExtractor={(item) => item.id.toString()}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.listContent}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.card}
-                    onPress={() => setSelectedPlace(item)}
-                    activeOpacity={0.9}
-                  >
-                    <View style={{ position: 'relative' }}>
-                      <ImageCarousel
-                        images={item.images?.length > 0 ? item.images.map(img => img.url) : [`https://picsum.photos/400/250?random=${item.id}`]}
-                        height={320}
-                        borderRadius={12}
-                        onPress={(i: number) => {
-                          setGalleryImages(item.images?.length > 0 ? item.images.map(img => img.url) : [`https://picsum.photos/400/250?random=${item.id}`]);
-                          setGalleryIndex(i);
-                          setGalleryVisible(true);
-                        }}
+      {/* If detailed view is active, show it fully over everything else */}
+      <>
+
+        {/* MAIN CONTENT: MAP OR LIST */}
+        <View style={{ flex: 1 }}>
+          {/* Search Header OVERLAY */}
+          {viewMode === 'map' && (
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 }}>
+              {
+                <MapHeader
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  selectedCategory={selectedCategory}
+                  onCategorySelect={setSelectedCategory}
+                  categories={CATEGORIES}
+                />
+              }
+            </View>
+          )}
+          {viewMode === 'list' &&
+            <MapHeader
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              selectedCategory={selectedCategory}
+              onCategorySelect={setSelectedCategory}
+              categories={CATEGORIES}
+            />
+          }
+          {viewMode === "list" ? (
+            <FlatList
+              data={places}
+              keyExtractor={(item) => item.id.toString()}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContent}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.card}
+                  onPress={() => router.push(`/place/${item.id}`)}
+                  activeOpacity={0.9}
+                >
+                  <View style={{ position: 'relative' }}>
+                    <ImageCarousel
+                      images={item.images?.length > 0 ? item.images.map(img => img.url) : [`https://picsum.photos/400/250?random=${item.id}`]}
+                      height={320}
+                      borderRadius={12}
+                      onPress={(i: number) => {
+                        setGalleryImages(item.images?.length > 0 ? item.images.map(img => img.url) : [`https://picsum.photos/400/250?random=${item.id}`]);
+                        setGalleryIndex(i);
+                        setGalleryVisible(true);
+                      }}
+                    />
+                    {/* Heart Icon Overlay */}
+                    <TouchableOpacity
+                      style={styles.heartOverlay}
+                      onPress={() => toggleFavorite(item.id)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <MaterialIcons
+                        name={isFavorite(item.id) ? "favorite" : "favorite-border"}
+                        size={26}
+                        color={isFavorite(item.id) ? "#ff4081" : "#fff"}
                       />
-                      {/* Heart Icon Overlay */}
-                      <TouchableOpacity
-                        style={styles.heartOverlay}
-                        onPress={() => toggleFavorite(item.id)}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      >
-                        <MaterialIcons
-                          name={isFavorite(item.id) ? "favorite" : "favorite-border"}
-                          size={26}
-                          color={isFavorite(item.id) ? "#ff4081" : "#fff"}
-                        />
-                      </TouchableOpacity>
-                    </View>
+                    </TouchableOpacity>
+                  </View>
 
-                    <View style={styles.cardContent}>
-                      <View style={styles.cardHeaderRow}>
-                        <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
-                          {item.name}
-                        </ThemedText>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <MaterialIcons name="star" size={14} color={isDark ? "#fff" : "#000"} />
-                          <ThemedText style={{ fontSize: 14 }}>{item.rating_avg.toFixed(1)}</ThemedText>
-                        </View>
+                  <View style={styles.cardContent}>
+                    <View style={styles.cardHeaderRow}>
+                      <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
+                        {item.name}
+                      </ThemedText>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <MaterialIcons name="star" size={14} color={isDark ? "#fff" : "#000"} />
+                        <ThemedText style={{ fontSize: 14 }}>{item.rating_avg.toFixed(1)}</ThemedText>
                       </View>
-
-                      <ThemedText style={styles.cardSecondaryText} numberOfLines={1}>
-                        Hosted by {item.profiles?.full_name || "OutWork"}
-                      </ThemedText>
-                      <ThemedText style={styles.cardSecondaryText} numberOfLines={1}>
-                        {item.description}
-                      </ThemedText>
                     </View>
-                  </TouchableOpacity>
-                )}
-                keyboardShouldPersistTaps="handled"
-                ListEmptyComponent={
-                  <View style={styles.emptyContainer}>
-                    <MaterialIcons name="place" size={48} color={BRAND_BLUE} />
-                    <ThemedText style={styles.emptyText}>
-                      No places found
+
+                    <ThemedText style={styles.cardSecondaryText} numberOfLines={1}>
+                      Hosted by {item.profiles?.full_name || "OutWork"}
+                    </ThemedText>
+                    <ThemedText style={styles.cardSecondaryText} numberOfLines={1}>
+                      {item.description}
                     </ThemedText>
                   </View>
-                }
-              />
-            ) : (
-              <View style={{ flex: 1 }}>
-                <MapView
-                  ref={mapRef}
-                  provider={PROVIDER_DEFAULT}
-                  style={StyleSheet.absoluteFill}
-                  showsUserLocation
-                  onPress={onMapPress}
-                  onRegionChangeComplete={onRegionChangeComplete}
-                  initialRegion={{
-                    latitude: 37.9838, // Default to Greece (Athens)
-                    longitude: 23.7275,
-                    latitudeDelta: 0.05,
-                    longitudeDelta: 0.05,
-                  }}
-                >
-                  {/* Center on User Button */}
-                  {userLocation && (
-                    <TouchableOpacity
-                      onPress={centerOnUser}
-                      activeOpacity={0.85}
-                      style={styles.centerUserButton}
-                    >
-                      <MaterialIcons name="my-location" size={22} color="#000" />
-                    </TouchableOpacity>
-                  )}
-
-                  {places.map((place) => (
-                    <MapMarker
-                      key={place.id}
-                      place={place}
-                      isSelected={previewPlace?.id === place.id}
-                      isFavorite={isFavorite(place.id)}
-                      onPress={onMarkerPress}
-                    />
-                  ))}
-                </MapView>
-
-                {/* Search Area Button */}
-                {showSearchArea && !loading && (
-                  <View style={styles.searchAreaButtonContainer}>
-                    <BlurView
-                      intensity={80}
-                      tint={isDark ? "dark" : "light"}
-                      style={styles.searchAreaBlur}
-                    >
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={searchThisArea}
-                        style={styles.searchAreaButton}
-                      >
-                        {isSearchingArea ? (
-                          <ThemedText style={styles.searchAreaButtonText}>Searching...</ThemedText>
-                        ) : (
-                          <>
-                            <MaterialIcons name="refresh" size={18} color={isDark ? "#fff" : BRAND_BLUE} />
-                            <ThemedText style={[styles.searchAreaButtonText, { color: isDark ? "#fff" : BRAND_BLUE }]}>Search this area</ThemedText>
-                          </>
-                        )}
-                      </TouchableOpacity>
-                    </BlurView>
-                  </View>
-                )}
-
-                {/* Updating Indicator (Airbnb style) */}
-                {isSearchingArea && (
-                  <View style={styles.updatingIndicator}>
-                    <BlurView intensity={60} tint={isDark ? "dark" : "light"} style={styles.updatingBlur}>
-                      <ThemedText style={{ fontSize: 13, fontWeight: '600' }}>Updating...</ThemedText>
-                    </BlurView>
-                  </View>
-                )}
-
-                {/* Floating Preview Card */}
-                {floatingCardDisplay && (
-                  <FloatingCard
-                    selectedPlace={previewPlace}
-                    onPressCard={() => setSelectedPlace(previewPlace)}
-                    onClose={() => {
-                      setFloadingCardDisplay(false);
-                      if (previewPlace?.latitude && previewPlace?.longitude) {
-                        centerMap(previewPlace.latitude, previewPlace.longitude);
-                      }
-                    }}
-                  />
-                )}
-              </View>
-            )}
-
-            {/* View Toggle (Map/List) */}
-            {!previewPlace && <ViewToggle />}
-
-            <FullscreenGallery
-              visible={galleryVisible}
-              images={galleryImages}
-              initialIndex={galleryIndex}
-              onRequestClose={() => setGalleryVisible(false)}
+                </TouchableOpacity>
+              )}
+              keyboardShouldPersistTaps="handled"
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <MaterialIcons name="place" size={48} color={BRAND_BLUE} />
+                  <ThemedText style={styles.emptyText}>
+                    No places found
+                  </ThemedText>
+                </View>
+              }
             />
+          ) : (
+            <View style={{ flex: 1 }}>
+              <MapView
+                ref={mapRef}
+                provider={PROVIDER_DEFAULT}
+                style={StyleSheet.absoluteFill}
+                showsUserLocation
+                onPress={onMapPress}
+                onRegionChangeComplete={onRegionChangeComplete}
+                initialRegion={{
+                  latitude: 37.9838, // Default to Greece (Athens)
+                  longitude: 23.7275,
+                  latitudeDelta: 0.05,
+                  longitudeDelta: 0.05,
+                }}
+              >
+                {/* Center on User Button */}
+                {userLocation && (
+                  <TouchableOpacity
+                    onPress={centerOnUser}
+                    activeOpacity={0.85}
+                    style={styles.centerUserButton}
+                  >
+                    <MaterialIcons name="my-location" size={22} color="#000" />
+                  </TouchableOpacity>
+                )}
 
-          </View>
-        </>
-      )}
+                {places.map((place) => (
+                  <MapMarker
+                    key={place.id}
+                    place={place}
+                    isSelected={previewPlace?.id === place.id}
+                    isFavorite={isFavorite(place.id)}
+                    onPress={onMarkerPress}
+                  />
+                ))}
+              </MapView>
+
+              {/* Search Area Button */}
+              {showSearchArea && !loading && (
+                <View style={styles.searchAreaButtonContainer}>
+                  <BlurView
+                    intensity={80}
+                    tint={isDark ? "dark" : "light"}
+                    style={styles.searchAreaBlur}
+                  >
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={searchThisArea}
+                      style={styles.searchAreaButton}
+                    >
+                      {isSearchingArea ? (
+                        <ThemedText style={styles.searchAreaButtonText}>Searching...</ThemedText>
+                      ) : (
+                        <>
+                          <MaterialIcons name="refresh" size={18} color={isDark ? "#fff" : BRAND_BLUE} />
+                          <ThemedText style={[styles.searchAreaButtonText, { color: isDark ? "#fff" : BRAND_BLUE }]}>Search this area</ThemedText>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </BlurView>
+                </View>
+              )}
+
+              {/* Updating Indicator (Airbnb style) */}
+              {isSearchingArea && (
+                <View style={styles.updatingIndicator}>
+                  <BlurView intensity={60} tint={isDark ? "dark" : "light"} style={styles.updatingBlur}>
+                    <ThemedText style={{ fontSize: 13, fontWeight: '600' }}>Updating...</ThemedText>
+                  </BlurView>
+                </View>
+              )}
+
+              {/* Floating Preview Card */}
+              {floatingCardDisplay && (
+                <FloatingCard
+                  selectedPlace={previewPlace}
+                  onPressCard={() => previewPlace && router.push(`/place/${previewPlace.id}`)}
+                  onClose={() => {
+                    setFloadingCardDisplay(false);
+                    if (previewPlace?.latitude && previewPlace?.longitude) {
+                      centerMap(previewPlace.latitude, previewPlace.longitude);
+                    }
+                  }}
+                />
+              )}
+            </View>
+          )}
+
+          {/* View Toggle (Map/List) */}
+          {!previewPlace && <ViewToggle />}
+
+          <FullscreenGallery
+            visible={galleryVisible}
+            images={galleryImages}
+            initialIndex={galleryIndex}
+            onRequestClose={() => setGalleryVisible(false)}
+          />
+
+        </View>
+      </>
+
     </ThemedView>
   );
 }

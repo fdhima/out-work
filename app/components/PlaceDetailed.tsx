@@ -239,11 +239,7 @@ export function PlaceDetailed({
 
       {/* Sticky Bottom Bar */}
       <View style={[styles.stickyBottomBar, { backgroundColor: isDark ? '#1a1a1a' : '#fff', borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
-        <View>
-          <ThemedText style={{ fontWeight: 'bold', fontSize: 16 }}>Free</ThemedText>
-          <ThemedText style={{ fontSize: 12, opacity: 0.6 }}>No reservation required</ThemedText>
-        </View>
-        <TouchableOpacity style={[styles.reserveButton, { backgroundColor: BRAND_BLUE }]}>
+        <TouchableOpacity style={[styles.reserveButton, { backgroundColor: BRAND_BLUE, flex: 1, alignItems: 'center' }]}>
           <ThemedText style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Directions</ThemedText>
         </TouchableOpacity>
       </View>

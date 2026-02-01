@@ -162,3 +162,21 @@ export async function getPlacesEnhanced(categoryId?: number | null, query?: stri
   console.log(`fetched places: ${JSON.stringify(data)}`);
   return data;
 }
+
+export async function getPlaceEnhancedById(placeId: number): Promise<PlaceEnhanced | null> {
+  const { data, error } = await supabase
+    .from('places')
+    .select(`
+      *,
+      images(*),
+      profiles(full_name)
+    `)
+    .eq('id', placeId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching place by id:', error);
+    return null;
+  }
+  return data;
+}
