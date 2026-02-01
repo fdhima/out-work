@@ -304,6 +304,14 @@ export default function ProfileScreen() {
               }}
             />
             <SettingsItem
+              label="Feedback"
+              icon="chat-bubble-outline"
+              onPress={() => {
+                Haptics.selectionAsync()
+                router.push('/feedback')
+              }}
+            />
+            <SettingsItem
               label="Report NSFW Content"
               icon="report-problem"
               onPress={() => {
@@ -339,7 +347,7 @@ export default function ProfileScreen() {
 
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </View >
   )
 }
 
