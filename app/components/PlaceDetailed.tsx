@@ -7,7 +7,7 @@ import { getPlaceCategoriesIds } from "@/services/places_categories";
 import { addCrowdReport, getCrowdStats, CrowdStats } from "@/services/crowd";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import ImageCarousel from "./ImageCarousel";
 import { RenderStars } from "./RenderStars";
 import { ReviewForm } from "./ReviewForm";
@@ -88,6 +88,24 @@ export function PlaceDetailed({
       console.error('Failed to submit crowd report', e);
     } finally {
       setCrowdModalVisible(false);
+    }
+  };
+
+  const handleDirections = () => {
+    const lat = selectedPlace.latitude;
+    const lng = selectedPlace.longitude;
+    const label = selectedPlace.name;
+
+    const scheme = Platform.select({ ios: 'maps:0,0?q=', android: 'geo:0,0?q=' });
+    const latLng = `${lat},${lng}`;
+
+    const url = Platform.select({
+      ios: `${scheme}${label}@${latLng}`,
+      android: `${scheme}${latLng}(${label})`
+    });
+
+    if (url) {
+      Linking.openURL(url);
     }
   };
 
@@ -239,7 +257,10 @@ export function PlaceDetailed({
 
       {/* Sticky Bottom Bar */}
       <View style={[styles.stickyBottomBar, { backgroundColor: isDark ? '#1a1a1a' : '#fff', borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
-        <TouchableOpacity style={[styles.reserveButton, { backgroundColor: BRAND_BLUE, flex: 1, alignItems: 'center' }]}>
+        <TouchableOpacity
+          style={[styles.reserveButton, { backgroundColor: BRAND_BLUE, flex: 1, alignItems: 'center' }]}
+          onPress={handleDirections}
+        >
           <ThemedText style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Directions</ThemedText>
         </TouchableOpacity>
       </View>
