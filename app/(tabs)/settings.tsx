@@ -298,6 +298,7 @@ export default function ProfileScreen() {
             <SettingsItem
               label="Help & FAQ"
               icon="help"
+              readOnly
               onPress={() => {
                 Haptics.selectionAsync()
                 router.push('/help')
@@ -306,6 +307,7 @@ export default function ProfileScreen() {
             <SettingsItem
               label="Feedback"
               icon="chat-bubble-outline"
+              readOnly
               onPress={() => {
                 Haptics.selectionAsync()
                 router.push('/feedback')
@@ -314,6 +316,7 @@ export default function ProfileScreen() {
             <SettingsItem
               label="Report NSFW Content"
               icon="report-problem"
+              readOnly
               onPress={() => {
                 Haptics.selectionAsync()
                 router.push('/report-nsfw')
@@ -322,6 +325,7 @@ export default function ProfileScreen() {
             <SettingsItem
               label="Privacy Policy"
               icon="privacy-tip"
+              readOnly
               isLast
               onPress={() => {
                 Haptics.selectionAsync()
