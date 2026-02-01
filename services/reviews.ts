@@ -70,7 +70,7 @@ export async function getReviewsByPlaceId(placeId: number): Promise<Review[]> {
     console.error(error)
     return []
   }
-  
+
   return (
     data?.map((r: any) => {
       const profile = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles
@@ -94,7 +94,7 @@ export async function getReviewsByUserId(userId: string): Promise<Review[]> {
 }
 
 // Create a new review
-export async function createReview(input: CreateReviewInput): Promise<Review> {  
+export async function createReview(input: CreateReviewInput): Promise<Review> {
   const { data, error } = await supabase
     .from('reviews')
     .insert(input)

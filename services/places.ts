@@ -135,7 +135,7 @@ export async function getPlacesEnhanced(categoryId?: number | null, query?: stri
       images(*),
       profiles(full_name)
     `);
-  
+
   // Logic: Only apply category filter if categoryId is provided and not "all"
   if (categoryId) {
     request = request

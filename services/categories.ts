@@ -5,7 +5,7 @@ interface Category {
   name: string,
 }
 
-export async function getPlacesByCategory(categories: string[])  {
+export async function getPlacesByCategory(categories: string[]) {
   const { data: idsData, error: idsError } = await supabase
     .from('places_with_categories')
     .select('id')
@@ -19,7 +19,7 @@ export async function getPlacesByCategory(categories: string[])  {
     .from('places')
     .select('*')
     .in('id', placeIds)
-  
+
   if (placesError) throw placesError;
   return places;
 }
@@ -28,20 +28,20 @@ export async function getCategories() {
   const { data: categories, error } = await supabase
     .from('categories')
     .select('*')
-  if ( error ) throw error;
+  if (error) throw error;
   return categories;
 }
 
 export async function getCategoryIdByName(categoryName: string): Promise<number | null> {
   const { data, error } = await supabase
-      .from('categories')
-      .select('id')
-      .eq('name', categoryName)
-      .single();
-    
-    if (error) throw error;
+    .from('categories')
+    .select('id')
+    .eq('name', categoryName)
+    .single();
 
-    return data ? data.id : null;
+  if (error) throw error;
+
+  return data ? data.id : null;
 }
 
 export async function getCategoryNameById(categoryId: number): Promise<string> {
