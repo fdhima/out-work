@@ -6,7 +6,11 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "out-work",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "deepLinks": true,
@@ -14,7 +18,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.dflorjan.outwork",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "This app uses your location to show nearby content."
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to show nearby content.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -27,7 +32,10 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.dflorjan.outwork",
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "output": "static",
