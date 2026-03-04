@@ -3,7 +3,7 @@
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
 
-import { Platform, useColorScheme } from 'react-native';
+import { Appearance, Platform } from 'react-native';
 
 const tintColorLight = '#ff6b35';
 const tintColorDark = '#ff6b35';
@@ -12,7 +12,7 @@ export const MAX_REVIEWS_PREVIEW = 3;
 export const BRAND_BLUE = "#4A90E2";
 export const BRAND_PURPLE = "#8b5cf6";
 
-export const colorScheme = useColorScheme() ?? "light";
+export const colorScheme = Appearance.getColorScheme() ?? "light";
 export const isDark = colorScheme === 'dark';
 
 export const CATEGORIES = [

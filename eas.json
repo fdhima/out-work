@@ -7,6 +7,10 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://kxbkoenyvlyusyfychko.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_cg-UX2n6Bz6W-qPLR458NA_YgALt0iy"
+      },
       "android": {
         "image": "latest"
       },
@@ -23,6 +27,10 @@
     "preview": {
       "distribution": "internal",
       "channel": "main",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://kxbkoenyvlyusyfychko.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_cg-UX2n6Bz6W-qPLR458NA_YgALt0iy"
+      },
       "android": {
         "image": "latest"
       },
@@ -33,6 +41,10 @@
     "production": {
       "channel": "production",
       "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://kxbkoenyvlyusyfychko.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_cg-UX2n6Bz6W-qPLR458NA_YgALt0iy"
+      },
       "android": {
         "image": "latest"
       },
