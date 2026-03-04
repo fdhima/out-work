@@ -15,10 +15,16 @@
     "newArchEnabled": true,
     "deepLinks": true,
     "ios": {
+      "buildNumber": "4",
       "supportsTablet": true,
+      "requireFullScreen": true,
       "bundleIdentifier": "com.dflorjan.outwork",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses your location to show nearby content.",
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -59,7 +65,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
     },
     "extra": {
       "router": {},
