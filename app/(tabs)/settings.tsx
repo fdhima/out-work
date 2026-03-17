@@ -129,6 +129,46 @@ export default function ProfileScreen() {
     }
   }
 
+  const handleDeleteAccount = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+    Alert.alert(
+      "Delete Account",
+      "This will permanently delete your account and all associated data. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Account",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true)
+              const { data: { session } } = await supabase.auth.getSession()
+              const response = await fetch(
+                `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/delete-account`,
+                {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${session?.access_token}`,
+                  },
+                }
+              )
+              if (!response.ok) {
+                const body = await response.json()
+                throw new Error(body.error ?? 'Failed to delete account')
+              }
+              await signOut()
+              router.replace('/auth/signin')
+            } catch (e: any) {
+              Alert.alert('Error', e.message ?? 'Failed to delete account')
+            } finally {
+              setLoading(false)
+            }
+          }
+        }
+      ]
+    )
+  }
+
   const handleSignOut = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
     Alert.alert(
@@ -343,6 +383,13 @@ export default function ProfileScreen() {
             >
               <ThemedText style={styles.signOutText}>Log Out</ThemedText>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.deleteAccountButton}
+              onPress={handleDeleteAccount}
+              activeOpacity={0.7}
+            >
+              <ThemedText style={styles.deleteAccountText}>Delete Account</ThemedText>
+            </TouchableOpacity>
             <ThemedText style={styles.versionText}>Version 1.0.0</ThemedText>
           </Animated.View>
 
@@ -506,6 +553,19 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontSize: 16,
     fontWeight: '700',
+  },
+  deleteAccountButton: {
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+    marginTop: 12,
+  },
+  deleteAccountText: {
+    color: '#ef4444',
+    fontSize: 14,
+    fontWeight: '500',
+    opacity: 0.7,
   },
   versionText: {
     textAlign: 'center',

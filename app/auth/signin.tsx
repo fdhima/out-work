@@ -1,7 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { signInWithProvider } from '@/lib/auth/social';
+import { signInWithProvider, signInWithApple } from '@/lib/auth/social';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { MaterialIcons, FontAwesome6 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -119,6 +120,21 @@ export default function AuthScreen() {
     }
   };
 
+  const handleAppleSignIn = async () => {
+    try {
+      setLoadingProvider('apple');
+      setError(null);
+      await signInWithApple();
+      router.replace('/');
+    } catch (e: any) {
+      if (e.code !== 'ERR_REQUEST_CANCELED') {
+        setError(e.message ?? 'Apple sign-in failed');
+      }
+    } finally {
+      setLoadingProvider(null);
+    }
+  };
+
   const isDark = colorScheme === 'dark';
 
   return (
@@ -167,24 +183,21 @@ export default function AuthScreen() {
             )}
 
             <View style={styles.buttonStack}>
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                buttonStyle={isDark
+                  ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                  : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={20}
+                style={styles.appleButton}
+                onPress={handleAppleSignIn}
+              />
               <SocialButton
                 provider="google"
                 onPress={handleSignIn}
                 loading={loadingProvider === 'google'}
                 isDark={isDark}
               />
-              {/* <SocialButton
-                provider="apple"
-                onPress={handleSignIn}
-                loading={loadingProvider === 'apple'}
-                isDark={isDark}
-              />
-              <SocialButton
-                provider="facebook"
-                onPress={handleSignIn}
-                loading={loadingProvider === 'facebook'}
-                isDark={isDark}
-              /> */}
               <SocialButton
                 provider="github"
                 onPress={handleSignIn}
@@ -286,6 +299,10 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: 16,
     marginBottom: 40,
+  },
+  appleButton: {
+    width: '100%',
+    height: 56,
   },
   socialButton: {
     flexDirection: 'row',

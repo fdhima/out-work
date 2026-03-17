@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { Provider } from '@supabase/supabase-js';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -66,4 +67,24 @@ export async function signInWithProvider(provider: Provider) {
     }
 
     throw new Error('Cannot complete OAuth: session handlers not available');
+}
+
+export async function signInWithApple() {
+    const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+            AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+            AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+    });
+
+    if (!credential.identityToken) {
+        throw new Error('No identity token returned from Apple');
+    }
+
+    const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+    });
+
+    if (error) throw error;
 }
