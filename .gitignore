@@ -49,3 +49,6 @@ app-example
 _vscode/
 .eas/
 .vscode/
+
+# Python
+venv/
