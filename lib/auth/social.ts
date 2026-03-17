@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { sha256 } from 'js-sha256';
 import { Provider } from '@supabase/supabase-js';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -70,11 +71,15 @@ export async function signInWithProvider(provider: Provider) {
 }
 
 export async function signInWithApple() {
+    const rawNonce = Math.random().toString(36).substring(2);
+    const hashedNonce = sha256(rawNonce);
+
     const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
             AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
             AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
+        nonce: hashedNonce,
     });
 
     if (!credential.identityToken) {
@@ -84,6 +89,7 @@ export async function signInWithApple() {
     const { error } = await supabase.auth.signInWithIdToken({
         provider: 'apple',
         token: credential.identityToken,
+        nonce: rawNonce,
     });
 
     if (error) throw error;
