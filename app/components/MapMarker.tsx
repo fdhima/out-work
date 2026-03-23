@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { BRAND_BLUE, isDark } from "@/constants/theme";
 import { PlaceEnhanced } from "@/services/places";
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Marker } from "react-native-maps";
 
@@ -16,6 +16,16 @@ const MapMarker = memo(({ place, isSelected, isFavorite, onPress }: MapMarkerPro
     // tracksViewChanges should be true initially to render the custom view,
     // then false for performance. We flip it when isSelected changes.
     const [tracksViewChanges, setTracksViewChanges] = useState(true);
+    const prevIsSelectedRef = useRef(isSelected);
+    const prevIsFavoriteRef = useRef(isFavorite);
+
+    // Detect prop changes synchronously so tracksViewChanges is true on the
+    // same render that changes the marker's appearance, not a render later.
+    const propsChanged =
+        prevIsSelectedRef.current !== isSelected ||
+        prevIsFavoriteRef.current !== isFavorite;
+    prevIsSelectedRef.current = isSelected;
+    prevIsFavoriteRef.current = isFavorite;
 
     useEffect(() => {
         setTracksViewChanges(true);
@@ -43,7 +53,7 @@ const MapMarker = memo(({ place, isSelected, isFavorite, onPress }: MapMarkerPro
                 e.stopPropagation();
                 onPress(place);
             }}
-            tracksViewChanges={tracksViewChanges}
+            tracksViewChanges={propsChanged || tracksViewChanges}
             zIndex={zIndex}
         >
             <View
