@@ -7,13 +7,16 @@ import { getPlaceCategoriesIds } from "@/services/places_categories";
 import { addCrowdReport, getCrowdStats, CrowdStats } from "@/services/crowd";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Linking, Platform, ScrollView, Share, StyleSheet, TouchableOpacity, View } from "react-native";
 import ImageCarousel from "./ImageCarousel";
 import { RenderStars } from "./RenderStars";
 import { ReviewForm } from "./ReviewForm";
 import { ReviewsList } from "./ReviewsList";
 import { useFavorites } from "@/context/FavoritesContext";
 import { CrowdLevelModal } from "./CrowdLevelModal";
+
+const APP_STORE_URL = "https://apps.apple.com/gr/app/outwork-your-workspace-app/id6759715313";
+const UNIVERSAL_LINK_BASE = "https://out-work.online";
 
 type PlaceDetailedProps = {
   selectedPlace: PlaceEnhanced;
@@ -91,6 +94,20 @@ export function PlaceDetailed({
     }
   };
 
+  const handleShare = async () => {
+    const universalLink = `${UNIVERSAL_LINK_BASE}/place/${selectedPlace.id}`;
+    try {
+      await Share.share({
+        title: selectedPlace.name,
+        // iOS uses `url`; Android falls back to `message`
+        message: `Check out "${selectedPlace.name}" on OutWork!\n${universalLink}`,
+        url: universalLink,
+      });
+    } catch (e) {
+      console.error("Share failed", e);
+    }
+  };
+
   const handleDirections = () => {
     const lat = selectedPlace.latitude;
     const lng = selectedPlace.longitude;
@@ -130,6 +147,12 @@ export function PlaceDetailed({
         </View>
         <View style={{ position: 'absolute', top: 50, right: 20, zIndex: 10 }}>
           <View style={[styles.circleButton, { gap: 15, width: 'auto', paddingHorizontal: 12 }]}>
+            <TouchableOpacity
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              onPress={handleShare}
+            >
+              <MaterialIcons name="ios-share" size={20} color="#000" />
+            </TouchableOpacity>
             <TouchableOpacity
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               onPress={() => toggleFavorite(selectedPlace.id)}
