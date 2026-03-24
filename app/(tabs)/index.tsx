@@ -343,27 +343,30 @@ export default function HomeScreen() {
                   longitudeDelta: 0.05,
                 }}
               >
-                {/* Center on User Button */}
-                {userLocation && (
-                  <TouchableOpacity
-                    onPress={centerOnUser}
-                    activeOpacity={0.85}
-                    style={styles.centerUserButton}
-                  >
-                    <MaterialIcons name="my-location" size={22} color="#000" />
-                  </TouchableOpacity>
-                )}
-
-                {places.map((place) => (
-                  <MapMarker
-                    key={place.id}
-                    place={place}
-                    isSelected={previewPlace?.id === place.id}
-                    isFavorite={isFavorite(place.id)}
-                    onPress={onMarkerPress}
-                  />
-                ))}
+                {places.map((place) => {
+                  const isSelected = previewPlace?.id === place.id;
+                  return (
+                    <MapMarker
+                      key={`${place.id}-${isSelected}`}
+                      place={place}
+                      isSelected={isSelected}
+                      isFavorite={isFavorite(place.id)}
+                      onPress={onMarkerPress}
+                    />
+                  );
+                })}
               </MapView>
+
+              {/* Center on User Button — must be outside MapView (not a valid map overlay) */}
+              {userLocation && (
+                <TouchableOpacity
+                  onPress={centerOnUser}
+                  activeOpacity={0.85}
+                  style={styles.centerUserButton}
+                >
+                  <MaterialIcons name="my-location" size={22} color="#000" />
+                </TouchableOpacity>
+              )}
 
               {/* Search Area Button */}
               {showSearchArea && !loading && !floatingCardDisplay && (
@@ -407,9 +410,7 @@ export default function HomeScreen() {
                   onPressCard={() => previewPlace && router.push(`/place/${previewPlace.id}`)}
                   onClose={() => {
                     setFloadingCardDisplay(false);
-                    if (previewPlace?.latitude && previewPlace?.longitude) {
-                      centerMap(previewPlace.latitude, previewPlace.longitude);
-                    }
+                    setPreviewPlace(null);
                   }}
                 />
               )}

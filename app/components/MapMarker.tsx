@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { BRAND_BLUE, isDark } from "@/constants/theme";
 import { PlaceEnhanced } from "@/services/places";
-import React, { memo, useEffect, useRef, useState } from "react";
+import React, { memo, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Marker } from "react-native-maps";
 
@@ -13,27 +13,18 @@ interface MapMarkerProps {
 }
 
 const MapMarker = memo(({ place, isSelected, isFavorite, onPress }: MapMarkerProps) => {
-    // tracksViewChanges should be true initially to render the custom view,
-    // then false for performance. We flip it when isSelected changes.
+    // Start tracking so the initial snapshot is taken, then disable for performance.
+    // Selection transitions are handled by key-based remount in the parent,
+    // so this only fires on mount and isFavorite changes.
     const [tracksViewChanges, setTracksViewChanges] = useState(true);
-    const prevIsSelectedRef = useRef(isSelected);
-    const prevIsFavoriteRef = useRef(isFavorite);
-
-    // Detect prop changes synchronously so tracksViewChanges is true on the
-    // same render that changes the marker's appearance, not a render later.
-    const propsChanged =
-        prevIsSelectedRef.current !== isSelected ||
-        prevIsFavoriteRef.current !== isFavorite;
-    prevIsSelectedRef.current = isSelected;
-    prevIsFavoriteRef.current = isFavorite;
 
     useEffect(() => {
         setTracksViewChanges(true);
         const timer = setTimeout(() => {
             setTracksViewChanges(false);
-        }, 300); // Give it enough time to render any changes
+        }, 300);
         return () => clearTimeout(timer);
-    }, [isSelected, isFavorite]);
+    }, [isFavorite]);
 
     const bg = isSelected ? BRAND_BLUE : "#fff";
     const text = isSelected ? "#fff" : "#000";
@@ -41,7 +32,7 @@ const MapMarker = memo(({ place, isSelected, isFavorite, onPress }: MapMarkerPro
 
     const borderColor = isSelected
         ? BRAND_BLUE
-        : (isFavorite ? '#ff4081' : (isDark ? "#333" : "#ddd")); // Red/Pink for favorite
+        : (isFavorite ? '#ff4081' : (isDark ? "#333" : "#ddd"));
 
     return (
         <Marker
@@ -53,7 +44,7 @@ const MapMarker = memo(({ place, isSelected, isFavorite, onPress }: MapMarkerPro
                 e.stopPropagation();
                 onPress(place);
             }}
-            tracksViewChanges={propsChanged || tracksViewChanges}
+            tracksViewChanges={tracksViewChanges}
             zIndex={zIndex}
         >
             <View
@@ -73,14 +64,6 @@ const MapMarker = memo(({ place, isSelected, isFavorite, onPress }: MapMarkerPro
             </View>
         </Marker>
     );
-}, (prevProps, nextProps) => {
-    return (
-        prevProps.isSelected === nextProps.isSelected &&
-        prevProps.place.id === nextProps.place.id &&
-        prevProps.place.latitude === nextProps.place.latitude &&
-        prevProps.place.longitude === nextProps.place.longitude &&
-        prevProps.place.rating_avg === nextProps.place.rating_avg
-    );
 });
 
 const styles = StyleSheet.create({
@@ -94,7 +77,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 3,
         elevation: 4,
-        // Add a bit of transition smoothing if possible via layout
         minWidth: 40,
         alignItems: 'center',
         justifyContent: 'center',
