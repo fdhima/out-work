@@ -309,7 +309,7 @@ export default function HomeScreen() {
                     </View>
 
                     <ThemedText style={styles.cardSecondaryText} numberOfLines={1}>
-                      Hosted by {item.profiles?.full_name || "OutWork"}
+                      Endorsed by {item.profiles?.full_name || "OutWork"}
                     </ThemedText>
                     <ThemedText style={styles.cardSecondaryText} numberOfLines={1}>
                       {item.description}
@@ -366,7 +366,7 @@ export default function HomeScreen() {
               </MapView>
 
               {/* Search Area Button */}
-              {showSearchArea && !loading && (
+              {showSearchArea && !loading && !floatingCardDisplay && (
                 <View style={styles.searchAreaButtonContainer}>
                   <BlurView
                     intensity={80}
