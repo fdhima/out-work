@@ -343,18 +343,15 @@ export default function HomeScreen() {
                   longitudeDelta: 0.05,
                 }}
               >
-                {places.map((place) => {
-                  const isSelected = previewPlace?.id === place.id;
-                  return (
-                    <MapMarker
-                      key={`${place.id}-${isSelected}`}
-                      place={place}
-                      isSelected={isSelected}
-                      isFavorite={isFavorite(place.id)}
-                      onPress={onMarkerPress}
-                    />
-                  );
-                })}
+                {places.map((place) => (
+                  <MapMarker
+                    key={place.id}
+                    place={place}
+                    isSelected={previewPlace?.id === place.id}
+                    isFavorite={isFavorite(place.id)}
+                    onPress={onMarkerPress}
+                  />
+                ))}
               </MapView>
 
               {/* Center on User Button — must be outside MapView (not a valid map overlay) */}

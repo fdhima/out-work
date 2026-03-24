@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { BRAND_BLUE, isDark } from "@/constants/theme";
 import { PlaceEnhanced } from "@/services/places";
-import React, { memo, useEffect, useState } from "react";
+import React, { memo } from "react";
 import { StyleSheet, View } from "react-native";
 import { Marker } from "react-native-maps";
 
@@ -13,23 +13,8 @@ interface MapMarkerProps {
 }
 
 const MapMarker = memo(({ place, isSelected, isFavorite, onPress }: MapMarkerProps) => {
-    // Start tracking so the initial snapshot is taken, then disable for performance.
-    // Selection transitions are handled by key-based remount in the parent,
-    // so this only fires on mount and isFavorite changes.
-    const [tracksViewChanges, setTracksViewChanges] = useState(true);
-
-    useEffect(() => {
-        setTracksViewChanges(true);
-        const timer = setTimeout(() => {
-            setTracksViewChanges(false);
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [isFavorite]);
-
     const bg = isSelected ? BRAND_BLUE : "#fff";
     const text = isSelected ? "#fff" : "#000";
-    const zIndex = isSelected ? 100 : 1;
-
     const borderColor = isSelected
         ? BRAND_BLUE
         : (isFavorite ? '#ff4081' : (isDark ? "#333" : "#ddd"));
@@ -44,8 +29,7 @@ const MapMarker = memo(({ place, isSelected, isFavorite, onPress }: MapMarkerPro
                 e.stopPropagation();
                 onPress(place);
             }}
-            tracksViewChanges={tracksViewChanges}
-            zIndex={zIndex}
+            tracksViewChanges
         >
             <View
                 style={[
@@ -64,7 +48,14 @@ const MapMarker = memo(({ place, isSelected, isFavorite, onPress }: MapMarkerPro
             </View>
         </Marker>
     );
-});
+}, (prevProps, nextProps) =>
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isFavorite === nextProps.isFavorite &&
+    prevProps.place.id === nextProps.place.id &&
+    prevProps.place.latitude === nextProps.place.latitude &&
+    prevProps.place.longitude === nextProps.place.longitude &&
+    prevProps.place.rating_avg === nextProps.place.rating_avg
+);
 
 const styles = StyleSheet.create({
     mapPill: {
