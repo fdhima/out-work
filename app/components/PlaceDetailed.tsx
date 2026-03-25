@@ -474,7 +474,7 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
     try {
       await Share.share({
         title: selectedPlace.name,
-        message: `Check out "${selectedPlace.name}" on OutWork!\n${url}`,
+        message: `Check out "${selectedPlace.name}" on OutWork!`,
         url,
       });
     } catch (e) {
