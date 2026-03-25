@@ -94,6 +94,13 @@ export default function HomeScreen() {
   // Ref instead of state: fetchPlaces reads the current region without being
   // a reactive dep — prevents useFocusEffect from re-firing on every map pan.
   const mapRegionRef = useRef<Region | null>(null);
+
+  // Delta values for each sheet state (Airbnb-style zoom sync).
+  const SHEET_ZOOM: Record<SheetState, number> = {
+    collapsed: 0.05,
+    half:      0.09,
+    full:      0.09,
+  };
   const [lastSearchRegion, setLastSearchRegion] = useState<Region | null>(null);
   const [showSearchArea, setShowSearchArea] = useState(false);
   const [isSearchingArea, setIsSearchingArea] = useState(false);
@@ -124,6 +131,20 @@ export default function HomeScreen() {
     })();
     return () => sub?.remove();
   }, []);
+
+  // ─── Map zoom sync with sheet state ──────────────────────────────────────
+  // When a place is selected the sheet is hidden and the map is already
+  // centered on that place — skip zoom changes in that mode.
+  useEffect(() => {
+    if (selectedPlace) return;
+    const region = mapRegionRef.current;
+    if (!region) return; // map hasn't fired onRegionChangeComplete yet
+    const delta = SHEET_ZOOM[sheetState];
+    mapRef.current?.animateToRegion(
+      { latitude: region.latitude, longitude: region.longitude, latitudeDelta: delta, longitudeDelta: delta },
+      380
+    );
+  }, [sheetState, selectedPlace]);
 
   // ─── Data fetching ────────────────────────────────────────────────────────
   const fetchPlaces = useCallback(async () => {
