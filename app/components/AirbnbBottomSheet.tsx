@@ -63,7 +63,7 @@ const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 85 : 70;
  * category row). The sheet must never slide above this so its handle bar
  * is always visible and reachable below the search bar.
  */
-const MAP_HEADER_HEIGHT = Platform.OS === 'ios' ? 190 : 165;
+const MAP_HEADER_HEIGHT = Platform.OS === 'ios' ? 120 : 100;
 
 /**
  * The sheet spans from the very top of the screen down to the tab bar.

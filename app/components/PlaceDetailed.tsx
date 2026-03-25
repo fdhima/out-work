@@ -544,6 +544,7 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
         <View style={styles.navContent} pointerEvents="box-none">
           {/* Back button */}
           <TouchableOpacity style={styles.navCircleBtn} onPress={onClose} hitSlop={8}>
+            <BlurView intensity={50} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
             <MaterialIcons name="arrow-back" size={20} color={isDark ? '#fff' : '#111'} />
           </TouchableOpacity>
 
@@ -558,6 +559,7 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
           {/* Share + Favorite */}
           <View style={styles.navRightGroup}>
             <TouchableOpacity style={styles.navCircleBtn} onPress={handleShare} hitSlop={8}>
+              <BlurView intensity={50} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
               <MaterialIcons name="ios-share" size={20} color={isDark ? '#fff' : '#111'} />
             </TouchableOpacity>
             <TouchableOpacity
@@ -565,6 +567,7 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
               onPress={handleToggleFavorite}
               hitSlop={8}
             >
+              <BlurView intensity={50} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
               <MaterialIcons
                 name={liked ? 'favorite' : 'favorite-border'}
                 size={20}
@@ -872,7 +875,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',

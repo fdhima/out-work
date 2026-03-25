@@ -184,6 +184,24 @@ export async function getPlaceEnhancedById(placeId: number): Promise<PlaceEnhanc
   return data;
 }
 
+export async function getPlacesEnhancedByIds(ids: number[]): Promise<PlaceEnhanced[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from('places')
+    .select(`
+      *,
+      images(*),
+      places_categories(categories(name)),
+      profiles(full_name)
+    `)
+    .in('id', ids);
+  if (error) {
+    console.error('Error fetching places by ids:', error);
+    throw error;
+  }
+  return data;
+}
+
 /** Fetch up to `limit` approved places excluding `excludeId` for the "Similar places" row. */
 export async function getSimilarPlaces(excludeId: number, limit = 6): Promise<PlaceEnhanced[]> {
   const { data, error } = await supabase
