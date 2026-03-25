@@ -87,6 +87,9 @@ const SNAP_HALF = SCREEN_HEIGHT * 0.48;
  */
 const SNAP_COLLAPSED = SCREEN_HEIGHT - TAB_BAR_HEIGHT - 60;
 
+/** Hidden: sheet is fully below the screen (place-selected floating-card mode). */
+const SNAP_HIDDEN = SCREEN_HEIGHT + 50;
+
 const SPRING = { damping: 22, stiffness: 180, mass: 0.8 };
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -99,6 +102,10 @@ export interface BottomSheetRef {
   scrollToIndex: (index: number) => void;
   /** Animate the sheet from collapsed to the half state. */
   expandToHalf: () => void;
+  /** Slide the sheet completely off screen (place-selected mode). */
+  hide: () => void;
+  /** Slide the sheet back to the collapsed snap point. */
+  restoreCollapsed: () => void;
 }
 
 type Props = {
@@ -157,6 +164,13 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
       expandToHalf() {
         translateY.value = withSpring(SNAP_HALF, SPRING);
         onSheetStateChange('half');
+      },
+      hide() {
+        translateY.value = withSpring(SNAP_HIDDEN, { damping: 22, stiffness: 200, mass: 0.8 });
+      },
+      restoreCollapsed() {
+        translateY.value = withSpring(SNAP_COLLAPSED, SPRING);
+        onSheetStateChange('collapsed');
       },
     }));
 

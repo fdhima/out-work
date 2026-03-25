@@ -18,8 +18,9 @@
  * `selectedPlace` is the single source of truth, held in this component:
  *
  *   • Map pin tapped:
- *       onMarkerPress → setSelectedPlace → center map → sheet.scrollToIndex
- *       (if sheet is collapsed, also call sheet.expandToHalf)
+ *       onMarkerPress → setSelectedPlace → center map → sheet.hide()
+ *       FloatingCard slides up from bottom with the place preview.
+ *       Tapping the card navigates to detail; tapping the map restores the sheet.
  *
  *   • Carousel card swiped:
  *       sheet fires onSelectPlace → setSelectedPlace
@@ -35,6 +36,7 @@ import AirbnbBottomSheet, {
   SheetState,
 } from '../components/AirbnbBottomSheet';
 import { FilterModal } from '../components/FilterModal';
+import { FloatingCard } from '../components/FloatingCard';
 import { MapHeader } from '../components/MapHeader';
 import MapMarker from '../components/MapMarker';
 import { ThemedView } from '@/components/themed-view';
@@ -183,33 +185,22 @@ export default function HomeScreen() {
   );
 
   // ─── Marker interaction ───────────────────────────────────────────────────
-  /**
-   * When a map pin is tapped:
-   * 1. Update selection
-   * 2. Center the map on the place
-   * 3. Scroll the carousel to the matching card
-   * 4. If the sheet is collapsed, pop it to half so the card is visible
-   */
   const onMarkerPress = useCallback(
     (place: PlaceEnhanced) => {
       Keyboard.dismiss();
       setSelectedPlace(place);
       centerMap(place.latitude, place.longitude);
-
-      const idx = places.findIndex(p => p.id === place.id);
-      sheetRef.current?.scrollToIndex(idx);
-
-      if (sheetState === 'collapsed') {
-        sheetRef.current?.expandToHalf();
-      }
+      // Hide the sheet and let the floating card take over (Airbnb-style)
+      sheetRef.current?.hide();
     },
-    [places, sheetState, centerMap]
+    [centerMap]
   );
 
   const onMapPress = useCallback(() => {
     Keyboard.dismiss();
-    // Tapping the map (not a pin) deselects
+    // Tapping the map deselects and restores the bottom sheet
     setSelectedPlace(null);
+    sheetRef.current?.restoreCollapsed();
   }, []);
 
   /**
@@ -311,6 +302,12 @@ export default function HomeScreen() {
           selectedPlace={selectedPlace}
           sheetState={sheetState}
           onSheetStateChange={setSheetState}
+          onPressCard={onPressCard}
+        />
+
+        {/* ── Floating place-preview card (shown when a marker is selected) ── */}
+        <FloatingCard
+          selectedPlace={selectedPlace}
           onPressCard={onPressCard}
         />
 
