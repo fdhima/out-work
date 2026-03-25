@@ -34,6 +34,7 @@ import AirbnbBottomSheet, {
   BottomSheetRef,
   SheetState,
 } from '../components/AirbnbBottomSheet';
+import { FilterModal } from '../components/FilterModal';
 import { MapHeader } from '../components/MapHeader';
 import MapMarker from '../components/MapMarker';
 import { ThemedView } from '@/components/themed-view';
@@ -102,6 +103,7 @@ export default function HomeScreen() {
   // ── Search / filter ───────────────────────────────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
 
   // ─── Location tracking ────────────────────────────────────────────────────
   useEffect(() => {
@@ -228,11 +230,20 @@ export default function HomeScreen() {
           <MapHeader
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            selectedCategory={selectedCategory}
-            onCategorySelect={setSelectedCategory}
-            categories={CATEGORIES}
+            hasActiveFilter={selectedCategory !== 'all'}
+            onFilterPress={() => setFilterModalVisible(true)}
           />
         </View>
+
+        {/* ── Filter modal ── */}
+        <FilterModal
+          visible={filterModalVisible}
+          selectedCategory={selectedCategory}
+          categories={CATEGORIES}
+          resultCount={places.length}
+          onApply={setSelectedCategory}
+          onClose={() => setFilterModalVisible(false)}
+        />
 
         {/* ── Fullscreen map ── */}
         <MapView

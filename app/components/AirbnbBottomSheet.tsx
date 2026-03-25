@@ -85,7 +85,7 @@ const SNAP_HALF = SCREEN_HEIGHT * 0.48;
  * Snap point: collapsed — handle + small peek of the first card.
  * 130 px of peek keeps the sheet subtle without completely hiding the list.
  */
-const SNAP_COLLAPSED = SCREEN_HEIGHT - TAB_BAR_HEIGHT - 130;
+const SNAP_COLLAPSED = SCREEN_HEIGHT - TAB_BAR_HEIGHT - 60;
 
 const SPRING = { damping: 22, stiffness: 180, mass: 0.8 };
 

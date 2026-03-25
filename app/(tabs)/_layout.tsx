@@ -5,7 +5,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { BlurView } from 'expo-blur';
 import { Redirect, Tabs, usePathname } from 'expo-router';
 import React from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -55,10 +55,12 @@ export default function TabLayout() {
         tabBarBackground: () => (
           <BlurView
             key={pathname} // Force refresh on tab change
-            intensity={80}
+            intensity={100}
             tint={isDark ? 'dark' : 'light'}
             style={StyleSheet.absoluteFill}
-          />
+          >
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.12)' }]} />
+          </BlurView>
         ),
         tabBarLabelStyle: {
           fontSize: 12,
@@ -68,9 +70,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Map',
+          title: 'Explore',
           tabBarIcon: ({ color, focused }) => (
-            <MaterialIcons size={28} name="map" color={color} />
+            <MaterialIcons size={28} name="explore" color={color} />
           ),
         }}
       />
