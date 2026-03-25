@@ -270,7 +270,7 @@ export default function HomeScreen() {
         )}
 
         {/* ── "Search this area" button — shown when map has panned ── */}
-        {showSearchArea && !loading && sheetState !== 'full' && (
+        {/* {showSearchArea && !loading && sheetState !== 'full' && (
           <View style={styles.searchAreaWrap}>
             <BlurView
               intensity={80}
@@ -293,7 +293,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </BlurView>
           </View>
-        )}
+        )} */}
 
         {/* ── Airbnb-style bottom sheet ── */}
         <AirbnbBottomSheet
