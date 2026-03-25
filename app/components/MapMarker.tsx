@@ -1,77 +1,120 @@
-import { ThemedText } from "@/components/themed-text";
-import { BRAND_BLUE, isDark } from "@/constants/theme";
-import { PlaceEnhanced } from "@/services/places";
-import React, { memo } from "react";
-import { StyleSheet, View } from "react-native";
-import { Marker } from "react-native-maps";
+/**
+ * MapMarker — custom rating pill rendered inside a react-native-maps Marker.
+ *
+ * When a marker is selected (isSelected changes to true) a Reanimated spring
+ * animates the scale from 1 → 1.25, making the selected place visually pop
+ * without triggering a React re-render on every frame.
+ *
+ * `tracksViewChanges` is set to `true` only while the scale animation is
+ * running (i.e. while isSelected is true) to minimise the performance cost
+ * of view tracking on iOS MapKit.
+ */
+import { BRAND_BLUE, isDark } from '@/constants/theme';
+import { PlaceEnhanced } from '@/services/places';
+import React, { memo, useEffect } from 'react';
+import { StyleSheet, Text } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { Marker } from 'react-native-maps';
 
 interface MapMarkerProps {
-    place: PlaceEnhanced;
-    isSelected: boolean;
-    isFavorite: boolean;
-    onPress: (place: PlaceEnhanced) => void;
+  place: PlaceEnhanced;
+  isSelected: boolean;
+  isFavorite: boolean;
+  onPress: (place: PlaceEnhanced) => void;
 }
 
-const MapMarker = memo(({ place, isSelected, isFavorite, onPress }: MapMarkerProps) => {
-    const bg = isSelected ? BRAND_BLUE : "#fff";
-    const text = isSelected ? "#fff" : "#000";
+const SPRING_CONFIG = { damping: 14, stiffness: 220, mass: 0.6 };
+
+const MapMarker = memo(
+  ({ place, isSelected, isFavorite, onPress }: MapMarkerProps) => {
+    // ── Scale spring ──────────────────────────────────────────────────────────
+    const scale = useSharedValue(1);
+
+    useEffect(() => {
+      scale.value = withSpring(isSelected ? 1.25 : 1, SPRING_CONFIG);
+    }, [isSelected]);
+
+    const animStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scale.value }],
+    }));
+
+    // ── Visual states ─────────────────────────────────────────────────────────
+    const bg = isSelected ? BRAND_BLUE : isDark ? '#1c1c1e' : '#fff';
+    const textColor = isSelected ? '#fff' : isDark ? '#fff' : '#111';
     const borderColor = isSelected
-        ? BRAND_BLUE
-        : (isFavorite ? '#ff4081' : (isDark ? "#333" : "#ddd"));
+      ? BRAND_BLUE
+      : isFavorite
+      ? '#ff4081'
+      : isDark
+      ? '#3a3a3c'
+      : '#d1d1d6';
 
     return (
-        <Marker
-            coordinate={{
-                latitude: place.latitude,
-                longitude: place.longitude,
-            }}
-            onPress={(e) => {
-                e.stopPropagation();
-                onPress(place);
-            }}
-            tracksViewChanges
+      <Marker
+        coordinate={{
+          latitude: place.latitude,
+          longitude: place.longitude,
+        }}
+        onPress={e => {
+          e.stopPropagation();
+          onPress(place);
+        }}
+        // Only track view changes while selected so the spring animation
+        // is reflected on the native layer. Disabling it for unselected
+        // markers is a significant performance win on large datasets.
+        tracksViewChanges={isSelected}
+      >
+        <Animated.View
+          style={[
+            styles.pill,
+            {
+              backgroundColor: bg,
+              borderColor,
+              borderWidth: isFavorite && !isSelected ? 2 : 1.5,
+              shadowOpacity: isSelected ? 0.3 : 0.15,
+            },
+            animStyle,
+          ]}
         >
-            <View
-                style={[
-                    styles.mapPill,
-                    {
-                        backgroundColor: bg,
-                        borderColor: borderColor,
-                        borderWidth: isFavorite ? 2 : 1.5,
-                        transform: [{ scale: isSelected ? 1.15 : 1 }],
-                    },
-                ]}
-            >
-                <ThemedText style={{ fontSize: 13, fontWeight: "700", color: text }}>
-                    {place.rating_avg.toFixed(1)}
-                </ThemedText>
-            </View>
-        </Marker>
+          <Text style={[styles.label, { color: textColor }]}>
+            {place.rating_avg.toFixed(1)}
+          </Text>
+        </Animated.View>
+      </Marker>
     );
-}, (prevProps, nextProps) =>
-    prevProps.isSelected === nextProps.isSelected &&
-    prevProps.isFavorite === nextProps.isFavorite &&
-    prevProps.place.id === nextProps.place.id &&
-    prevProps.place.latitude === nextProps.place.latitude &&
-    prevProps.place.longitude === nextProps.place.longitude &&
-    prevProps.place.rating_avg === nextProps.place.rating_avg
+  },
+  // Custom equality: only re-render when visual state changes
+  (prev, next) =>
+    prev.isSelected === next.isSelected &&
+    prev.isFavorite === next.isFavorite &&
+    prev.place.id === next.place.id &&
+    prev.place.latitude === next.place.latitude &&
+    prev.place.longitude === next.place.longitude &&
+    prev.place.rating_avg === next.place.rating_avg
 );
 
-const styles = StyleSheet.create({
-    mapPill: {
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 20,
-        borderWidth: 1.5,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 4,
-        minWidth: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-});
-
+MapMarker.displayName = 'MapMarker';
 export default MapMarker;
+
+const styles = StyleSheet.create({
+  pill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    minWidth: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+});

@@ -1,599 +1,370 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import FullscreenGallery from "@/components/ui/fullscreen-gallery";
-import { BRAND_BLUE, CATEGORIES, isDark } from "@/constants/theme";
-import { useRouter } from "expo-router";
-import { getCategoryIdByName } from "@/services/categories";
-import { getPlacesEnhanced, Place, PlaceEnhanced } from "@/services/places";
-import { Review } from "@/services/reviews";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { BlurView } from "expo-blur";
-import { useFocusEffect } from "@react-navigation/native";
+/**
+ * HomeScreen — Airbnb-style map search view.
+ *
+ * ─── Layout ──────────────────────────────────────────────────────────────────
+ *   ┌─────────────────────────────┐
+ *   │  MapHeader (search + cats)  │  ← absolute, top of screen
+ *   │                             │
+ *   │        Apple Maps           │  ← fullscreen, behind everything
+ *   │     (custom Rating Pins)    │
+ *   │                             │
+ *   │  [⊕ recenter]  [⟳ search]  │  ← floating controls
+ *   ├─────────────────────────────┤
+ *   │     AirbnbBottomSheet       │  ← draggable 3-state sheet
+ *   │  collapsed / half / full    │
+ *   └─────────────────────────────┘
+ *
+ * ─── Map ↔ List Sync ─────────────────────────────────────────────────────────
+ * `selectedPlace` is the single source of truth, held in this component:
+ *
+ *   • Map pin tapped:
+ *       onMarkerPress → setSelectedPlace → center map → sheet.scrollToIndex
+ *       (if sheet is collapsed, also call sheet.expandToHalf)
+ *
+ *   • Carousel card swiped:
+ *       sheet fires onSelectPlace → setSelectedPlace
+ *       → MapMarker with matching id re-renders with isSelected=true
+ *       (map does NOT re-center on card swipe to avoid jarring pan)
+ *
+ *   • Full-list row tapped:
+ *       onPressCard → navigate to detail (same as before)
+ */
+
+import AirbnbBottomSheet, {
+  BottomSheetRef,
+  SheetState,
+} from '../components/AirbnbBottomSheet';
+import { MapHeader } from '../components/MapHeader';
+import MapMarker from '../components/MapMarker';
+import { ThemedView } from '@/components/themed-view';
+import { BRAND_BLUE, CATEGORIES, isDark } from '@/constants/theme';
+import { useFavorites } from '@/context/FavoritesContext';
+import { getCategoryIdByName } from '@/services/categories';
+import { PlaceEnhanced, getPlacesEnhanced } from '@/services/places';
+import { MaterialIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
-  FlatList,
   Keyboard,
   Platform,
   StyleSheet,
   TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
-} from "react-native";
-import MapView, { PROVIDER_DEFAULT, Region } from "react-native-maps";
-import ImageCarousel from "../components/ImageCarousel";
-import { FloatingCard } from "../components/FloatingCard";
-import { MapHeader } from "../components/MapHeader";
+  View,
+} from 'react-native';
+import MapView, { PROVIDER_DEFAULT, Region } from 'react-native-maps';
 
-import MapMarker from "../components/MapMarker";
-import { useFavorites } from "@/context/FavoritesContext";
+// ─── Default map region (Athens, Greece) ────────────────────────────────────
+const DEFAULT_REGION: Region = {
+  latitude: 37.9838,
+  longitude: 23.7275,
+  latitudeDelta: 0.05,
+  longitudeDelta: 0.05,
+};
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { isFavorite } = useFavorites();
+
+  // ── Data ──────────────────────────────────────────────────────────────────
   const [places, setPlaces] = useState<PlaceEnhanced[]>([]);
-  const [allPlaces, setAllPlaces] = useState<PlaceEnhanced[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Selection State
-
-  const [previewPlace, setPreviewPlace] = useState<PlaceEnhanced | null>(null);
-  const [floatingCardDisplay, setFloadingCardDisplay] = useState<boolean>(false); // FloatingCard enabled or disabled
   const requestIdRef = useRef(0);
 
-  const [galleryVisible, setGalleryVisible] = useState(false);
-  const [galleryIndex, setGalleryIndex] = useState(0);
-  const [galleryImages, setGalleryImages] = useState<string[]>([]);
-
-  // View Mode: 'list' | 'map' - DEFAULT TO MAP
-  const [viewMode, setViewMode] = useState<"list" | "map">("map");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const [pendingCenter, setPendingCenter] = useState<{
-    lat: number;
-    lng: number;
-  } | null>(null);
+  // ── Selection — single source of truth ───────────────────────────────────
+  const [selectedPlace, setSelectedPlace] = useState<PlaceEnhanced | null>(null);
 
 
-  const [trackingSub, setTrackingSub] = useState<Location.LocationSubscription | null>(null);
-  const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
+  // ── Sheet state ───────────────────────────────────────────────────────────
+  const [sheetState, setSheetState] = useState<SheetState>('half');
+  const sheetRef = useRef<BottomSheetRef>(null);
 
-  const [mapRegion, setMapRegion] = useState<Region | null>(null);
+  // ── Map ───────────────────────────────────────────────────────────────────
+  const mapRef = useRef<MapView>(null);
+  // Ref instead of state: fetchPlaces reads the current region without being
+  // a reactive dep — prevents useFocusEffect from re-firing on every map pan.
+  const mapRegionRef = useRef<Region | null>(null);
   const [lastSearchRegion, setLastSearchRegion] = useState<Region | null>(null);
   const [showSearchArea, setShowSearchArea] = useState(false);
   const [isSearchingArea, setIsSearchingArea] = useState(false);
 
-  const mapRef = useRef<MapView | null>(null);
-  const { isFavorite, toggleFavorite } = useFavorites();
+  // ── Location ──────────────────────────────────────────────────────────────
+  const [userLocation, setUserLocation] =
+    useState<Location.LocationObjectCoords | null>(null);
 
+  // ── Search / filter ───────────────────────────────────────────────────────
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // ─── Location tracking ────────────────────────────────────────────────────
+  useEffect(() => {
+    let sub: Location.LocationSubscription | undefined;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      sub = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 5000,
+          distanceInterval: 15,
+        },
+        loc => setUserLocation(loc.coords)
+      );
+    })();
+    return () => sub?.remove();
+  }, []);
+
+  // ─── Data fetching ────────────────────────────────────────────────────────
+  const fetchPlaces = useCallback(async () => {
+    const id = ++requestIdRef.current;
+    try {
+      setLoading(true);
+      const catId =
+        selectedCategory !== 'all'
+          ? await getCategoryIdByName(selectedCategory)
+          : null;
+      const data = await getPlacesEnhanced(catId, searchQuery);
+      if (id !== requestIdRef.current) return; // stale request
+      setPlaces(data ?? []);
+      setShowSearchArea(false);
+      // Read region from ref — no reactive dep, so map panning never
+      // recreates this callback or re-triggers useFocusEffect.
+      if (mapRegionRef.current) setLastSearchRegion(mapRegionRef.current);
+    } catch (err) {
+      console.error('fetchPlaces error:', err);
+    } finally {
+      if (id === requestIdRef.current) {
+        setLoading(false);
+        setIsSearchingArea(false);
+      }
+    }
+  }, [selectedCategory, searchQuery]); // mapRegion intentionally omitted
+
+  // Re-fetch when category or search changes (on screen focus)
   useFocusEffect(
     useCallback(() => {
       fetchPlaces();
-    }, [selectedCategory, searchQuery]) // Re-run when either changes
+    }, [fetchPlaces])
   );
 
-  const centerOnUser = () => {
-    if (!userLocation) return;
-
-    centerMap(userLocation.latitude, userLocation.longitude);
-  };
-
-  async function enableTracking() {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      console.warn('Location permission denied');
-      return;
-    }
-
-    const subscription = await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.High,
-        timeInterval: 5000,
-        distanceInterval: 10,
-      },
-      (location) => {
-        console.log(location.coords);
-        setUserLocation(location.coords);
-      }
+  // ─── Map helpers ──────────────────────────────────────────────────────────
+  const centerMap = useCallback((lat: number, lng: number) => {
+    mapRef.current?.animateToRegion(
+      { latitude: lat, longitude: lng, latitudeDelta: 0.006, longitudeDelta: 0.006 },
+      450
     );
-
-    return subscription;
-  }
-
-  useEffect(() => {
-    let sub: Location.LocationSubscription | undefined;
-
-    (async () => {
-      sub = await enableTracking();
-      setTrackingSub(sub ?? null);
-    })();
-
-    return () => {
-      sub?.remove();
-    };
   }, []);
 
-  const fetchPlaces = async () => {
-    const requestId = ++requestIdRef.current;
+  const centerOnUser = useCallback(() => {
+    if (userLocation) centerMap(userLocation.latitude, userLocation.longitude);
+  }, [userLocation, centerMap]);
 
-    try {
-      setLoading(true);
-
-      let categoryId = null;
-      if (selectedCategory !== "all") {
-        categoryId = await getCategoryIdByName(selectedCategory);
+  const onRegionChangeComplete = useCallback(
+    (region: Region) => {
+      mapRegionRef.current = region;
+      if (lastSearchRegion) {
+        const dLat = Math.abs(region.latitude - lastSearchRegion.latitude);
+        const dLng = Math.abs(region.longitude - lastSearchRegion.longitude);
+        if (dLat > 0.003 || dLng > 0.003) setShowSearchArea(true);
+      } else {
+        setLastSearchRegion(region);
       }
+    },
+    [lastSearchRegion]
+  );
 
-      const data = await getPlacesEnhanced(categoryId, searchQuery);
+  // ─── Marker interaction ───────────────────────────────────────────────────
+  /**
+   * When a map pin is tapped:
+   * 1. Update selection
+   * 2. Center the map on the place
+   * 3. Scroll the carousel to the matching card
+   * 4. If the sheet is collapsed, pop it to half so the card is visible
+   */
+  const onMarkerPress = useCallback(
+    (place: PlaceEnhanced) => {
+      Keyboard.dismiss();
+      setSelectedPlace(place);
+      centerMap(place.latitude, place.longitude);
 
-      if (requestId !== requestIdRef.current) return;
+      const idx = places.findIndex(p => p.id === place.id);
+      sheetRef.current?.scrollToIndex(idx);
 
-      if (!data) {
-        setPlaces([]);
-        return;
+      if (sheetState === 'collapsed') {
+        sheetRef.current?.expandToHalf();
       }
+    },
+    [places, sheetState, centerMap]
+  );
 
-      setPlaces(data);
-      setShowSearchArea(false);
-      if (mapRegion) {
-        setLastSearchRegion(mapRegion);
-      }
-    } catch (err) {
-      console.error("Error fetching filtered places: ", err);
-    } finally {
-      setIsSearchingArea(false);
-      setLoading(false);
-    }
-  };
-
-  const centerMap = (latitude: number, longitude: number) => {
-    console.log(`centerMap with coordinates: ${latitude}, ${longitude}`);
-    mapRef.current?.animateToRegion(
-      {
-        latitude,
-        longitude,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      },
-      500
-    );
-  };
-
-  useEffect(() => {
-    if (pendingCenter && mapRef.current) {
-      centerMap(pendingCenter.lat, pendingCenter.lng);
-      setPendingCenter(null);
-    }
-  }, [pendingCenter]);
-
-
-  const onMarkerPress = (place: PlaceEnhanced) => {
-    setPreviewPlace(place);
-    setFloadingCardDisplay(true);
-    centerMap(place.latitude, place.longitude);
-  };
-
-  const onMapPress = () => {
+  const onMapPress = useCallback(() => {
     Keyboard.dismiss();
-    if (previewPlace) {
-      setPreviewPlace(null);
-      setFloadingCardDisplay(false);
-    }
-  };
+    // Tapping the map (not a pin) deselects
+    setSelectedPlace(null);
+  }, []);
 
-  const onRegionChangeComplete = (region: Region) => {
-    setMapRegion(region);
-
-    if (lastSearchRegion) {
-      const latMoved = Math.abs(region.latitude - lastSearchRegion.latitude);
-      const lngMoved = Math.abs(region.longitude - lastSearchRegion.longitude);
-
-      // If we moved more than ~200-300 meters, show the button
-      if (latMoved > 0.003 || lngMoved > 0.003) {
-        setShowSearchArea(true);
-      }
-    } else {
-      setLastSearchRegion(region);
-    }
-  };
-
-  const searchThisArea = () => {
-    setIsSearchingArea(true);
-    fetchPlaces();
-  };
-
-  const ViewToggle = () => (
-    <View style={styles.toggleContainer}>
-      <BlurView
-        intensity={80}
-        tint={isDark ? "dark" : "light"}
-        style={styles.toggleBlur}
-      >
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => setViewMode("map")}
-          style={[styles.toggleItem, viewMode === "map" && styles.toggleItemActive]}
-        >
-          <MaterialIcons name="map" size={20} color={viewMode === "map" ? "#000" : (isDark ? "#fff" : "#000")} />
-          <ThemedText style={[styles.toggleText, viewMode === "map" && styles.toggleTextActive]}>Map</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => setViewMode("list")}
-          style={[styles.toggleItem, viewMode === "list" && styles.toggleItemActive]}
-        >
-          <MaterialIcons name="view-list" size={20} color={viewMode === "list" ? "#000" : (isDark ? "#fff" : "#000")} />
-          <ThemedText style={[styles.toggleText, viewMode === "list" && styles.toggleTextActive]}>List</ThemedText>
-        </TouchableOpacity>
-      </BlurView>
-    </View>
+  /**
+   * Tapping a card navigates to the detail screen.
+   */
+  const onPressCard = useCallback(
+    (place: PlaceEnhanced) => {
+      router.push(`/place/${place.id}`);
+    },
+    [router]
   );
 
   return (
-    <ThemedView style={styles.container}>
-      {/* If detailed view is active, show it fully over everything else */}
-      {/* If detailed view is active, show it fully over everything else */}
-      <>
+    <ThemedView style={styles.root}>
 
-        {/* MAIN CONTENT: MAP OR LIST */}
-        <View style={{ flex: 1 }}>
-          {/* Search Header OVERLAY */}
-          {viewMode === 'map' && (
-            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 }}>
-              {
-                <MapHeader
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  selectedCategory={selectedCategory}
-                  onCategorySelect={setSelectedCategory}
-                  categories={CATEGORIES}
-                />
-              }
-            </View>
-          )}
-          {viewMode === 'list' &&
-            <MapHeader
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              selectedCategory={selectedCategory}
-              onCategorySelect={setSelectedCategory}
-              categories={CATEGORIES}
-            />
-          }
-          {viewMode === "list" ? (
-            <FlatList
-              data={places}
-              keyExtractor={(item) => item.id.toString()}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listContent}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.card}
-                  onPress={() => router.push(`/place/${item.id}`)}
-                  activeOpacity={0.9}
-                >
-                  <View style={{ position: 'relative' }}>
-                    <ImageCarousel
-                      images={item.images?.length > 0 ? item.images.map(img => img.url) : [`https://picsum.photos/400/250?random=${item.id}`]}
-                      height={320}
-                      borderRadius={12}
-                      onPress={(i: number) => {
-                        setGalleryImages(item.images?.length > 0 ? item.images.map(img => img.url) : [`https://picsum.photos/400/250?random=${item.id}`]);
-                        setGalleryIndex(i);
-                        setGalleryVisible(true);
-                      }}
-                    />
-                    {/* Heart Icon Overlay */}
-                    <TouchableOpacity
-                      style={styles.heartOverlay}
-                      onPress={() => toggleFavorite(item.id)}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <MaterialIcons
-                        name={isFavorite(item.id) ? "favorite" : "favorite-border"}
-                        size={26}
-                        color={isFavorite(item.id) ? "#ff4081" : "#fff"}
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.cardContent}>
-                    <View style={styles.cardHeaderRow}>
-                      <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
-                        {item.name}
-                      </ThemedText>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <MaterialIcons name="star" size={14} color={isDark ? "#fff" : "#000"} />
-                        <ThemedText style={{ fontSize: 14 }}>{item.rating_avg.toFixed(1)}</ThemedText>
-                      </View>
-                    </View>
-
-                    <ThemedText style={styles.cardSecondaryText} numberOfLines={1}>
-                      Endorsed by {item.profiles?.full_name || "OutWork"}
-                    </ThemedText>
-                    <ThemedText style={styles.cardSecondaryText} numberOfLines={1}>
-                      {item.description}
-                    </ThemedText>
-                  </View>
-                </TouchableOpacity>
-              )}
-              keyboardShouldPersistTaps="handled"
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <MaterialIcons name="place" size={48} color={BRAND_BLUE} />
-                  <ThemedText style={styles.emptyText}>
-                    No places found
-                  </ThemedText>
-                </View>
-              }
-            />
-          ) : (
-            <View style={{ flex: 1 }}>
-              <MapView
-                ref={mapRef}
-                provider={PROVIDER_DEFAULT}
-                style={StyleSheet.absoluteFill}
-                showsUserLocation
-                onPress={onMapPress}
-                onRegionChangeComplete={onRegionChangeComplete}
-                initialRegion={{
-                  latitude: 37.9838, // Default to Greece (Athens)
-                  longitude: 23.7275,
-                  latitudeDelta: 0.05,
-                  longitudeDelta: 0.05,
-                }}
-              >
-                {places.map((place) => (
-                  <MapMarker
-                    key={place.id}
-                    place={place}
-                    isSelected={previewPlace?.id === place.id}
-                    isFavorite={isFavorite(place.id)}
-                    onPress={onMarkerPress}
-                  />
-                ))}
-              </MapView>
-
-              {/* Center on User Button — must be outside MapView (not a valid map overlay) */}
-              {userLocation && (
-                <TouchableOpacity
-                  onPress={centerOnUser}
-                  activeOpacity={0.85}
-                  style={styles.centerUserButton}
-                >
-                  <MaterialIcons name="my-location" size={22} color="#000" />
-                </TouchableOpacity>
-              )}
-
-              {/* Search Area Button */}
-              {showSearchArea && !loading && !floatingCardDisplay && (
-                <View style={styles.searchAreaButtonContainer}>
-                  <BlurView
-                    intensity={80}
-                    tint={isDark ? "dark" : "light"}
-                    style={styles.searchAreaBlur}
-                  >
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      onPress={searchThisArea}
-                      style={styles.searchAreaButton}
-                    >
-                      {isSearchingArea ? (
-                        <ThemedText style={styles.searchAreaButtonText}>Searching...</ThemedText>
-                      ) : (
-                        <>
-                          <MaterialIcons name="refresh" size={18} color={isDark ? "#fff" : BRAND_BLUE} />
-                          <ThemedText style={[styles.searchAreaButtonText, { color: isDark ? "#fff" : BRAND_BLUE }]}>Search this area</ThemedText>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  </BlurView>
-                </View>
-              )}
-
-              {/* Updating Indicator (Airbnb style) */}
-              {isSearchingArea && (
-                <View style={styles.updatingIndicator}>
-                  <BlurView intensity={60} tint={isDark ? "dark" : "light"} style={styles.updatingBlur}>
-                    <ThemedText style={{ fontSize: 13, fontWeight: '600' }}>Updating...</ThemedText>
-                  </BlurView>
-                </View>
-              )}
-
-              {/* Floating Preview Card */}
-              {floatingCardDisplay && (
-                <FloatingCard
-                  selectedPlace={previewPlace}
-                  onPressCard={() => previewPlace && router.push(`/place/${previewPlace.id}`)}
-                  onClose={() => {
-                    setFloadingCardDisplay(false);
-                    setPreviewPlace(null);
-                  }}
-                />
-              )}
-            </View>
-          )}
-
-          {/* View Toggle (Map/List) */}
-          {!previewPlace && <ViewToggle />}
-
-          <FullscreenGallery
-            visible={galleryVisible}
-            images={galleryImages}
-            initialIndex={galleryIndex}
-            onRequestClose={() => setGalleryVisible(false)}
+        {/* ── Search header — floats above the map ── */}
+        <View style={styles.headerOverlay} pointerEvents="box-none">
+          <MapHeader
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            selectedCategory={selectedCategory}
+            onCategorySelect={setSelectedCategory}
+            categories={CATEGORIES}
           />
-
         </View>
-      </>
 
-    </ThemedView>
+        {/* ── Fullscreen map ── */}
+        <MapView
+          ref={mapRef}
+          provider={PROVIDER_DEFAULT}
+          style={StyleSheet.absoluteFill}
+          showsUserLocation
+          showsMyLocationButton={false}
+          onPress={onMapPress}
+          onRegionChangeComplete={onRegionChangeComplete}
+          initialRegion={DEFAULT_REGION}
+        >
+          {places.map(place => (
+            <MapMarker
+              key={place.id}
+              place={place}
+              isSelected={selectedPlace?.id === place.id}
+              isFavorite={isFavorite(place.id)}
+              onPress={onMarkerPress}
+            />
+          ))}
+        </MapView>
+
+        {/* ── Re-center on user button ── */}
+        {userLocation && (
+          <TouchableOpacity
+            style={styles.recenterBtn}
+            onPress={centerOnUser}
+            activeOpacity={0.85}
+          >
+            <MaterialIcons name="my-location" size={22} color={isDark ? '#fff' : '#111'} />
+          </TouchableOpacity>
+        )}
+
+        {/* ── "Search this area" button — shown when map has panned ── */}
+        {showSearchArea && !loading && sheetState !== 'full' && (
+          <View style={styles.searchAreaWrap}>
+            <BlurView
+              intensity={80}
+              tint={isDark ? 'dark' : 'light'}
+              style={styles.searchAreaBlur}
+            >
+              <TouchableOpacity
+                style={styles.searchAreaBtn}
+                onPress={() => {
+                  setIsSearchingArea(true);
+                  fetchPlaces();
+                }}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons
+                  name={isSearchingArea ? 'hourglass-empty' : 'refresh'}
+                  size={16}
+                  color={isDark ? '#fff' : BRAND_BLUE}
+                />
+              </TouchableOpacity>
+            </BlurView>
+          </View>
+        )}
+
+        {/* ── Airbnb-style bottom sheet ── */}
+        <AirbnbBottomSheet
+          ref={sheetRef}
+          places={places}
+          selectedPlace={selectedPlace}
+          sheetState={sheetState}
+          onSheetStateChange={setSheetState}
+          onPressCard={onPressCard}
+        />
+
+      </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
   },
 
-  // List
-  listContent: {
-    padding: 20,
-    paddingTop: 24,
-    paddingBottom: 100,
-  },
-  card: {
-    marginBottom: 40,
-    gap: 0,
-  },
-  cardContent: {
-    marginTop: 12,
-    gap: 2,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  cardSecondaryText: {
-    fontSize: 15,
-    opacity: 0.6,
-  },
-  heartOverlay: {
+  // Search header sits above the map
+  headerOverlay: {
     position: 'absolute',
-    top: 16,
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+  },
+
+  // Recenter button (bottom-right, above the sheet)
+  recenterBtn: {
+    position: 'absolute',
     right: 16,
-    zIndex: 5,
-  },
-
-  // Toggle
-  toggleContainer: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 100 : 100,
-    alignSelf: 'center',
-    zIndex: 1000,
-    borderRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 10,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-  },
-  toggleBlur: {
-    flexDirection: 'row',
-    padding: 4,
-  },
-  toggleItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 24,
-    gap: 8,
-  },
-  toggleItemActive: {
-    backgroundColor: isDark ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.9)',
-  },
-  toggleText: {
-    color: isDark ? '#fff' : '#000',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  toggleTextActive: {
-    color: '#000',
-  },
-
-  mapPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  mapMarkerText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 60,
-    opacity: 0.5,
-  },
-  emptyText: {
-    marginTop: 12,
-    fontSize: 16,
-  },
-  centerUserButton: {
-    position: 'absolute',
-    bottom: 220,        // Above toggle & preview card
-    right: 20,
+    bottom: Platform.OS === 'ios' ? 320 : 300,
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#fff',
+    backgroundColor: isDark ? '#2c2c2e' : '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
     elevation: 6,
     zIndex: 200,
   },
-  searchAreaButtonContainer: {
+
+  // "Search this area" pill
+  searchAreaWrap: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 160 : 160, // Above the Map/List switch (which is at 100)
+    bottom: Platform.OS === 'ios' ? 375 : 355,
     alignSelf: 'center',
-    zIndex: 1000,
-    borderRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 10,
+    zIndex: 200,
+    borderRadius: 22,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 8,
     borderWidth: 1,
     borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
   },
   searchAreaBlur: {
     padding: 2,
   },
-  searchAreaButton: {
+  searchAreaBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 28,
-    gap: 8,
-  },
-  searchAreaButtonText: {
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  updatingIndicator: {
-    position: 'absolute',
-    top: 130, // Keep updating indicator at the top for visibility
-    alignSelf: 'center',
-    zIndex: 1001,
-  },
-  updatingBlur: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
     borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+    gap: 6,
   },
 });

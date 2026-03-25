@@ -17,6 +17,7 @@ export type PlaceEnhanced = Place & {
   images: { url: string }[];
   reviews?: any[];
   profiles?: { full_name: string };
+  places_categories?: { categories: { name: string } | null }[];
 };
 
 export interface CreatePlaceInput {
@@ -133,6 +134,7 @@ export async function getPlacesEnhanced(categoryId?: number | null, query?: stri
     .select(`
       *,
       images(*),
+      places_categories(categories(name)),
       profiles(full_name)
     `);
 
@@ -142,7 +144,7 @@ export async function getPlacesEnhanced(categoryId?: number | null, query?: stri
       .select(`
         *,
         images(*),
-        places_categories!inner(*),
+        places_categories!inner(categories(name)),
         profiles(full_name)
       `)
       .eq("places_categories.category_id", categoryId);
@@ -169,6 +171,7 @@ export async function getPlaceEnhancedById(placeId: number): Promise<PlaceEnhanc
     .select(`
       *,
       images(*),
+      places_categories(categories(name)),
       profiles(full_name)
     `)
     .eq('id', placeId)
@@ -179,4 +182,26 @@ export async function getPlaceEnhancedById(placeId: number): Promise<PlaceEnhanc
     return null;
   }
   return data;
+}
+
+/** Fetch up to `limit` approved places excluding `excludeId` for the "Similar places" row. */
+export async function getSimilarPlaces(excludeId: number, limit = 6): Promise<PlaceEnhanced[]> {
+  const { data, error } = await supabase
+    .from('places')
+    .select(`
+      *,
+      images(*),
+      places_categories(categories(name)),
+      profiles(full_name)
+    `)
+    .eq('approved', true)
+    .neq('id', excludeId)
+    .order('rating_avg', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Error fetching similar places:', error);
+    return [];
+  }
+  return data ?? [];
 }
