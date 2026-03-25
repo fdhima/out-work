@@ -365,7 +365,7 @@ export default function ProfileScreen() {
             >
               <ThemedText style={styles.deleteAccountText}>Delete Account</ThemedText>
             </TouchableOpacity>
-            <ThemedText style={styles.versionText}>Version 1.0.0</ThemedText>
+            <ThemedText style={styles.versionText}>Version 1.0.1</ThemedText>
           </Animated.View>
 
 
