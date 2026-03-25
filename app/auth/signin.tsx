@@ -9,7 +9,6 @@ import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
 import * as Haptics from 'expo-haptics';
-import { BlurView } from 'expo-blur';
 import {
   ActivityIndicator,
   Platform,
@@ -153,15 +152,11 @@ export default function AuthScreen() {
           style={styles.content}
         >
           <View style={styles.header}>
-            <View style={styles.logoGlassContainer}>
-              <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.logoBlur}>
-                <Image
-                  source={require("../../assets/images/outwork-logo-standalone.png")}
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                />
-              </BlurView>
-            </View>
+            <Image
+              source={require("../../assets/images/outwork-logo-standalone.png")}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
 
             <View style={styles.titleWrapper}>
               <ThemedText style={styles.title}>OutWork</ThemedText>
@@ -234,28 +229,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  logoGlassContainer: {
-    marginBottom: 32,
-    borderRadius: 35,
-    overflow: 'hidden',
-    shadowColor: "#4A90E2",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
-    backgroundColor: 'rgba(255,255,255,0.1)', // Subtle backing
-    transform: [{ rotate: '-6deg' }], // Slight stylish tilt
-  },
-  logoBlur: {
-    width: 130,
-    height: 130,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
   logoImage: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
+    marginBottom: 32,
   },
   titleWrapper: {
     alignItems: 'center',
