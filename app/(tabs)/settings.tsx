@@ -406,9 +406,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.05)',
+    overflow: 'visible',
   },
   avatarEmojiText: {
-    fontSize: 64,
+    fontSize: 60,
+    lineHeight: 70,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   headerTitle: {
     fontSize: 26,
