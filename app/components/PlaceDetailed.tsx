@@ -109,7 +109,7 @@ const CATEGORY_META: Record<string, { label: string; icon: string }> = {
   meeting:          { label: 'Meeting',        icon: 'groups'      },
   late_night:       { label: 'Late Night',     icon: 'nightlight'  },
   fast_wifi:        { label: 'Fast Wifi',      icon: 'wifi'        },
-  socket_friendly:  { label: 'Plugs',          icon: 'power'       },
+  socket_friendly:  { label: 'Socket Friendly',          icon: 'power'       },
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────

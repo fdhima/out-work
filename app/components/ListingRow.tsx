@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { PlaceEnhanced } from '@/services/places';
+import { CATEGORIES } from '@/constants/theme';
 
 type Props = {
   place: PlaceEnhanced;
@@ -27,8 +28,12 @@ function ListingRow({ place, isSelected, onPress }: Props) {
     `https://picsum.photos/400/250?random=${place.id}`;
 
   const categories = place.places_categories
-    ?.map(pc => pc.categories?.name)
-    .filter(Boolean) as string[] | undefined;
+    ?.map(pc => {
+      const name = pc.categories?.name;
+      if (!name) return null;
+      return CATEGORIES.find(c => c.id === name) ?? null;
+    })
+    .filter(Boolean) as { id: string; label: string; icon: string }[] | undefined;
 
   return (
     <TouchableOpacity
@@ -80,7 +85,7 @@ function ListingRow({ place, isSelected, onPress }: Props) {
             style={[styles.categories, { color: isDark ? '#888' : '#666' }]}
             numberOfLines={1}
           >
-            {categories.join(' · ')}
+            {categories.map(c => c.label).join(' · ')}
           </Text>
         )}
       </View>

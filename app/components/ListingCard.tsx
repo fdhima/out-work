@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { PlaceEnhanced } from '@/services/places';
+import { CATEGORIES } from '@/constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -44,8 +45,12 @@ function ListingCard({ place, isSelected, onPress, vertical = false }: Props) {
     `https://picsum.photos/400/250?random=${place.id}`;
 
   const categories = place.places_categories
-    ?.map(pc => pc.categories?.name)
-    .filter(Boolean) as string[] | undefined;
+    ?.map(pc => {
+      const name = pc.categories?.name;
+      if (!name) return null;
+      return CATEGORIES.find(c => c.id === name) ?? null;
+    })
+    .filter(Boolean) as { id: string; label: string; icon: string }[] | undefined;
 
   return (
     <TouchableOpacity
@@ -108,13 +113,18 @@ function ListingCard({ place, isSelected, onPress, vertical = false }: Props) {
                   },
                 ]}
               >
+                <MaterialIcons
+                  name={cat.icon as any}
+                  size={11}
+                  color={isDark ? '#ddd' : '#444'}
+                />
                 <Text
                   style={[
                     styles.categoryText,
                     { color: isDark ? '#ddd' : '#444' },
                   ]}
                 >
-                  {cat}
+                  {cat.label}
                 </Text>
               </View>
             ))}
@@ -192,6 +202,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
