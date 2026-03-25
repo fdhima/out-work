@@ -3,31 +3,30 @@ import { BRAND_BLUE } from '@/constants/theme'
 import { useAuth } from '@/context/AuthContext'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useThemeColor } from '@/hooks/use-theme-color'
-import { supabase } from '@/lib/supabase'
-import { getProfileById, updateProfile } from '@/services/profiles'
+// import { supabase } from '@/lib/supabase'
+// import { updateProfile } from '@/services/profiles'
+import { getProfileById } from '@/services/profiles'
 import { getUserId } from '@/services/users'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import { BlurView } from 'expo-blur'
-import { File } from 'expo-file-system'
+// import { File } from 'expo-file-system'
 import * as Haptics from 'expo-haptics'
-import * as ImagePicker from 'expo-image-picker'
+// import * as ImagePicker from 'expo-image-picker'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  Switch,
   TextInput,
   TouchableOpacity,
   View,
   Linking
 } from 'react-native'
-import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated'
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
 
 export default function ProfileScreen() {
   const { session, signOut } = useAuth()
@@ -49,7 +48,7 @@ export default function ProfileScreen() {
   const [profileLoading, setProfileLoading] = useState(true)
   const [fullName, setFullName] = useState('')
   const [email] = useState(session?.user?.email || '')
-  const [avatarUrl, setAvatarUrl] = useState('')
+  // const [avatarUrl, setAvatarUrl] = useState('')
 
 
 
@@ -64,7 +63,7 @@ export default function ProfileScreen() {
       if (userId) {
         const profile = await getProfileById(userId);
         setFullName(profile?.full_name ?? '')
-        setAvatarUrl(profile?.avatar_url ?? '');
+        // setAvatarUrl(profile?.avatar_url ?? '')
       }
     } catch (e) {
       console.error(e)
@@ -73,61 +72,61 @@ export default function ProfileScreen() {
     }
   }
 
-  const pickAvatar = async () => {
-    if (loading) return
-    Haptics.selectionAsync()
+  // const pickAvatar = async () => {
+  //   if (loading) return
+  //   Haptics.selectionAsync()
+  //
+  //   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+  //   if (status !== 'granted') {
+  //     Alert.alert('Permission required', 'Please allow photo access')
+  //     return
+  //   }
+  //
+  //   const result = await ImagePicker.launchImageLibraryAsync({
+  //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
+  //     allowsEditing: true,
+  //     aspect: [1, 1],
+  //     quality: 0.8,
+  //   })
+  //
+  //   if (!result.canceled) {
+  //     await uploadAvatar(result.assets[0].uri)
+  //   }
+  // }
 
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
-    if (status !== 'granted') {
-      Alert.alert('Permission required', 'Please allow photo access')
-      return
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    })
-
-    if (!result.canceled) {
-      await uploadAvatar(result.assets[0].uri)
-    }
-  }
-
-  const uploadAvatar = async (uri: string) => {
-    try {
-      setLoading(true)
-      const userId = await getUserId()
-      if (!userId) throw new Error('No user found')
-
-      const file = new File(uri)
-      const arrayBuffer = await file.arrayBuffer()
-      const bytes = new Uint8Array(arrayBuffer)
-      const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg'
-      const filePath = `${userId}-avatar.${ext}`
-      const mimeType = ext === 'jpg' ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : `image/${ext}`
-
-      const { error } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, bytes, { contentType: mimeType, upsert: true })
-
-      if (error) throw error
-
-      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
-      const finalUrl = data.publicUrl
-
-      await updateProfile(userId, { avatar_url: finalUrl, updated_at: new Date().toISOString() })
-      setAvatarUrl(finalUrl)
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-
-    } catch (err: any) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
-      Alert.alert('Error', err?.message || 'Failed to upload avatar')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // const uploadAvatar = async (uri: string) => {
+  //   try {
+  //     setLoading(true)
+  //     const userId = await getUserId()
+  //     if (!userId) throw new Error('No user found')
+  //
+  //     const file = new File(uri)
+  //     const arrayBuffer = await file.arrayBuffer()
+  //     const bytes = new Uint8Array(arrayBuffer)
+  //     const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg'
+  //     const filePath = `${userId}-avatar.${ext}`
+  //     const mimeType = ext === 'jpg' ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : `image/${ext}`
+  //
+  //     const { error } = await supabase.storage
+  //       .from('avatars')
+  //       .upload(filePath, bytes, { contentType: mimeType, upsert: true })
+  //
+  //     if (error) throw error
+  //
+  //     const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
+  //     const finalUrl = data.publicUrl
+  //
+  //     await updateProfile(userId, { avatar_url: finalUrl, updated_at: new Date().toISOString() })
+  //     setAvatarUrl(finalUrl)
+  //     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+  //
+  //   } catch (err: any) {
+  //     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+  //     Alert.alert('Error', err?.message || 'Failed to upload avatar')
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
 
   const handleDeleteAccount = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
@@ -281,22 +280,13 @@ export default function ProfileScreen() {
         >
           {/* Header */}
           <Animated.View entering={FadeInUp.springify()} style={styles.header}>
-            <TouchableOpacity
-              onPress={pickAvatar}
-              activeOpacity={0.8}
-              style={styles.avatarWrapper}
-            >
-              <Image
-                source={{ uri: avatarUrl || 'https://via.placeholder.com/150' }}
-                style={styles.avatar}
-                resizeMode="cover"
-              />
-              <BlurView intensity={40} tint="dark" style={styles.editIconBlur}>
-                <MaterialIcons name="camera-alt" size={16} color="#fff" />
-              </BlurView>
-            </TouchableOpacity>
+            <View style={styles.avatarWrapper}>
+              <View style={styles.avatarEmoji}>
+                <ThemedText style={styles.avatarEmojiText}>🙃</ThemedText>
+              </View>
+            </View>
 
-            <ThemedText type="title" style={styles.headerTitle}>{fullName || 'Display Name'}</ThemedText>
+            <ThemedText style={styles.headerTitle}>{fullName || 'Display Name'}</ThemedText>
             <ThemedText style={styles.headerSubtitle}>{email}</ThemedText>
           </Animated.View>
 
@@ -306,6 +296,7 @@ export default function ProfileScreen() {
               label="Display Name"
               value={fullName}
               onChangeText={setFullName}
+              icon="person"
               readOnly
               placeholder="Your Name"
             />
@@ -318,23 +309,7 @@ export default function ProfileScreen() {
             />
           </SettingsGroup>
 
-          <SettingsGroup title="Preferences" delay={200}>
-            <SettingsItem
-              label="Dark Mode"
-              icon="dark-mode"
-              isLast
-              rightElement={
-                <Switch
-                  value={isDark}
-                  disabled // System controlled for now
-                  trackColor={{ false: "#767577", true: BRAND_BLUE }}
-                  thumbColor={"#f4f3f4"}
-                />
-              }
-            />
-          </SettingsGroup>
-
-          <SettingsGroup title="Support" delay={300}>
+          <SettingsGroup title="Support" delay={200}>
             <SettingsItem
               label="Help & FAQ"
               icon="help"
@@ -424,25 +399,16 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  avatar: {
+  avatarEmoji: {
     width: 110,
     height: 110,
     borderRadius: 55,
-    borderWidth: 4,
-    borderColor: '#fff',
-  },
-  editIconBlur: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  avatarEmojiText: {
+    fontSize: 64,
   },
   headerTitle: {
     fontSize: 26,
