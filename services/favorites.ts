@@ -21,7 +21,7 @@ export async function addFavoriteApi(placeId: number) {
         .from('favorites')
         .insert({
             place_id: placeId,
-            user_id: user.id
+            profile_id: user.id
         });
 
     if (error) throw error;
@@ -35,7 +35,7 @@ export async function removeFavoriteApi(placeId: number) {
         .from('favorites')
         .delete()
         .eq('place_id', placeId)
-        .eq('user_id', user.id);
+        .eq('profile_id', user.id);
 
     if (error) throw error;
 }
