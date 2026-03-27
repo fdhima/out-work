@@ -16,8 +16,10 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { PlaceEnhanced } from '@/services/places';
 import { getOpenStatus } from '@/utils/workingHours';
+import { getDistance, formatDistance } from '@/utils/location';
 
 const CAROUSEL_HEIGHT = 210;
 const DOT_SIZE = 6;
@@ -48,9 +50,10 @@ function AnimatedDot({
 type Props = {
   place: PlaceEnhanced;
   onPress: () => void;
+  userLocation?: Location.LocationObjectCoords | null;
 };
 
-function ListingCardDetailed({ place, onPress }: Props) {
+function ListingCardDetailed({ place, onPress, userLocation }: Props) {
   const images = place.images?.map(i => i.url) ?? [];
   const carouselImages = images.length > 0
     ? images
@@ -62,6 +65,15 @@ function ListingCardDetailed({ place, onPress }: Props) {
   const reviewCount = place.reviews?.length ?? 0;
   const rating = place.rating_avg ?? 0;
   const openStatus = getOpenStatus(place.working_hours);
+
+  const distance = userLocation 
+    ? getDistance(
+        userLocation.latitude, 
+        userLocation.longitude, 
+        place.latitude, 
+        place.longitude
+      )
+    : null;
 
   // Shared value tracks raw scroll offset on the UI thread
   const scrollX = useSharedValue(0);
@@ -132,6 +144,12 @@ function ListingCardDetailed({ place, onPress }: Props) {
             {place.name}
           </Text>
           <View style={styles.ratingRow}>
+            {distance !== null && (
+              <>
+                <Text style={styles.distanceText}>{formatDistance(distance)}</Text>
+                <Text style={styles.dot}>·</Text>
+              </>
+            )}
             <MaterialIcons name="star" size={14} color="#FFD700" />
             <Text style={styles.ratingText}>
               {rating > 0 ? rating.toFixed(1) : '—'}
@@ -247,6 +265,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#ebebf5',
+  },
+  distanceText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8e8e93',
+  },
+  dot: {
+    fontSize: 13,
+    color: '#8e8e93',
+    marginHorizontal: 1,
   },
   openStatus: {
     fontSize: 13,

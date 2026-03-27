@@ -137,7 +137,8 @@ export async function getPlacesEnhanced(categoryId?: number | null, query?: stri
       *,
       images(*),
       places_categories(categories(name)),
-      profiles(full_name)
+      profiles(full_name),
+      reviews(*)
     `);
 
   // Logic: Only apply category filter if categoryId is provided and not "all"
@@ -147,7 +148,8 @@ export async function getPlacesEnhanced(categoryId?: number | null, query?: stri
         *,
         images(*),
         places_categories!inner(categories(name)),
-        profiles(full_name)
+        profiles(full_name),
+        reviews(*)
       `)
       .eq("places_categories.category_id", categoryId);
   }
@@ -174,7 +176,8 @@ export async function getPlaceEnhancedById(placeId: number): Promise<PlaceEnhanc
       *,
       images(*),
       places_categories(categories(name)),
-      profiles(full_name)
+      profiles(full_name),
+      reviews(*)
     `)
     .eq('id', placeId)
     .single();
@@ -194,7 +197,8 @@ export async function getPlacesEnhancedByIds(ids: number[]): Promise<PlaceEnhanc
       *,
       images(*),
       places_categories(categories(name)),
-      profiles(full_name)
+      profiles(full_name),
+      reviews(*)
     `)
     .in('id', ids);
   if (error) {
@@ -212,7 +216,8 @@ export async function getSimilarPlaces(excludeId: number, limit = 6): Promise<Pl
       *,
       images(*),
       places_categories(categories(name)),
-      profiles(full_name)
+      profiles(full_name),
+      reviews(*)
     `)
     .eq('approved', true)
     .neq('id', excludeId)

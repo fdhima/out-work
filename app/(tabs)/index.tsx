@@ -364,12 +364,14 @@ export default function HomeScreen() {
           selectedCategory={selectedCategory}
           onCategoryChange={setSelectedCategory}
           categories={CATEGORIES}
+          userLocation={userLocation}
         />
 
         {/* ── Floating place-preview card (shown when a marker is selected) ── */}
         <FloatingCard
           selectedPlace={selectedPlace}
           onPressCard={onPressCard}
+          userLocation={userLocation}
         />
 
       </ThemedView>

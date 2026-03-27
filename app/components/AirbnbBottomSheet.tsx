@@ -25,6 +25,7 @@ import Animated2, {
   withSpring,
 } from 'react-native-reanimated';
 import { PlaceEnhanced } from '@/services/places';
+import * as Location from 'expo-location';
 import ListingCardDetailed, { DETAILED_CARD_HEIGHT } from './ListingCardDetailed';
 import { ThemedText } from '@/components/themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -73,6 +74,7 @@ type Props = {
   selectedCategory: string;
   onCategoryChange: (id: string) => void;
   categories: Category[];
+  userLocation?: Location.LocationObjectCoords | null;
 };
 
 // ─── Scale-press pill ─────────────────────────────────────────────────────────
@@ -126,6 +128,7 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
       selectedCategory,
       onCategoryChange,
       categories,
+      userLocation,
     },
     ref
   ) => {
@@ -239,9 +242,13 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
     // ── List rendering ────────────────────────────────────────────────────────
     const renderCard = useCallback(
       ({ item }: { item: PlaceEnhanced }) => (
-        <ListingCardDetailed place={item} onPress={() => onPressCard(item)} />
+        <ListingCardDetailed 
+          place={item} 
+          onPress={() => onPressCard(item)} 
+          userLocation={userLocation}
+        />
       ),
-      [onPressCard]
+      [onPressCard, userLocation]
     );
 
     const VERTICAL_ITEM_HEIGHT = DETAILED_CARD_HEIGHT + 16;

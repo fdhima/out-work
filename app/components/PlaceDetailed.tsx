@@ -49,6 +49,8 @@ import {
   getSimilarPlaces,
 } from '@/services/places';
 import { useRouter } from 'expo-router';
+import * as Location from 'expo-location';
+import { getDistance, formatDistance } from '@/utils/location';
 import { getReviewsByPlaceId, Review } from '@/services/reviews';
 import { addCrowdReport, getCrowdStats, CrowdStats } from '@/services/crowd';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -120,6 +122,7 @@ type Props = {
   onClose: () => void;
   refreshing?: boolean;
   onRefresh?: () => void;
+  userLocation?: Location.LocationObjectCoords | null;
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -431,7 +434,7 @@ function SimilarPlaceCard({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRefresh }: Props) {
+export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRefresh, userLocation }: Props) {
   const isDark = (useColorScheme() ?? 'light') === 'dark';
   const { isFavorite, toggleFavorite } = useFavorites();
   const liked = isFavorite(selectedPlace.id);
@@ -505,6 +508,15 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
       .filter(Boolean) as string[] ?? [],
     [selectedPlace]
   );
+
+  const distance = userLocation
+    ? getDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        selectedPlace.latitude,
+        selectedPlace.longitude
+      )
+    : null;
 
   // ── Effects ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -728,6 +740,14 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
 
           {/* Rating row */}
           <View style={styles.ratingRow}>
+            {distance !== null && (
+              <>
+                <Text style={[styles.ratingText, { color: BRAND_BLUE }]}>
+                  {formatDistance(distance)} away
+                </Text>
+                <Text style={[styles.ratingDot, { color: textSecondary }]}>·</Text>
+              </>
+            )}
             <MaterialIcons name="star" size={15} color="#FF6B35" />
             <Text style={[styles.ratingText, { color: textPrimary }]}>
               {selectedPlace.rating_avg.toFixed(2)}

@@ -1,6 +1,8 @@
 import { ThemedText } from "@/components/themed-text";
 import { CATEGORIES } from "@/constants/theme";
 import { PlaceEnhanced } from "@/services/places";
+import * as Location from 'expo-location';
+import { getDistance, formatDistance } from "@/utils/location";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
@@ -27,9 +29,10 @@ const IMAGE_HEIGHT = Math.round(CARD_WIDTH * 0.48);
 type FloatingCardProps = {
   selectedPlace: PlaceEnhanced | null;
   onPressCard: (place: PlaceEnhanced) => void;
+  userLocation?: Location.LocationObjectCoords | null;
 };
 
-export function FloatingCard({ selectedPlace, onPressCard }: FloatingCardProps) {
+export function FloatingCard({ selectedPlace, onPressCard, userLocation }: FloatingCardProps) {
   const isDark = (useColorScheme() ?? "light") === "dark";
 
   // Keep last known place so content stays visible during exit animation.
@@ -46,6 +49,15 @@ export function FloatingCard({ selectedPlace, onPressCard }: FloatingCardProps) 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
+
+  const distance = userLocation && place
+    ? getDistance(
+        userLocation.latitude, 
+        userLocation.longitude, 
+        place.latitude, 
+        place.longitude
+      )
+    : null;
 
   if (!place) return null;
 
@@ -87,6 +99,14 @@ export function FloatingCard({ selectedPlace, onPressCard }: FloatingCardProps) 
               {place.name}
             </ThemedText>
             <View style={styles.ratingPill}>
+              {distance !== null && (
+                <>
+                  <Text style={[styles.distanceText, { color: isDark ? "#8e8e93" : "#666" }]}>
+                    {formatDistance(distance)}
+                  </Text>
+                  <Text style={[styles.dot, { color: isDark ? "#8e8e93" : "#666" }]}>·</Text>
+                </>
+              )}
               <MaterialIcons name="star" size={13} color={isDark ? "#FFD700" : "#FFB400"} />
               <ThemedText style={styles.ratingText}>
                 {place.rating_avg.toFixed(2)}
@@ -176,6 +196,14 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 13,
     fontWeight: "600",
+  },
+  distanceText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  dot: {
+    fontSize: 13,
+    marginHorizontal: 1,
   },
   endorser: {
     fontSize: 13,

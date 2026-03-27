@@ -1,5 +1,6 @@
 import { PlaceDetailed } from '../components/PlaceDetailed';
 import { getPlaceEnhancedById, PlaceEnhanced } from '@/services/places';
+import * as Location from 'expo-location';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -94,6 +95,24 @@ export default function PlaceScreen() {
   const [place, setPlace] = useState<PlaceEnhanced | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
+
+  useEffect(() => {
+    let sub: Location.LocationSubscription | undefined;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      sub = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 5000,
+          distanceInterval: 15,
+        },
+        loc => setUserLocation(loc.coords)
+      );
+    })();
+    return () => sub?.remove();
+  }, []);
 
   const fetchPlace = useCallback(async () => {
     if (!id) return;
@@ -135,6 +154,7 @@ export default function PlaceScreen() {
           onClose={() => router.back()}
           refreshing={refreshing}
           onRefresh={handleRefresh}
+          userLocation={userLocation}
         />
       )}
     </ThemedView>
