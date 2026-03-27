@@ -95,9 +95,9 @@ export function FloatingCard({ selectedPlace, onPressCard }: FloatingCardProps) 
           </View>
 
           {/* Endorser */}
-          <Text style={[styles.endorser, { color: isDark ? "#aaa" : "#666" }]} numberOfLines={1}>
+          {/* <Text style={[styles.endorser, { color: isDark ? "#aaa" : "#666" }]} numberOfLines={1}>
             Endorsed by {place.profiles?.full_name ?? "OutWork"}
-          </Text>
+          </Text> */}
 
           {/* Category pills — same style as ListingCard */}
           {categories && categories.length > 0 && (

@@ -34,11 +34,12 @@ import {
   Dimensions,
   FlatList,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   View,
-  useColorScheme,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -49,7 +50,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { PlaceEnhanced } from '@/services/places';
-import ListingCard, { CARD_WIDTH, CARD_GAP } from './ListingCard';
+import ListingCardDetailed, { DETAILED_CARD_HEIGHT } from './ListingCardDetailed';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -91,6 +92,8 @@ const SNAP_COLLAPSED = SCREEN_HEIGHT - TAB_BAR_HEIGHT - 60;
 const SNAP_HIDDEN = SCREEN_HEIGHT + 50;
 
 const SPRING = { damping: 22, stiffness: 180, mass: 0.8 };
+
+const FILTER_PILLS = ['Sort by', 'Open Now', 'Top Rated', 'Cafe'];
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -140,9 +143,7 @@ function nearestSnap(y: number): { snapY: number; state: SheetState } {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
-  ({ places, selectedPlace, sheetState, onSheetStateChange, onPressCard }, ref) => {
-    const isDark = (useColorScheme() ?? 'light') === 'dark';
-
+  ({ places, selectedPlace: _selectedPlace, sheetState, onSheetStateChange, onPressCard }, ref) => {
     // ── Animation state ──────────────────────────────────────────────────────
     const translateY = useSharedValue(SNAP_HALF);
     const savedY = useSharedValue(SNAP_HALF);
@@ -234,22 +235,19 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
     // ── List rendering ────────────────────────────────────────────────────────
     const renderCard = useCallback(
       ({ item }: { item: PlaceEnhanced }) => (
-        <ListingCard
+        <ListingCardDetailed
           place={item}
-          isSelected={selectedPlace?.id === item.id}
           onPress={() => onPressCard(item)}
-          vertical
         />
       ),
-      [selectedPlace, onPressCard]
+      [onPressCard]
     );
 
     /**
      * getItemLayout is required for reliable scrollToIndex on large lists.
-     * VERTICAL_ITEM_HEIGHT must match the rendered height of ListingCard in
-     * vertical mode (image 160 + body ~80 + marginBottom 16 = 256).
+     * VERTICAL_ITEM_HEIGHT = card height + gap between items.
      */
-    const VERTICAL_ITEM_HEIGHT = 256;
+    const VERTICAL_ITEM_HEIGHT = DETAILED_CARD_HEIGHT + 16;
     const getItemLayout = useCallback(
       (_: unknown, index: number) => ({
         length: VERTICAL_ITEM_HEIGHT,
@@ -259,8 +257,8 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
       []
     );
 
-    const bgColor = isDark ? '#1c1c1e' : '#ffffff';
-    const handleColor = isDark ? '#48484a' : '#d1d1d6';
+    const bgColor = '#111111';
+    const handleColor = '#48484a';
 
     return (
       <>
@@ -282,11 +280,27 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
           <GestureDetector gesture={gesture}>
             <View style={styles.handleArea}>
               <View style={[styles.handle, { backgroundColor: handleColor }]} />
-              {sheetState === 'full' && (
-                <Text style={[styles.countLabel, { color: isDark ? '#ebebf5' : '#3c3c43' }]}>
-                  {places.length} {places.length === 1 ? 'place' : 'places'} found
-                </Text>
-              )}
+              {/* Heading */}
+              <Text style={styles.heading}>Desks in Athens</Text>
+              {/* Filter row */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filtersRow}
+              >
+                {/* Filter icon */}
+                <View style={styles.filterIconWrap}>
+                  <MaterialIcons name="filter-list" size={18} color="#fff" />
+                </View>
+                {FILTER_PILLS.map(pill => (
+                  <View key={pill} style={styles.filterPill}>
+                    <Text style={styles.filterPillText}>{pill}</Text>
+                    {pill === 'Sort by' && (
+                      <MaterialIcons name="keyboard-arrow-down" size={14} color="#ebebf5" />
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
             </View>
           </GestureDetector>
 
@@ -341,30 +355,57 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   handleArea: {
-    alignItems: 'center',
     paddingTop: 10,
-    paddingBottom: 8,
-    paddingHorizontal: 24,
-    minHeight: 44,
-    justifyContent: 'center',
+    paddingBottom: 12,
+    paddingHorizontal: 20,
   },
   handle: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    marginBottom: 2,
+    marginBottom: 12,
+    alignSelf: 'center',
   },
-  countLabel: {
-    fontSize: 15,
+  heading: {
+    fontSize: 20,
     fontWeight: '700',
-    marginTop: 8,
-    alignSelf: 'flex-start',
+    color: '#fff',
+    marginBottom: 12,
+  },
+  filtersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingRight: 4,
+  },
+  filterIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+  filterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+  filterPillText: {
+    color: '#ebebf5',
+    fontSize: 13,
+    fontWeight: '500',
   },
   listContent: {
     paddingHorizontal: 20,
-    // Extra bottom padding so the last card scrolls fully above the tab bar.
-    // TAB_BAR_HEIGHT accounts for the nav bar overlay; the extra 24 px gives
-    // comfortable breathing room at the end of the list.
     paddingBottom: TAB_BAR_HEIGHT + 120,
     gap: 16,
   },

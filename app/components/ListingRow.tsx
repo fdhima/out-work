@@ -14,6 +14,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { PlaceEnhanced } from '@/services/places';
 import { CATEGORIES } from '@/constants/theme';
+import { getOpenStatus } from '@/utils/workingHours';
 
 type Props = {
   place: PlaceEnhanced;
@@ -26,6 +27,8 @@ function ListingRow({ place, isSelected, onPress }: Props) {
   const imageUrl =
     place.images?.[0]?.url ??
     `https://picsum.photos/400/250?random=${place.id}`;
+
+  const openStatus = getOpenStatus(place.working_hours);
 
   const categories = place.places_categories
     ?.map(pc => {
@@ -73,12 +76,24 @@ function ListingRow({ place, isSelected, onPress }: Props) {
           </View>
         </View>
 
-        <Text
+        {/* <Text
           style={[styles.endorser, { color: isDark ? '#888' : '#666' }]}
           numberOfLines={1}
         >
           Endorsed by {place.profiles?.full_name ?? 'OutWork'}
-        </Text>
+        </Text> */}
+
+        {openStatus && (
+          <Text
+            style={[
+              styles.openStatus,
+              { color: openStatus.isOpen ? '#22c55e' : isDark ? '#888' : '#999' },
+            ]}
+            numberOfLines={1}
+          >
+            {openStatus.statusText}
+          </Text>
+        )}
 
         {categories && categories.length > 0 && (
           <Text
@@ -144,6 +159,10 @@ const styles = StyleSheet.create({
   categories: {
     fontSize: 12,
     textTransform: 'capitalize',
+  },
+  openStatus: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   selectedDot: {
     width: 8,

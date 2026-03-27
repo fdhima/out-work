@@ -1,32 +1,23 @@
-import { ThemedText } from '@/components/themed-text'
-import { BRAND_BLUE } from '@/constants/theme'
 import { useAuth } from '@/context/AuthContext'
+import { supabase } from '@/lib/supabase'
 import { useColorScheme } from '@/hooks/use-color-scheme'
-import { useThemeColor } from '@/hooks/use-theme-color'
-// import { supabase } from '@/lib/supabase'
-// import { updateProfile } from '@/services/profiles'
 import { getProfileById } from '@/services/profiles'
 import { getUserId } from '@/services/users'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
-import { BlurView } from 'expo-blur'
-// import { File } from 'expo-file-system'
 import * as Haptics from 'expo-haptics'
-// import * as ImagePicker from 'expo-image-picker'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
-  ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  TextInput,
+  Text,
   TouchableOpacity,
   View,
-  Linking
+  Linking,
+  SafeAreaView,
 } from 'react-native'
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
 
 export default function ProfileScreen() {
   const { session, signOut } = useAuth()
@@ -34,121 +25,70 @@ export default function ProfileScreen() {
   const colorScheme = useColorScheme() ?? 'light'
   const isDark = colorScheme === 'dark'
 
-  const textColor = useThemeColor({}, 'text')
-  const iconColor = useThemeColor({}, 'icon')
+  const bg = isDark ? '#000' : '#F2F2F7'
+  const cardBg = isDark ? '#1c1c1e' : '#fff'
+  const profileCardBg = isDark ? '#1e2a3a' : '#EAF0FB'
+  const avatarBg = isDark ? '#2c4a7a' : '#B8CBF0'
+  const textPrimary = isDark ? '#fff' : '#000'
+  const textSecondary = isDark ? '#8e8e93' : '#6c6c70'
+  const sectionTitleColor = isDark ? '#8e8e93' : '#6c6c70'
+  const separatorColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+  const destructiveColor = '#ef4444'
 
-  // Refined Colors for Pro Max look
-  const screenBg = isDark ? '#000000' : '#F2F2F7'; // System gray 6
-  const groupBg = isDark ? 'rgba(28, 28, 30, 0.6)' : 'rgba(255, 255, 255, 0.7)';
-  const separatorColor = isDark ? '#38383A' : '#C6C6C8';
-  const placeholderColor = isDark ? '#636366' : '#AEAEB2';
-
-  // Data State
-  const [loading, setLoading] = useState(false)
-  const [profileLoading, setProfileLoading] = useState(true)
   const [fullName, setFullName] = useState('')
   const [email] = useState(session?.user?.email || '')
-  // const [avatarUrl, setAvatarUrl] = useState('')
-
-
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetchProfile()
+    ;(async () => {
+      try {
+        const userId = await getUserId()
+        if (userId) {
+          const profile = await getProfileById(userId)
+          setFullName(profile?.full_name ?? '')
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    })()
   }, [])
 
-  const fetchProfile = async () => {
-    try {
-      setProfileLoading(true)
-      const userId = await getUserId()
-      if (userId) {
-        const profile = await getProfileById(userId);
-        setFullName(profile?.full_name ?? '')
-        // setAvatarUrl(profile?.avatar_url ?? '')
-      }
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setProfileLoading(false)
-    }
+  const avatarLetter = fullName.trim().charAt(0).toUpperCase() || '?'
+
+  const handleSignOut = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          await signOut()
+          router.replace('/auth/signin')
+        },
+      },
+    ])
   }
 
-  // const pickAvatar = async () => {
-  //   if (loading) return
-  //   Haptics.selectionAsync()
-  //
-  //   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
-  //   if (status !== 'granted') {
-  //     Alert.alert('Permission required', 'Please allow photo access')
-  //     return
-  //   }
-  //
-  //   const result = await ImagePicker.launchImageLibraryAsync({
-  //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
-  //     allowsEditing: true,
-  //     aspect: [1, 1],
-  //     quality: 0.8,
-  //   })
-  //
-  //   if (!result.canceled) {
-  //     await uploadAvatar(result.assets[0].uri)
-  //   }
-  // }
-
-  // const uploadAvatar = async (uri: string) => {
-  //   try {
-  //     setLoading(true)
-  //     const userId = await getUserId()
-  //     if (!userId) throw new Error('No user found')
-  //
-  //     const file = new File(uri)
-  //     const arrayBuffer = await file.arrayBuffer()
-  //     const bytes = new Uint8Array(arrayBuffer)
-  //     const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg'
-  //     const filePath = `${userId}-avatar.${ext}`
-  //     const mimeType = ext === 'jpg' ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : `image/${ext}`
-  //
-  //     const { error } = await supabase.storage
-  //       .from('avatars')
-  //       .upload(filePath, bytes, { contentType: mimeType, upsert: true })
-  //
-  //     if (error) throw error
-  //
-  //     const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
-  //     const finalUrl = data.publicUrl
-  //
-  //     await updateProfile(userId, { avatar_url: finalUrl, updated_at: new Date().toISOString() })
-  //     setAvatarUrl(finalUrl)
-  //     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-  //
-  //   } catch (err: any) {
-  //     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
-  //     Alert.alert('Error', err?.message || 'Failed to upload avatar')
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
-
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
     Alert.alert(
-      "Delete Account",
-      "This will permanently delete your account and all associated data. This action cannot be undone.",
+      'Delete Account',
+      'This will permanently delete your account and all associated data. This action cannot be undone.',
       [
-        { text: "Cancel", style: "cancel" },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Delete Account",
-          style: "destructive",
+          text: 'Delete Account',
+          style: 'destructive',
           onPress: async () => {
             try {
               setLoading(true)
-              const { data: { session } } = await supabase.auth.getSession()
+              const { data: { session: s } } = await supabase.auth.getSession()
               const response = await fetch(
                 `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/delete-account`,
                 {
                   method: 'POST',
-                  headers: {
-                    Authorization: `Bearer ${session?.access_token}`,
-                  },
+                  headers: { Authorization: `Bearer ${s?.access_token}` },
                 }
               )
               if (!response.ok) {
@@ -162,376 +102,199 @@ export default function ProfileScreen() {
             } finally {
               setLoading(false)
             }
-          }
-        }
+          },
+        },
       ]
     )
   }
 
-  const handleSignOut = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
-    Alert.alert(
-      "Sign Out",
-      "Are you sure you want to sign out?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Sign Out",
-          style: "destructive",
-          onPress: async () => {
-            await signOut()
-            router.replace('/auth/signin')
-          }
-        }
-      ]
-    )
-  }
-
-  const SettingsGroup = ({ children, title, delay = 0 }: { children: React.ReactNode, title?: string, delay?: number }) => (
-    <Animated.View
-      entering={FadeInDown.delay(delay).springify().damping(20)}
-      style={styles.groupContainer}
-    >
-      {title && <ThemedText style={styles.groupTitle}>{title.toUpperCase()}</ThemedText>}
-      <View style={styles.groupShadow}>
-        <BlurView intensity={Platform.OS === 'ios' ? 70 : 0} tint={isDark ? "dark" : "light"} style={styles.groupBlur}>
-          <View style={[styles.group, { backgroundColor: groupBg }]}>
-            {children}
-          </View>
-        </BlurView>
-      </View>
-    </Animated.View>
-  );
-
-  const SettingsItem = ({
-    label,
-    value,
-    placeholder,
-    onChangeText,
-    isLast = false,
-    readOnly = false,
-    icon,
-    onPress,
-    rightElement
-  }: {
-    label: string,
-    value?: string,
-    placeholder?: string,
-    onChangeText?: (text: string) => void,
-    isLast?: boolean,
-    readOnly?: boolean,
-    icon?: string,
-    onPress?: () => void,
-    rightElement?: React.ReactNode
-  }) => {
-    const Component = onPress ? TouchableOpacity : View;
-
-    return (
-      <Component
-        onPress={onPress}
-        activeOpacity={onPress ? 0.7 : 1}
-        style={[
-          styles.itemRow,
-          !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: separatorColor }
-        ]}
-      >
-        <View style={styles.itemLeft}>
-          {icon && (
-            <View style={styles.iconContainer}>
-              <MaterialIcons name={icon as any} size={20} color="#fff" />
-            </View>
-          )}
-          <ThemedText style={styles.itemLabel}>{label}</ThemedText>
-        </View>
-
-        <View style={styles.itemRight}>
-          {rightElement ? rightElement : (
-            readOnly ? (
-              <ThemedText style={[styles.itemValue, { color: placeholderColor }]}>{value}</ThemedText>
-            ) : (
-              <TextInput
-                style={[styles.itemInput, { color: textColor }]}
-                value={value}
-                onChangeText={onChangeText}
-                placeholder={placeholder}
-                placeholderTextColor={placeholderColor}
-                textAlign="right"
-              />
-            )
-          )}
-          {onPress && !rightElement && (
-            <MaterialIcons name="chevron-right" size={24} color={placeholderColor} style={{ marginLeft: 8 }} />
-          )}
-        </View>
-      </Component>
-    );
-  }
+  const menuItems = [
+    {
+      label: 'Help & FAQ',
+      onPress: () => { Haptics.selectionAsync(); router.push('/help') },
+    },
+    {
+      label: 'Feedback',
+      onPress: () => { Haptics.selectionAsync(); router.push('/feedback') },
+    },
+    {
+      label: 'Report NSFW Content',
+      onPress: () => { Haptics.selectionAsync(); router.push('/report-nsfw') },
+    },
+    {
+      label: 'Privacy Policy',
+      onPress: () => { Haptics.selectionAsync(); Linking.openURL('https://out-work.online/privacy-policy') },
+    },
+  ]
 
   return (
-    <View style={[styles.container, { backgroundColor: screenBg }]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
+    <SafeAreaView style={[styles.root, { backgroundColor: bg }]}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="always"
+        {/* ── Page heading ── */}
+        <Text style={[styles.pageTitle, { color: textPrimary }]}>Profile</Text>
+
+        {/* ── Profile card ── */}
+        <View style={[styles.profileCard, { backgroundColor: profileCardBg }]}>
+          <View style={[styles.avatar, { backgroundColor: avatarBg }]}>
+            <Text style={styles.avatarLetter}>{avatarLetter}</Text>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={[styles.profileName, { color: textPrimary }]} numberOfLines={1}>
+              {fullName || 'Your Name'}
+            </Text>
+            <Text style={[styles.profileSub, { color: textSecondary }]} numberOfLines={1}>
+              {email}
+            </Text>
+          </View>
+        </View>
+
+        {/* ── Account Management section ── */}
+        <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
+          Account Management
+        </Text>
+
+        <View style={[styles.menuCard, { backgroundColor: cardBg }]}>
+          {menuItems.map((item, idx) => (
+            <TouchableOpacity
+              key={item.label}
+              style={[
+                styles.menuRow,
+                idx < menuItems.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: separatorColor },
+              ]}
+              onPress={item.onPress}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.menuLabel, { color: textPrimary }]}>{item.label}</Text>
+              <MaterialIcons name="chevron-right" size={22} color={textSecondary} />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ── Sign out ── */}
+        <TouchableOpacity
+          style={[styles.menuCard, styles.actionRow, { backgroundColor: cardBg }]}
+          onPress={handleSignOut}
+          activeOpacity={0.7}
         >
-          {/* Header */}
-          <Animated.View entering={FadeInUp.springify()} style={styles.header}>
-            <View style={styles.avatarWrapper}>
-              <View style={styles.avatarEmoji}>
-                <ThemedText style={styles.avatarEmojiText}>🙃</ThemedText>
-              </View>
-            </View>
+          <Text style={[styles.menuLabel, { color: destructiveColor }]}>Log Out</Text>
+          <MaterialIcons name="chevron-right" size={22} color={destructiveColor} />
+        </TouchableOpacity>
 
-            <ThemedText style={styles.headerTitle}>{fullName || 'Display Name'}</ThemedText>
-            <ThemedText style={styles.headerSubtitle}>{email}</ThemedText>
-          </Animated.View>
+        {/* ── Delete account ── */}
+        <TouchableOpacity
+          style={styles.deleteBtn}
+          onPress={handleDeleteAccount}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.deleteText}>Delete Account</Text>
+        </TouchableOpacity>
 
-          {/* Form */}
-          <SettingsGroup title="Personal Information" delay={100}>
-            <SettingsItem
-              label="Display Name"
-              value={fullName}
-              onChangeText={setFullName}
-              icon="person"
-              readOnly
-              placeholder="Your Name"
-            />
-            <SettingsItem
-              label="Email"
-              value={email}
-              icon="email"
-              readOnly
-              isLast
-            />
-          </SettingsGroup>
+        <Text style={[styles.versionText, { color: textSecondary }]}>Version 1.0.1</Text>
 
-          <SettingsGroup title="Support" delay={200}>
-            <SettingsItem
-              label="Help & FAQ"
-              icon="help"
-              readOnly
-              onPress={() => {
-                Haptics.selectionAsync()
-                router.push('/help')
-              }}
-            />
-            <SettingsItem
-              label="Feedback"
-              icon="chat-bubble-outline"
-              readOnly
-              onPress={() => {
-                Haptics.selectionAsync()
-                router.push('/feedback')
-              }}
-            />
-            <SettingsItem
-              label="Report NSFW Content"
-              icon="report-problem"
-              readOnly
-              onPress={() => {
-                Haptics.selectionAsync()
-                router.push('/report-nsfw')
-              }}
-            />
-            <SettingsItem
-              label="Privacy Policy"
-              icon="privacy-tip"
-              readOnly
-              isLast
-              onPress={() => {
-                Haptics.selectionAsync()
-                Linking.openURL('https://out-work.online/privacy-policy')
-              }}
-            />
-          </SettingsGroup>
-
-          {/* Actions */}
-          <Animated.View entering={FadeInDown.delay(400).springify()} style={{ marginTop: 24, paddingHorizontal: 16 }}>
-            <TouchableOpacity
-              style={styles.signOutButton}
-              onPress={handleSignOut}
-              activeOpacity={0.7}
-            >
-              <ThemedText style={styles.signOutText}>Log Out</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.deleteAccountButton}
-              onPress={handleDeleteAccount}
-              activeOpacity={0.7}
-            >
-              <ThemedText style={styles.deleteAccountText}>Delete Account</ThemedText>
-            </TouchableOpacity>
-            <ThemedText style={styles.versionText}>Version 1.0.1</ThemedText>
-          </Animated.View>
-
-
-          <View style={{ height: 120 }} />
-
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View >
+        <View style={{ height: 120 }} />
+      </ScrollView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
   },
-  scrollContent: {
-    paddingTop: Platform.OS === 'android' ? 60 : 20,
-    paddingBottom: 40,
+  scroll: {
+    paddingTop: Platform.OS === 'android' ? 24 : 8,
+    paddingHorizontal: 20,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 32,
-    marginTop: 20
-  },
-  avatarWrapper: {
-    marginBottom: 16,
-    position: 'relative',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  avatarEmoji: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    overflow: 'visible',
-  },
-  avatarEmojiText: {
-    fontSize: 60,
-    lineHeight: 70,
-    textAlign: 'center',
-    includeFontPadding: false,
-  },
-  headerTitle: {
-    fontSize: 26,
+  pageTitle: {
+    fontSize: 34,
     fontWeight: '800',
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    opacity: 0.5,
-    fontWeight: '500'
-  },
-  editProfileButton: {
-    marginTop: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-  },
-  editProfileText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND_BLUE
-  },
-
-  // Groups
-  groupContainer: {
+    letterSpacing: -0.5,
     marginBottom: 24,
-    marginHorizontal: 16,
+    marginTop: 8,
   },
-  groupShadow: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+
+  // Profile card
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: 16,
+    padding: 16,
+    gap: 14,
+    marginBottom: 28,
   },
-  groupBlur: {
-    borderRadius: 16,
-    overflow: 'hidden',
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
-  group: {
-    overflow: 'hidden',
+  avatarLetter: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#fff',
   },
-  groupTitle: {
+  profileInfo: {
+    flex: 1,
+    gap: 3,
+  },
+  profileName: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  profileSub: {
     fontSize: 13,
-    opacity: 0.5,
-    fontWeight: '700',
-    marginLeft: 12,
-    marginBottom: 8,
-    letterSpacing: 0.5
+    fontWeight: '400',
   },
 
-  // Items
-  itemRow: {
+  // Section title
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+
+  // Menu card
+  menuCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
     justifyContent: 'space-between',
-    minHeight: 56
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
-  itemLeft: {
+  actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
-  iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: BRAND_BLUE,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  itemLabel: {
+  menuLabel: {
     fontSize: 16,
-    fontWeight: '600',
-  },
-  itemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 0.8,
-    justifyContent: 'flex-end',
-  },
-  itemInput: {
-    flex: 1,
-    fontSize: 16,
-    padding: 0,
-    fontWeight: '500'
-  },
-  itemValue: {
-    fontSize: 16,
-    fontWeight: '500'
+    fontWeight: '500',
   },
 
-  // Actions
-  signOutButton: {
-    height: 56,
-    justifyContent: 'center',
+  // Delete & version
+  deleteBtn: {
     alignItems: 'center',
-    borderRadius: 16,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)', // Light red bg
+    paddingVertical: 14,
+    marginTop: 4,
   },
-  signOutText: {
-    color: '#ef4444',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  deleteAccountButton: {
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 16,
-    marginTop: 12,
-  },
-  deleteAccountText: {
+  deleteText: {
     color: '#ef4444',
     fontSize: 14,
     fontWeight: '500',
@@ -539,38 +302,8 @@ const styles = StyleSheet.create({
   },
   versionText: {
     textAlign: 'center',
-    marginTop: 20,
-    opacity: 0.3,
-    fontSize: 12
-  },
-
-  // Floating Button
-  floatingButtonContainer: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 100 : 90,
-    left: 20,
-    right: 20,
-    borderRadius: 24,
-    shadowColor: BRAND_BLUE,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    overflow: 'hidden',
-  },
-  blurButtonContainer: {
-    width: '100%',
-    padding: 4,
-  },
-  primaryButton: {
-    height: 56,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 12,
+    marginTop: 16,
+    opacity: 0.5,
   },
 })

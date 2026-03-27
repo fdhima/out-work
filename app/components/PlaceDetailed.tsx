@@ -82,6 +82,7 @@ import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { ReviewForm } from './ReviewForm';
 import { ReviewsList } from './ReviewsList';
 import { CrowdLevelModal } from './CrowdLevelModal';
+import { WorkingHours, getAllDays, formatTime, getOpenStatus } from '@/utils/workingHours';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -324,6 +325,64 @@ function SimilarCardSkeleton() {
         { backgroundColor: isDark ? '#2c2c2e' : '#e5e5ea', opacity: pulse },
       ]}
     />
+  );
+}
+
+/** Weekly working hours schedule */
+function WorkingHoursSection({ working_hours }: { working_hours: WorkingHours }) {
+  const isDark = (useColorScheme() ?? 'light') === 'dark';
+  const days = getAllDays(working_hours);
+  const openStatus = getOpenStatus(working_hours);
+
+  return (
+    <View style={styles.section}>
+      <SectionTitle title="Hours" />
+      {openStatus && (
+        <Text
+          style={[
+            styles.openStatusBadge,
+            { color: openStatus.isOpen ? '#22c55e' : isDark ? '#888' : '#999' },
+          ]}
+        >
+          {openStatus.statusText}
+        </Text>
+      )}
+      <View style={styles.hoursTable}>
+        {days.map(({ key, label, hours, isToday }) => (
+          <View
+            key={key}
+            style={[
+              styles.hoursRow,
+              isToday && {
+                backgroundColor: isDark
+                  ? 'rgba(74,144,226,0.12)'
+                  : 'rgba(74,144,226,0.07)',
+                borderRadius: 8,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.hoursDay,
+                { color: isDark ? (isToday ? '#fff' : '#ccc') : (isToday ? '#111' : '#444') },
+                isToday && { fontWeight: '700' },
+              ]}
+            >
+              {label}
+            </Text>
+            <Text
+              style={[
+                styles.hoursTime,
+                { color: hours ? (isDark ? '#ddd' : '#222') : (isDark ? '#555' : '#aaa') },
+                isToday && { fontWeight: '700' },
+              ]}
+            >
+              {hours ? `${formatTime(hours.open)} – ${formatTime(hours.close)}` : 'Closed'}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -680,11 +739,11 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
           </View>
 
           {/* Endorser */}
-          {selectedPlace.profiles?.full_name && (
+          {/* {selectedPlace.profiles?.full_name && (
             <Text style={[styles.endorserText, { color: textSecondary }]}>
               Endorsed by {selectedPlace.profiles.full_name}
             </Text>
-          )}
+          )} */}
 
           {/* Category pills */}
           {categoryNames.length > 0 && (
@@ -729,6 +788,14 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
         <AmenitiesSection categoryNames={categoryNames} />
 
         {categoryNames.length > 0 && <SectionDivider />}
+
+        {/* ── Working hours ── */}
+        {selectedPlace.working_hours && (
+          <>
+            <WorkingHoursSection working_hours={selectedPlace.working_hours} />
+            <SectionDivider />
+          </>
+        )}
 
         {/* ── Crowd level ── */}
         {crowdStats && (
@@ -1022,6 +1089,28 @@ const styles = StyleSheet.create({
   },
   amenityLabel: {
     fontSize: 16,
+  },
+
+  // ── Working hours ──
+  openStatusBadge: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  hoursTable: {
+    gap: 2,
+  },
+  hoursRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  hoursDay: {
+    fontSize: 15,
+  },
+  hoursTime: {
+    fontSize: 15,
   },
 
   // ── Crowd ──

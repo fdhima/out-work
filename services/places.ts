@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { WorkingHours } from "@/utils/workingHours";
 
 export interface Place {
   id: number;
@@ -9,6 +10,7 @@ export interface Place {
   latitude: number;
   longitude: number;
   approved: boolean;
+  working_hours: WorkingHours | null;
   created_at: string | null;
   updated_at: string | null;
 }
