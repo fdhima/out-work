@@ -320,18 +320,8 @@ export default function HomeScreen() {
 
             <Text style={styles.heroTagline}>Where will you work today?</Text>
 
-            {/* Decorative dots */}
-            <View style={styles.heroDots}>
-              {[0, 1, 2].map(i => (
-                <View
-                  key={i}
-                  style={[
-                    styles.heroDot,
-                    { opacity: 0.15 + i * 0.1, width: 8 + i * 6, height: 8 + i * 6 },
-                  ]}
-                />
-              ))}
-            </View>
+            {/* Emojis */}
+            <Text style={styles.heroEmoji}>💻📚✈️</Text>
           </SafeAreaView>
         </LinearGradient>
 
@@ -558,15 +548,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffffff',
   },
-  heroDots: {
-    flexDirection: 'row',
-    gap: 8,
+  heroEmoji: {
+    fontSize: 28,
     marginTop: 12,
-    alignItems: 'center',
-  },
-  heroDot: {
-    borderRadius: 99,
-    backgroundColor: '#ffffff',
   },
 
   // Search bar

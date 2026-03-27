@@ -278,7 +278,7 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
             <View style={styles.handleArea}>
               <View style={[styles.handle, { backgroundColor: handleColor }]} />
 
-              <Text style={styles.heading}>Desks in Athens</Text>
+              <Text style={styles.heading}>Spots in Greece 🇬🇷</Text>
 
               {/* Category filter pills — same as search bar */}
               <FlatList
