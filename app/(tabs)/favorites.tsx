@@ -1,8 +1,7 @@
 import ListingCard, { VERTICAL_CARD_HEIGHT, CARD_GAP } from '@/app/components/ListingCard';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { getPlacesEnhancedByIds } from '@/services/places';
-import { PlaceEnhanced } from '@/services/places';
+import { getPlacesEnhancedByIds, PlaceEnhanced } from '@/services/places';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -11,6 +10,7 @@ import {
   FlatList,
   Platform,
   RefreshControl,
+  SafeAreaView,
   StyleSheet,
   Text,
   View,
@@ -22,13 +22,17 @@ export default function FavoritesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const isDark = (useColorScheme() ?? 'light') === 'dark';
+  const colorScheme = useColorScheme() ?? 'light';
+  const isDark = colorScheme === 'dark';
   const router = useRouter();
+
+  const bg = isDark ? '#000' : '#F2F2F7';
+  const textPrimary = isDark ? '#fff' : '#000';
+  const textSecondary = isDark ? '#8e8e93' : '#6c6c70';
 
   const fetchFavorites = useCallback(async () => {
     try {
       const data = await getPlacesEnhancedByIds(favorites);
-      // Preserve the order from favorites list
       const ordered = favorites
         .map(id => data.find(p => p.id === id))
         .filter(Boolean) as PlaceEnhanced[];
@@ -49,20 +53,20 @@ export default function FavoritesScreen() {
     setRefreshing(false);
   }, [fetchFavorites]);
 
-  const bg = isDark ? '#000' : '#f2f2f7';
-  const textColor = isDark ? '#fff' : '#111';
-  const subtextColor = isDark ? '#888' : '#999';
+  const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 85 : 70 + 20;
 
-  const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 85 : 70 + 20; // height + marginBottom on Android
+  const ListHeader = (
+    <View style={styles.listHeader}>
+      <Text style={[styles.sectionTitle, { color: textSecondary }]}>
+        {places.length} {places.length === 1 ? 'place' : 'places'}
+      </Text>
+    </View>
+  );
 
   return (
-    <View style={[styles.container, { backgroundColor: bg }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: textColor }]}>Favorites</Text>
-        <Text style={[styles.headerCount, { color: subtextColor }]}>
-          {places.length} {places.length === 1 ? 'place' : 'places'}
-        </Text>
+    <SafeAreaView style={[styles.root, { backgroundColor: bg }]}>
+      <View style={styles.scroll}>
+        <Text style={[styles.pageTitle, { color: textPrimary }]}>Favorites</Text>
       </View>
 
       {loading ? (
@@ -74,11 +78,11 @@ export default function FavoritesScreen() {
           <MaterialIcons
             name="favorite-border"
             size={64}
-            color={subtextColor}
+            color={textSecondary}
             style={{ marginBottom: 16 }}
           />
-          <Text style={[styles.emptyTitle, { color: textColor }]}>No favorites yet</Text>
-          <Text style={[styles.emptySubtitle, { color: subtextColor }]}>
+          <Text style={[styles.emptyTitle, { color: textPrimary }]}>No favorites yet</Text>
+          <Text style={[styles.emptySubtitle, { color: textSecondary }]}>
             Heart a place on the map to save it here
           </Text>
         </View>
@@ -86,6 +90,7 @@ export default function FavoritesScreen() {
         <FlatList
           data={places}
           keyExtractor={item => String(item.id)}
+          ListHeaderComponent={ListHeader}
           contentContainerStyle={[
             styles.list,
             { paddingBottom: TAB_BAR_HEIGHT + 16 },
@@ -99,7 +104,7 @@ export default function FavoritesScreen() {
           }
           getItemLayout={(_, index) => ({
             length: VERTICAL_CARD_HEIGHT + CARD_GAP,
-            offset: (VERTICAL_CARD_HEIGHT + CARD_GAP) * index,
+            offset: (VERTICAL_CARD_HEIGHT + CARD_GAP) * index + styles.listHeader.paddingBottom,
             index,
           })}
           renderItem={({ item }) => (
@@ -116,31 +121,36 @@ export default function FavoritesScreen() {
           ItemSeparatorComponent={() => <View style={{ height: CARD_GAP }} />}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
   },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'android' ? 60 : 56,
-    paddingBottom: 12,
+  scroll: {
+    paddingTop: Platform.OS === 'android' ? 24 : 8,
+    paddingHorizontal: 20,
   },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: '700',
+  pageTitle: {
+    fontSize: 34,
+    fontWeight: '800',
     letterSpacing: -0.5,
+    marginBottom: 24,
+    marginTop: 8,
   },
-  headerCount: {
-    fontSize: 14,
-    marginTop: 2,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  listHeader: {
+    paddingBottom: 4,
   },
   list: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
+    paddingHorizontal: 20,
+    paddingTop: 4,
   },
   centered: {
     flex: 1,

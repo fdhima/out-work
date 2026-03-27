@@ -1,9 +1,9 @@
 /**
  * MapMarker — custom rating pill rendered inside a react-native-maps Marker.
  *
- * When a marker is selected (isSelected changes to true) a Reanimated spring
- * animates the scale from 1 → 1.25, making the selected place visually pop
- * without triggering a React re-render on every frame.
+ * When a marker is selected (isSelected changes to true) a gentle breathing
+ * loop animates the scale 1.0 → 1.06 → 1.0 (~2.5 s per cycle), giving the
+ * selected place a passive "alive" feel without an abrupt scale jump.
  *
  * `tracksViewChanges` is set to `true` only while the scale animation is
  * running (i.e. while isSelected is true) to minimise the performance cost
@@ -14,9 +14,12 @@ import { PlaceEnhanced } from '@/services/places';
 import React, { memo, useEffect } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withRepeat,
+  withSequence,
+  withTiming,
 } from 'react-native-reanimated';
 import { Marker } from 'react-native-maps';
 
@@ -27,19 +30,30 @@ interface MapMarkerProps {
   onPress: (place: PlaceEnhanced) => void;
 }
 
-const SPRING_CONFIG = { damping: 14, stiffness: 220, mass: 0.6 };
 
 const MapMarker = memo(
   ({ place, isSelected, isFavorite, onPress }: MapMarkerProps) => {
-    // ── Scale spring ──────────────────────────────────────────────────────────
-    const scale = useSharedValue(1);
+    // ── Scale animation ───────────────────────────────────────────────────────
+    const breathe = useSharedValue(1);
 
     useEffect(() => {
-      scale.value = withSpring(isSelected ? 1.25 : 1, SPRING_CONFIG);
+      if (isSelected) {
+        // Gentle breathing: 1.0 → 1.06 → 1.0, ~2.5 s per cycle
+        breathe.value = withRepeat(
+          withSequence(
+            withTiming(1.06, { duration: 1250, easing: Easing.inOut(Easing.ease) }),
+            withTiming(1.0,  { duration: 1250, easing: Easing.inOut(Easing.ease) }),
+          ),
+          -1,
+          false,
+        );
+      } else {
+        breathe.value = withTiming(1, { duration: 250 });
+      }
     }, [isSelected]);
 
     const animStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: scale.value }],
+      transform: [{ scale: breathe.value }],
     }));
 
     // ── Visual states ─────────────────────────────────────────────────────────
