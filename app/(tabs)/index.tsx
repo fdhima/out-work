@@ -91,15 +91,13 @@ export default function HomeScreen() {
 
 
   // ── Sheet state ───────────────────────────────────────────────────────────
-  const [sheetState, setSheetState] = useState<SheetState>('half');
+  const [sheetState, setSheetState] = useState<SheetState>('collapsed');
   const sheetRef = useRef<BottomSheetRef>(null);
 
   // ── Map ───────────────────────────────────────────────────────────────────
   const mapRef = useRef<MapView>(null);
   // Ref: fetchPlaces reads the current region without being a reactive dep.
   const mapRegionRef = useRef<Region | null>(null);
-  // Flag: set when dismissing the floating card so the zoom-sync effect skips.
-  const dismissingCardRef = useRef(false);
   // State: drives cluster recalculation when panning/zooming stops.
   const [mapRegion, setMapRegion] = useState<Region>(DEFAULT_REGION);
   // Pending rAF handle — ensures only the latest region triggers a re-cluster.
@@ -108,12 +106,6 @@ export default function HomeScreen() {
   // ── Clustering ────────────────────────────────────────────────────────────
   const mapPoints = useClusters(places, mapRegion);
 
-  // Delta values for each sheet state (Airbnb-style zoom sync).
-  const SHEET_ZOOM: Record<SheetState, number> = {
-    collapsed: 0.05,
-    half:      0.09,
-    full:      0.09,
-  };
   const [lastSearchRegion, setLastSearchRegion] = useState<Region | null>(null);
   const [showSearchArea, setShowSearchArea] = useState(false);
   const [isSearchingArea, setIsSearchingArea] = useState(false);
@@ -161,25 +153,6 @@ export default function HomeScreen() {
     return () => sub?.remove();
   }, []);
 
-  // ─── Map zoom sync with sheet state ──────────────────────────────────────
-  // When a place is selected the sheet is hidden and the map is already
-  // centered on that place — skip zoom changes in that mode.
-  // Also skip when the user is dismissing the floating card (map tap) to
-  // avoid an unwanted zoom-out back to the sheet-state delta.
-  useEffect(() => {
-    if (selectedPlace) return;
-    if (dismissingCardRef.current) {
-      dismissingCardRef.current = false;
-      return;
-    }
-    const region = mapRegionRef.current;
-    if (!region) return; // map hasn't fired onRegionChangeComplete yet
-    const delta = SHEET_ZOOM[sheetState];
-    mapRef.current?.animateToRegion(
-      { latitude: region.latitude, longitude: region.longitude, latitudeDelta: delta, longitudeDelta: delta },
-      380
-    );
-  }, [sheetState, selectedPlace]);
 
   // ─── Data fetching ────────────────────────────────────────────────────────
   const fetchPlaces = useCallback(async () => {
@@ -266,8 +239,6 @@ export default function HomeScreen() {
   const onMapPress = useCallback(() => {
     Keyboard.dismiss();
     // Tapping the map deselects and restores the bottom sheet.
-    // Set the flag so the zoom-sync effect skips the unwanted zoom-out.
-    dismissingCardRef.current = true;
     setSelectedPlace(null);
     sheetRef.current?.restoreCollapsed();
   }, []);

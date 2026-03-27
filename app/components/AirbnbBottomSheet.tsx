@@ -43,8 +43,6 @@ const SNAP_FULL = Platform.OS === 'ios' ? 118 : 140;
 
 const SHEET_HEIGHT = SCREEN_HEIGHT - TAB_BAR_HEIGHT;
 
-const SNAP_HALF = SCREEN_HEIGHT * 0.48;
-
 const SNAP_COLLAPSED = SCREEN_HEIGHT - TAB_BAR_HEIGHT - 60;
 
 const SNAP_HIDDEN = SCREEN_HEIGHT + 50;
@@ -56,11 +54,10 @@ const HANDLE_AREA_HEIGHT = 120;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type SheetState = 'collapsed' | 'half' | 'full';
+export type SheetState = 'collapsed' | 'full';
 
 export interface BottomSheetRef {
   scrollToIndex: (index: number) => void;
-  expandToHalf: () => void;
   hide: () => void;
   restoreCollapsed: () => void;
 }
@@ -105,7 +102,6 @@ function nearestSnap(y: number): { snapY: number; state: SheetState } {
   'worklet';
   const snaps: [number, SheetState][] = [
     [SNAP_FULL, 'full'],
-    [SNAP_HALF, 'half'],
     [SNAP_COLLAPSED, 'collapsed'],
   ];
   return snaps.reduce(
@@ -133,9 +129,9 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
     },
     ref
   ) => {
-    const translateY = useSharedValue(SNAP_HALF);
-    const savedY = useSharedValue(SNAP_HALF);
-    const savedBodyY = useSharedValue(SNAP_HALF);
+    const translateY = useSharedValue(SNAP_COLLAPSED);
+    const savedY = useSharedValue(SNAP_COLLAPSED);
+    const savedBodyY = useSharedValue(SNAP_COLLAPSED);
 
     const listRef = useRef<FlatList>(null);
 
@@ -148,10 +144,6 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
           viewOffset: 16,
           viewPosition: 0,
         });
-      },
-      expandToHalf() {
-        translateY.value = withSpring(SNAP_HALF, SPRING);
-        onSheetStateChange('half');
       },
       hide() {
         translateY.value = withSpring(SNAP_HIDDEN, { damping: 22, stiffness: 200, mass: 0.8 });
@@ -186,11 +178,9 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
         let state: SheetState;
 
         if (vel > 600) {
-          if (cur < SNAP_HALF) { snapY = SNAP_HALF; state = 'half'; }
-          else { snapY = SNAP_COLLAPSED; state = 'collapsed'; }
+          snapY = SNAP_COLLAPSED; state = 'collapsed';
         } else if (vel < -600) {
-          if (cur > SNAP_HALF) { snapY = SNAP_HALF; state = 'half'; }
-          else { snapY = SNAP_FULL; state = 'full'; }
+          snapY = SNAP_FULL; state = 'full';
         } else {
           const result = nearestSnap(cur);
           snapY = result.snapY;
@@ -201,7 +191,7 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
         runOnJS(applyStateChange)(state);
       });
 
-    // ── Body overlay gesture (active in half / collapsed mode only) ───────────
+    // ── Body overlay gesture (active in collapsed mode only) ──────────────────
     // When sheetState !== 'full', a transparent overlay sits over the list and
     // intercepts vertical swipes to expand / collapse the sheet.
     const bodyGesture = Gesture.Pan()
@@ -219,11 +209,9 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
         let state: SheetState;
 
         if (vel > 600) {
-          if (cur < SNAP_HALF) { snapY = SNAP_HALF; state = 'half'; }
-          else { snapY = SNAP_COLLAPSED; state = 'collapsed'; }
+          snapY = SNAP_COLLAPSED; state = 'collapsed';
         } else if (vel < -600) {
-          if (cur > SNAP_HALF) { snapY = SNAP_HALF; state = 'half'; }
-          else { snapY = SNAP_FULL; state = 'full'; }
+          snapY = SNAP_FULL; state = 'full';
         } else {
           const result = nearestSnap(cur);
           snapY = result.snapY;
@@ -242,7 +230,7 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
     const backdropAnimStyle = useAnimatedStyle(() => ({
       opacity: interpolate(
         translateY.value,
-        [SNAP_FULL, SNAP_HALF],
+        [SNAP_FULL, SNAP_COLLAPSED],
         [0.25, 0],
         Extrapolation.CLAMP
       ),
