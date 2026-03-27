@@ -270,6 +270,8 @@ export default function HomeScreen() {
   const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 85 : 90;
 
   const goExplore = () => router.push('/(tabs)');
+  const goExploreCategory = (categoryId: string) =>
+    router.push({ pathname: '/(tabs)', params: { category: categoryId } });
   const goExploreSearch = () => router.push({ pathname: '/(tabs)', params: { openSearch: '1' } });
   const goPlace = (id: number) => router.push(`/place/${id}`);
 
@@ -366,7 +368,7 @@ export default function HomeScreen() {
             {CATEGORIES.filter(c => c.id !== 'all').map(cat => (
               <SpringPressable
                 key={cat.id}
-                onPress={goExplore}
+                onPress={() => goExploreCategory(cat.id)}
                 style={[styles.categoryChip, { backgroundColor: cardBg }]}
               >
                 <View style={styles.categoryIconRing}>
@@ -384,9 +386,9 @@ export default function HomeScreen() {
         <View style={styles.sectionSpacing}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: textColor }]}>Top Spots</Text>
-            <SpringPressable onPress={goExplore}>
+            {/* <SpringPressable onPress={goExplore}>
               <Text style={[styles.seeAll, { padding: 8 }]}>See all</Text>
-            </SpringPressable>
+            </SpringPressable> */}
           </View>
 
           {loading ? (
@@ -450,9 +452,9 @@ export default function HomeScreen() {
           <View style={styles.sectionSpacing}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>Just Added</Text>
-              <SpringPressable onPress={goExplore}>
+              {/* <SpringPressable onPress={goExplore}>
                 <Text style={[styles.seeAll, { padding: 8 }]}>See all</Text>
-              </SpringPressable>
+              </SpringPressable> */}
             </View>
             <FlatList
               data={recentPlaces}

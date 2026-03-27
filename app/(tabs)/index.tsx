@@ -77,7 +77,7 @@ const DEFAULT_REGION: Region = {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { openSearch } = useLocalSearchParams<{ openSearch?: string }>();
+  const { openSearch, category } = useLocalSearchParams<{ openSearch?: string; category?: string }>();
   const searchInputRef = useRef<TextInput>(null);
   const { isFavorite } = useFavorites();
 
@@ -135,6 +135,13 @@ export default function HomeScreen() {
     }, 350);
     return () => clearTimeout(t);
   }, [openSearch]);
+
+  // ─── Apply category filter when arriving from home Work Mode chips ────────
+  useEffect(() => {
+    if (!category) return;
+    setSelectedCategory(category);
+    router.setParams({ category: undefined });
+  }, [category]);
 
   // ─── Location tracking ────────────────────────────────────────────────────
   useEffect(() => {
