@@ -35,6 +35,7 @@ import AirbnbBottomSheet, {
   BottomSheetRef,
   SheetState,
 } from '../components/AirbnbBottomSheet';
+import ClusterMarker from '../components/ClusterMarker';
 import { FilterModal } from '../components/FilterModal';
 import { FloatingCard } from '../components/FloatingCard';
 import { MapHeader } from '../components/MapHeader';
@@ -42,6 +43,7 @@ import MapMarker from '../components/MapMarker';
 import { ThemedView } from '@/components/themed-view';
 import { BRAND_BLUE, CATEGORIES, isDark } from '@/constants/theme';
 import { useFavorites } from '@/context/FavoritesContext';
+import { ClusterPoint, useClusters } from '@/hooks/useClusters';
 import { getCategoryIdByName } from '@/services/categories';
 import { PlaceEnhanced, getPlacesEnhanced } from '@/services/places';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -91,9 +93,15 @@ export default function HomeScreen() {
 
   // ── Map ───────────────────────────────────────────────────────────────────
   const mapRef = useRef<MapView>(null);
-  // Ref instead of state: fetchPlaces reads the current region without being
-  // a reactive dep — prevents useFocusEffect from re-firing on every map pan.
+  // Ref: fetchPlaces reads the current region without being a reactive dep.
   const mapRegionRef = useRef<Region | null>(null);
+  // State: drives cluster recalculation when panning/zooming stops.
+  const [mapRegion, setMapRegion] = useState<Region>(DEFAULT_REGION);
+  // Pending rAF handle — ensures only the latest region triggers a re-cluster.
+  const clusterRafRef = useRef<number | null>(null);
+
+  // ── Clustering ────────────────────────────────────────────────────────────
+  const mapPoints = useClusters(places, mapRegion);
 
   // Delta values for each sheet state (Airbnb-style zoom sync).
   const SHEET_ZOOM: Record<SheetState, number> = {
@@ -194,6 +202,17 @@ export default function HomeScreen() {
   const onRegionChangeComplete = useCallback(
     (region: Region) => {
       mapRegionRef.current = region;
+
+      // Defer the marker-tree update by one frame so the native map layer
+      // finishes its own region-change processing before React reconciles
+      // the marker children. Updating synchronously here causes a silent
+      // native crash when many markers are added/removed at once.
+      if (clusterRafRef.current !== null) cancelAnimationFrame(clusterRafRef.current);
+      clusterRafRef.current = requestAnimationFrame(() => {
+        clusterRafRef.current = null;
+        setMapRegion(region);
+      });
+
       if (lastSearchRegion) {
         const dLat = Math.abs(region.latitude - lastSearchRegion.latitude);
         const dLng = Math.abs(region.longitude - lastSearchRegion.longitude);
@@ -222,6 +241,22 @@ export default function HomeScreen() {
     // Tapping the map deselects and restores the bottom sheet
     setSelectedPlace(null);
     sheetRef.current?.restoreCollapsed();
+  }, []);
+
+  // ─── Cluster tap: zoom in to expand the cluster ───────────────────────────
+  const onClusterPress = useCallback((cluster: ClusterPoint) => {
+    // Cap at zoom 16 so delta never becomes near-zero
+    const zoom = Math.min(cluster.expansionZoom, 16);
+    const delta = Math.max(0.005, 360 / Math.pow(2, zoom) * 0.5);
+    mapRef.current?.animateToRegion(
+      {
+        latitude: cluster.latitude,
+        longitude: cluster.longitude,
+        latitudeDelta: delta,
+        longitudeDelta: delta,
+      },
+      400
+    );
   }, []);
 
   /**
@@ -268,15 +303,23 @@ export default function HomeScreen() {
           onRegionChangeComplete={onRegionChangeComplete}
           initialRegion={DEFAULT_REGION}
         >
-          {places.map(place => (
-            <MapMarker
-              key={place.id}
-              place={place}
-              isSelected={selectedPlace?.id === place.id}
-              isFavorite={isFavorite(place.id)}
-              onPress={onMarkerPress}
-            />
-          ))}
+          {mapPoints.map(point =>
+            point.type === 'cluster' ? (
+              <ClusterMarker
+                key={`cluster-${point.id}`}
+                cluster={point}
+                onPress={onClusterPress}
+              />
+            ) : (
+              <MapMarker
+                key={point.place.id}
+                place={point.place}
+                isSelected={selectedPlace?.id === point.place.id}
+                isFavorite={isFavorite(point.place.id)}
+                onPress={onMarkerPress}
+              />
+            )
+          )}
         </MapView>
 
         {/* ── Re-center on user button ── */}
