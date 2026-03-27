@@ -1,168 +1,182 @@
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { MaterialIcons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import {
+  Animated,
   Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
+  TouchableOpacity, // used for the search clear button
   useColorScheme,
-  View
+  View,
 } from "react-native";
+import { ThemedText } from "@/components/themed-text";
+import { useRef } from "react";
+
+function ScalePill({ onPress, style, children }: { onPress: () => void; style: any; children: React.ReactNode }) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => Animated.spring(scale, { toValue: 0.9, useNativeDriver: true, speed: 50, bounciness: 0 }).start()}
+      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }).start()}
+    >
+      <Animated.View style={[style, { transform: [{ scale }] }]}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+type Category = { id: string; label: string; icon: string };
 
 type MapHeaderProps = {
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  /** Whether any non-default filter is active (shows badge on filter button). */
-  hasActiveFilter?: boolean;
-  onFilterPress: () => void;
+  selectedCategory: string;
+  onCategoryChange: (id: string) => void;
+  categories: Category[];
   inputRef?: React.RefObject<TextInput>;
 };
 
 export function MapHeader({
   searchQuery,
   onSearchChange,
-  hasActiveFilter = false,
-  onFilterPress,
+  selectedCategory,
+  onCategoryChange,
+  categories,
   inputRef,
 }: MapHeaderProps) {
   const textColor = useThemeColor({}, "text");
   const isDark = (useColorScheme() ?? "light") === "dark";
 
+  const cardBg = isDark ? "#1c1c1e" : "#ffffff";
+  const subColor = isDark ? "#8e8e93" : "#888888";
+  const pillBorderColor = isDark ? "#3a3a3c" : "#e5e5ea";
+
   return (
     <View style={styles.headerContainer}>
+      {/* Search bar */}
       <View style={styles.searchRow}>
-        {/* Search bar pill */}
         <View style={[
-          styles.searchPillContainer,
+          styles.searchBar,
           {
-            borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
+            backgroundColor: cardBg,
+            shadowColor: isDark ? "#000" : "#b09070",
           },
         ]}>
-          <BlurView
-            intensity={60}
-            tint={isDark ? "dark" : "light"}
-            style={[
-              styles.searchPillBlur,
-              {
-                backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.8)",
-              },
-            ]}
-          >
-            <MaterialIcons name="search" size={20} color={isDark ? "#fff" : "#000"} />
+          <MaterialIcons name="search" size={22} color={subColor} />
 
-            <TextInput
-              ref={inputRef}
-              style={[styles.searchInput, { color: textColor }]}
-              placeholder="Where to work?"
-              placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
-              value={searchQuery}
-              onChangeText={onSearchChange}
-            />
+          <TextInput
+            ref={inputRef}
+            style={[styles.searchInput, { color: textColor }]}
+            placeholder="Where to work?"
+            placeholderTextColor={subColor}
+            value={searchQuery}
+            onChangeText={onSearchChange}
+          />
 
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => onSearchChange("")} hitSlop={8}>
-                <MaterialIcons name="close" size={18} color={isDark ? "#fff" : "#000"} />
-              </TouchableOpacity>
-            )}
-          </BlurView>
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => onSearchChange("")} hitSlop={8}>
+              <MaterialIcons name="close" size={18} color={subColor} />
+            </TouchableOpacity>
+          )}
         </View>
-
-        {/* Filter button */}
-        <TouchableOpacity
-          onPress={onFilterPress}
-          activeOpacity={0.8}
-          style={[
-            styles.filterBtnWrapper,
-            {
-              borderColor: hasActiveFilter
-                ? (isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.25)')
-                : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'),
-            },
-          ]}
-        >
-          <BlurView
-            intensity={60}
-            tint={isDark ? 'dark' : 'light'}
-            style={[
-              styles.filterBtnBlur,
-              {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.8)',
-              },
-            ]}
-          >
-            <MaterialIcons name="tune" size={20} color={isDark ? '#fff' : '#000'} />
-            {hasActiveFilter && <View style={styles.filterBadge} />}
-          </BlurView>
-        </TouchableOpacity>
       </View>
+
+      {/* Category filter pills */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.pillsScroll}
+      >
+        {categories.map(cat => {
+          const isActive = selectedCategory === cat.id;
+          return (
+            <ScalePill
+              key={cat.id}
+              onPress={() => onCategoryChange(isActive && cat.id !== "all" ? "all" : cat.id)}
+              style={[
+                styles.pill,
+                {
+                  backgroundColor: isActive ? "#ffffff" : cardBg,
+                  borderColor: isActive ? "#ffffff" : pillBorderColor,
+                  shadowColor: isDark ? "#000" : "#b09070",
+                },
+              ]}
+            >
+              <MaterialIcons
+                name={cat.icon as any}
+                size={14}
+                color={isActive ? "#000000" : subColor}
+              />
+              <ThemedText
+                style={[
+                  styles.pillLabel,
+                  {
+                    color: isActive ? "#000000" : textColor,
+                    fontWeight: isActive ? "700" : "500",
+                  },
+                ]}
+              >
+                {cat.label}
+              </ThemedText>
+            </ScalePill>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   headerContainer: {
-    paddingTop: Platform.OS === 'android' ? 40 : 60,
-    paddingBottom: 0,
+    paddingTop: Platform.OS === "android" ? 40 : 60,
     zIndex: 10,
-    marginBottom: 10,
+    gap: 10,
+    paddingBottom: 4,
   },
   searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    gap: 12,
-  },
-  searchPillContainer: {
-    flex: 1,
-    borderRadius: 50,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    overflow: 'hidden',
-  },
-  searchPillBlur: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 12,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 5,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: "400",
     padding: 0,
   },
-  filterBtnWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  pillsScroll: {
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
     borderWidth: 1,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  filterBtnBlur: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#4A90E2',
-    borderWidth: 1.5,
-    borderColor: '#fff',
+  pillLabel: {
+    fontSize: 13,
   },
 });

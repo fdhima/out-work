@@ -36,7 +36,6 @@ import AirbnbBottomSheet, {
   SheetState,
 } from '../components/AirbnbBottomSheet';
 import ClusterMarker from '../components/ClusterMarker';
-import { FilterModal } from '../components/FilterModal';
 import { FloatingCard } from '../components/FloatingCard';
 import { MapHeader } from '../components/MapHeader';
 import MapMarker from '../components/MapMarker';
@@ -47,6 +46,7 @@ import { ClusterPoint, useClusters } from '@/hooks/useClusters';
 import { getCategoryIdByName } from '@/services/categories';
 import { PlaceEnhanced, getPlacesEnhanced } from '@/services/places';
 import { MaterialIcons } from '@expo/vector-icons';
+import Svg, { Path } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -123,7 +123,6 @@ export default function HomeScreen() {
   // ── Search / filter ───────────────────────────────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterModalVisible, setFilterModalVisible] = useState(false);
 
   // ─── Auto-focus search when arriving from home screen ────────────────────
   useEffect(() => {
@@ -290,21 +289,12 @@ export default function HomeScreen() {
           <MapHeader
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            hasActiveFilter={selectedCategory !== 'all'}
-            onFilterPress={() => setFilterModalVisible(true)}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            categories={CATEGORIES}
             inputRef={searchInputRef}
           />
         </View>
-
-        {/* ── Filter modal ── */}
-        <FilterModal
-          visible={filterModalVisible}
-          selectedCategory={selectedCategory}
-          categories={CATEGORIES}
-          resultCount={places.length}
-          onApply={setSelectedCategory}
-          onClose={() => setFilterModalVisible(false)}
-        />
 
         {/* ── Fullscreen map ── */}
         <MapView
@@ -343,7 +333,9 @@ export default function HomeScreen() {
             onPress={centerOnUser}
             activeOpacity={0.85}
           >
-            <MaterialIcons name="my-location" size={22} color={isDark ? '#fff' : '#111'} />
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={isDark ? '#fff' : '#111'} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+            </Svg>
           </TouchableOpacity>
         )}
 
@@ -381,6 +373,9 @@ export default function HomeScreen() {
           sheetState={sheetState}
           onSheetStateChange={setSheetState}
           onPressCard={onPressCard}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          categories={CATEGORIES}
         />
 
         {/* ── Floating place-preview card (shown when a marker is selected) ── */}

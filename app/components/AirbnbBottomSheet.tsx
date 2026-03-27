@@ -1,28 +1,3 @@
-/**
- * AirbnbBottomSheet
- *
- * A physics-based draggable bottom sheet with three snap states:
- *   - collapsed  → small peek (~130 px above tab bar) — map dominates
- *   - half       → 50 % of the screen — map + listings equally visible
- *   - full       → sheet top sits just below the search bar — listings dominate
- *
- * ─── Gesture Handling ───────────────────────────────────────────────────────
- * A PanGesture lives on the handle bar only. The sheet's position is driven
- * by a Reanimated `useSharedValue` (translateY) so all animation runs on the
- * UI thread at 60 fps. On release, velocity decides whether we snap to the
- * next state up/down, or fall back to whichever snap point is nearest.
- *
- * ─── Map ↔ List Sync ────────────────────────────────────────────────────────
- * The parent calls `sheetRef.scrollToIndex(i)` when a map pin is tapped,
- * scrolling the vertical list to the matching card and highlighting it.
- * Tapping a card calls `onPressCard` (navigate to detail).
- *
- * ─── Layout note ────────────────────────────────────────────────────────────
- * The sheet is `position: absolute, top: 0`. `translateY` shifts it down;
- * React Native applies transforms to the touch hit-area too, so touches above
- * the collapsed sheet correctly fall through to the map below.
- */
-
 import * as Haptics from 'expo-haptics';
 import React, {
   forwardRef,
@@ -31,16 +6,17 @@ import React, {
   useRef,
 } from 'react';
 import {
+  Animated,
   Dimensions,
   FlatList,
   Platform,
-  ScrollView,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import Animated, {
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated2, {
   Extrapolation,
   interpolate,
   runOnJS,
@@ -48,82 +24,83 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { PlaceEnhanced } from '@/services/places';
 import ListingCardDetailed, { DETAILED_CARD_HEIGHT } from './ListingCardDetailed';
+import { ThemedText } from '@/components/themed-text';
+import { MaterialIcons } from '@expo/vector-icons';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-/** Height of the iOS tab bar (position absolute at the bottom). */
 const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 85 : 70;
 
 /**
- * Approximate height of the MapHeader (safe-area inset + search pill +
- * category row). The sheet must never slide above this so its handle bar
- * is always visible and reachable below the search bar.
+ * SNAP_FULL: sheet top sits just below the search bar, covering the filter pills.
+ * ~110px on iOS (60 safe-area + ~50 search bar), ~90px on Android.
  */
-const MAP_HEADER_HEIGHT = Platform.OS === 'ios' ? 120 : 100;
+const SNAP_FULL = Platform.OS === 'ios' ? 118 : 140;
 
-/**
- * The sheet spans from the very top of the screen down to the tab bar.
- * translateY shifts the sheet down; snap points are translateY offsets.
- */
 const SHEET_HEIGHT = SCREEN_HEIGHT - TAB_BAR_HEIGHT;
 
-/**
- * Snap point: fully expanded.
- * Top of sheet sits just below the MapHeader so the handle bar is always
- * accessible and the first list card is never hidden behind the search bar.
- */
-const SNAP_FULL = MAP_HEADER_HEIGHT;
-
-/** Snap point: half-screen — map and listings equally visible */
 const SNAP_HALF = SCREEN_HEIGHT * 0.48;
 
-/**
- * Snap point: collapsed — handle + small peek of the first card.
- * 130 px of peek keeps the sheet subtle without completely hiding the list.
- */
 const SNAP_COLLAPSED = SCREEN_HEIGHT - TAB_BAR_HEIGHT - 60;
 
-/** Hidden: sheet is fully below the screen (place-selected floating-card mode). */
 const SNAP_HIDDEN = SCREEN_HEIGHT + 50;
 
 const SPRING = { damping: 22, stiffness: 180, mass: 0.8 };
 
-const FILTER_PILLS = ['Sort by', 'Open Now', 'Top Rated', 'Cafe'];
+// Height of the handle + heading + filter row area
+const HANDLE_AREA_HEIGHT = 120;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type SheetState = 'collapsed' | 'half' | 'full';
 
-/** Ref API exposed to the parent screen. */
 export interface BottomSheetRef {
-  /** Programmatically scroll the list to the given index. */
   scrollToIndex: (index: number) => void;
-  /** Animate the sheet from collapsed to the half state. */
   expandToHalf: () => void;
-  /** Slide the sheet completely off screen (place-selected mode). */
   hide: () => void;
-  /** Slide the sheet back to the collapsed snap point. */
   restoreCollapsed: () => void;
 }
+
+type Category = { id: string; label: string; icon: string };
 
 type Props = {
   places: PlaceEnhanced[];
   selectedPlace: PlaceEnhanced | null;
-  /** Current sheet state — parent owns it for layout coordination. */
   sheetState: SheetState;
   onSheetStateChange: (state: SheetState) => void;
-  /** Fired when the user taps a card to navigate to the detail screen. */
   onPressCard: (place: PlaceEnhanced) => void;
+  selectedCategory: string;
+  onCategoryChange: (id: string) => void;
+  categories: Category[];
 };
+
+// ─── Scale-press pill ─────────────────────────────────────────────────────────
+
+function ScalePill({ onPress, style, children }: { onPress: () => void; style: any; children: React.ReactNode }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() =>
+        Animated.spring(scale, { toValue: 0.9, useNativeDriver: true, speed: 50, bounciness: 0 }).start()
+      }
+      onPressOut={() =>
+        Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }).start()
+      }
+    >
+      <Animated.View style={[style, { transform: [{ scale }] }]}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Map a translateY value to the nearest snap state. Runs on UI thread. */
 function nearestSnap(y: number): { snapY: number; state: SheetState } {
   'worklet';
   const snaps: [number, SheetState][] = [
@@ -143,15 +120,25 @@ function nearestSnap(y: number): { snapY: number; state: SheetState } {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
-  ({ places, selectedPlace: _selectedPlace, sheetState, onSheetStateChange, onPressCard }, ref) => {
-    // ── Animation state ──────────────────────────────────────────────────────
+  (
+    {
+      places,
+      selectedPlace: _selectedPlace,
+      sheetState,
+      onSheetStateChange,
+      onPressCard,
+      selectedCategory,
+      onCategoryChange,
+      categories,
+    },
+    ref
+  ) => {
     const translateY = useSharedValue(SNAP_HALF);
     const savedY = useSharedValue(SNAP_HALF);
+    const savedBodyY = useSharedValue(SNAP_HALF);
 
-    // ── List ref ─────────────────────────────────────────────────────────────
     const listRef = useRef<FlatList>(null);
 
-    // ── Ref API ──────────────────────────────────────────────────────────────
     useImperativeHandle(ref, () => ({
       scrollToIndex(index: number) {
         if (!listRef.current || index < 0 || index >= places.length) return;
@@ -175,7 +162,6 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
       },
     }));
 
-    // ── JS-side state change (called from UI-thread worklet via runOnJS) ──────
     const applyStateChange = useCallback(
       (state: SheetState) => {
         onSheetStateChange(state);
@@ -184,8 +170,8 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
       [onSheetStateChange]
     );
 
-    // ── Pan gesture on handle bar only ───────────────────────────────────────
-    const gesture = Gesture.Pan()
+    // ── Handle bar gesture ────────────────────────────────────────────────────
+    const handleGesture = Gesture.Pan()
       .onBegin(() => {
         savedY.value = translateY.value;
       })
@@ -199,7 +185,39 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
         let snapY: number;
         let state: SheetState;
 
-        // Fast flick snaps to next logical state rather than nearest point.
+        if (vel > 600) {
+          if (cur < SNAP_HALF) { snapY = SNAP_HALF; state = 'half'; }
+          else { snapY = SNAP_COLLAPSED; state = 'collapsed'; }
+        } else if (vel < -600) {
+          if (cur > SNAP_HALF) { snapY = SNAP_HALF; state = 'half'; }
+          else { snapY = SNAP_FULL; state = 'full'; }
+        } else {
+          const result = nearestSnap(cur);
+          snapY = result.snapY;
+          state = result.state;
+        }
+
+        translateY.value = withSpring(snapY, SPRING);
+        runOnJS(applyStateChange)(state);
+      });
+
+    // ── Body overlay gesture (active in half / collapsed mode only) ───────────
+    // When sheetState !== 'full', a transparent overlay sits over the list and
+    // intercepts vertical swipes to expand / collapse the sheet.
+    const bodyGesture = Gesture.Pan()
+      .onBegin(() => {
+        savedBodyY.value = translateY.value;
+      })
+      .onUpdate(e => {
+        const next = savedBodyY.value + e.translationY;
+        translateY.value = Math.max(SNAP_FULL, Math.min(SNAP_COLLAPSED, next));
+      })
+      .onEnd(e => {
+        const vel = e.velocityY;
+        const cur = translateY.value;
+        let snapY: number;
+        let state: SheetState;
+
         if (vel > 600) {
           if (cur < SNAP_HALF) { snapY = SNAP_HALF; state = 'half'; }
           else { snapY = SNAP_COLLAPSED; state = 'collapsed'; }
@@ -221,8 +239,6 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
       transform: [{ translateY: translateY.value }],
     }));
 
-    // Subtle backdrop dims the map as the sheet rises toward SNAP_FULL.
-    // Input range must be ascending: SNAP_FULL < SNAP_HALF (smaller translateY = higher sheet).
     const backdropAnimStyle = useAnimatedStyle(() => ({
       opacity: interpolate(
         translateY.value,
@@ -235,18 +251,11 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
     // ── List rendering ────────────────────────────────────────────────────────
     const renderCard = useCallback(
       ({ item }: { item: PlaceEnhanced }) => (
-        <ListingCardDetailed
-          place={item}
-          onPress={() => onPressCard(item)}
-        />
+        <ListingCardDetailed place={item} onPress={() => onPressCard(item)} />
       ),
       [onPressCard]
     );
 
-    /**
-     * getItemLayout is required for reliable scrollToIndex on large lists.
-     * VERTICAL_ITEM_HEIGHT = card height + gap between items.
-     */
     const VERTICAL_ITEM_HEIGHT = DETAILED_CARD_HEIGHT + 16;
     const getItemLayout = useCallback(
       (_: unknown, index: number) => ({
@@ -263,48 +272,72 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
     return (
       <>
         {/* ── Map dimming backdrop ── */}
-        <Animated.View
+        <Animated2.View
           style={[StyleSheet.absoluteFill, styles.backdrop, backdropAnimStyle]}
           pointerEvents="none"
         />
 
         {/* ── The sheet ── */}
-        <Animated.View
+        <Animated2.View
           style={[
             styles.sheet,
             { height: SHEET_HEIGHT, backgroundColor: bgColor },
             sheetAnimStyle,
           ]}
         >
-          {/* ── Handle bar — only gesture target ── */}
-          <GestureDetector gesture={gesture}>
+          {/* ── Handle bar — gesture target ── */}
+          <GestureDetector gesture={handleGesture}>
             <View style={styles.handleArea}>
               <View style={[styles.handle, { backgroundColor: handleColor }]} />
-              {/* Heading */}
+
               <Text style={styles.heading}>Desks in Athens</Text>
-              {/* Filter row */}
-              <ScrollView
+
+              {/* Category filter pills — same as search bar */}
+              <FlatList
+                data={categories}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filtersRow}
-              >
-                {/* Filter icon */}
-                <View style={styles.filterIconWrap}>
-                  <MaterialIcons name="filter-list" size={18} color="#fff" />
-                </View>
-                {FILTER_PILLS.map(pill => (
-                  <View key={pill} style={styles.filterPill}>
-                    <Text style={styles.filterPillText}>{pill}</Text>
-                    {pill === 'Sort by' && (
-                      <MaterialIcons name="keyboard-arrow-down" size={14} color="#ebebf5" />
-                    )}
-                  </View>
-                ))}
-              </ScrollView>
+                keyExtractor={item => item.id}
+                contentContainerStyle={styles.pillsRow}
+                renderItem={({ item: cat }) => {
+                  const isActive = selectedCategory === cat.id;
+                  return (
+                    <ScalePill
+                      onPress={() =>
+                        onCategoryChange(isActive && cat.id !== 'all' ? 'all' : cat.id)
+                      }
+                      style={[
+                        styles.pill,
+                        {
+                          backgroundColor: isActive ? '#ffffff' : '#1c1c1e',
+                          borderColor: isActive ? '#ffffff' : 'rgba(255,255,255,0.15)',
+                        },
+                      ]}
+                    >
+                      <MaterialIcons
+                        name={cat.icon as any}
+                        size={14}
+                        color={isActive ? '#000000' : '#8e8e93'}
+                      />
+                      <ThemedText
+                        style={[
+                          styles.pillLabel,
+                          {
+                            color: isActive ? '#000000' : '#ebebf5',
+                            fontWeight: isActive ? '700' : '500',
+                          },
+                        ]}
+                      >
+                        {cat.label}
+                      </ThemedText>
+                    </ScalePill>
+                  );
+                }}
+              />
             </View>
           </GestureDetector>
 
-          {/* ── Single vertical FlatList — always mounted, avoids prop-nullability crash ── */}
+          {/* ── List ── */}
           <FlatList
             ref={listRef}
             data={places}
@@ -313,8 +346,8 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
             getItemLayout={getItemLayout}
+            scrollEnabled={sheetState === 'full'}
             onScrollToIndexFailed={info => {
-              // Retry after the list has rendered
               setTimeout(() => {
                 listRef.current?.scrollToIndex({
                   index: info.index,
@@ -324,7 +357,14 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
               }, 500);
             }}
           />
-        </Animated.View>
+
+          {/* ── Body overlay: catches swipes to expand/collapse in half mode ── */}
+          {sheetState !== 'full' && (
+            <GestureDetector gesture={bodyGesture}>
+              <View style={styles.listOverlay} />
+            </GestureDetector>
+          )}
+        </Animated2.View>
       </>
     );
   }
@@ -338,7 +378,7 @@ export default AirbnbBottomSheet;
 const styles = StyleSheet.create({
   backdrop: {
     backgroundColor: '#000',
-    zIndex: 49,
+    zIndex: 109,
   },
   sheet: {
     position: 'absolute',
@@ -352,7 +392,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 20,
-    zIndex: 50,
+    zIndex: 110,
   },
   handleArea: {
     paddingTop: 10,
@@ -372,41 +412,32 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 12,
   },
-  filtersRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  pillsRow: {
     gap: 8,
     paddingRight: 4,
   },
-  filterIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.07)',
-  },
-  filterPill: {
+  pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-    backgroundColor: 'rgba(255,255,255,0.07)',
   },
-  filterPillText: {
-    color: '#ebebf5',
+  pillLabel: {
     fontSize: 13,
-    fontWeight: '500',
   },
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: TAB_BAR_HEIGHT + 120,
     gap: 16,
+  },
+  listOverlay: {
+    position: 'absolute',
+    top: HANDLE_AREA_HEIGHT,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });
