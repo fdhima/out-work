@@ -98,6 +98,8 @@ export default function HomeScreen() {
   const mapRef = useRef<MapView>(null);
   // Ref: fetchPlaces reads the current region without being a reactive dep.
   const mapRegionRef = useRef<Region | null>(null);
+  // Flag: set when dismissing the floating card so the zoom-sync effect skips.
+  const dismissingCardRef = useRef(false);
   // State: drives cluster recalculation when panning/zooming stops.
   const [mapRegion, setMapRegion] = useState<Region>(DEFAULT_REGION);
   // Pending rAF handle — ensures only the latest region triggers a re-cluster.
@@ -155,8 +157,14 @@ export default function HomeScreen() {
   // ─── Map zoom sync with sheet state ──────────────────────────────────────
   // When a place is selected the sheet is hidden and the map is already
   // centered on that place — skip zoom changes in that mode.
+  // Also skip when the user is dismissing the floating card (map tap) to
+  // avoid an unwanted zoom-out back to the sheet-state delta.
   useEffect(() => {
     if (selectedPlace) return;
+    if (dismissingCardRef.current) {
+      dismissingCardRef.current = false;
+      return;
+    }
     const region = mapRegionRef.current;
     if (!region) return; // map hasn't fired onRegionChangeComplete yet
     const delta = SHEET_ZOOM[sheetState];
@@ -250,7 +258,9 @@ export default function HomeScreen() {
 
   const onMapPress = useCallback(() => {
     Keyboard.dismiss();
-    // Tapping the map deselects and restores the bottom sheet
+    // Tapping the map deselects and restores the bottom sheet.
+    // Set the flag so the zoom-sync effect skips the unwanted zoom-out.
+    dismissingCardRef.current = true;
     setSelectedPlace(null);
     sheetRef.current?.restoreCollapsed();
   }, []);

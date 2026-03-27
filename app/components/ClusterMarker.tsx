@@ -8,19 +8,22 @@
  *
  * Animation:
  *   • Spring scale 0→1 on mount so clusters "pop" in rather than appear abruptly.
- *   • tracksViewChanges is true only while the entrance spring is running, then
- *     switched to false for the performance benefit (avoids continuous iOS MapKit
- *     view-change tracking).
+ *   • After the entrance spring, a looping ambient glow pulses outward — a larger
+ *     ring that expands and fades, giving the marker a breathing "alive" feel.
+ *   • tracksViewChanges stays true so the continuous glow is visible on iOS MapKit.
  */
 import { BRAND_BLUE } from '@/constants/theme';
 import { ClusterPoint } from '@/hooks/useClusters';
-import React, { memo, useEffect, useState } from 'react';
+import React, { memo, useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  runOnJS,
+  Easing,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
+  withSequence,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { Marker } from 'react-native-maps';
 
@@ -30,6 +33,8 @@ interface ClusterMarkerProps {
 }
 
 const SPRING_CONFIG = { damping: 13, stiffness: 210, mass: 0.65 };
+const GLOW_DURATION = 1600; // ms for one half-cycle (expand or fade)
+const GLOW_PAD = 12; // extra radius the glow ring extends beyond the halo
 
 /** Inner circle diameter scales with cluster size for quick at-a-glance density. */
 function circleSize(count: number): number {
@@ -40,22 +45,38 @@ function circleSize(count: number): number {
 
 const ClusterMarker = memo(({ cluster, onPress }: ClusterMarkerProps) => {
   const scale = useSharedValue(0);
-  // Keep tracksViewChanges=true only while the entrance animation plays.
-  const [tracksChanges, setTracksChanges] = useState(true);
+  const glow  = useSharedValue(0);
 
   useEffect(() => {
+    // Entrance pop
     scale.value = withSpring(1, SPRING_CONFIG, (finished) => {
       'worklet';
-      if (finished) runOnJS(setTracksChanges)(false);
+      if (!finished) return;
+      // Start ambient glow after the entrance settles
+      glow.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: GLOW_DURATION, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: GLOW_DURATION, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        false,
+      );
     });
   }, []);
 
-  const animStyle = useAnimatedStyle(() => ({
+  const entranceStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
-  const inner = circleSize(cluster.count);
-  const outer = inner + 14; // halo ring adds 7px on each side
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glow.value * 0.2,
+    transform: [{ scale: 1 + glow.value * 0.30 }],
+  }));
+
+  const inner      = circleSize(cluster.count);
+  const outer      = inner + 14;           // halo ring adds 7 px on each side
+  const glowSize   = outer + GLOW_PAD * 2; // glow ring starts slightly larger
+  const wrapSize   = glowSize ;         // wrapper has room for the scaled glow
 
   return (
     <Marker
@@ -64,23 +85,31 @@ const ClusterMarker = memo(({ cluster, onPress }: ClusterMarkerProps) => {
         e.stopPropagation();
         onPress(cluster);
       }}
-      tracksViewChanges={tracksChanges}
+      tracksViewChanges  // must stay true for the looping animation to render on iOS
       anchor={{ x: 0.5, y: 0.5 }}
     >
-      {/* Outer halo ring */}
-      <Animated.View
-        style={[
-          styles.ring,
-          { width: outer, height: outer, borderRadius: outer / 2 },
-          animStyle,
-        ]}
-      >
-        {/* Inner filled circle */}
-        <View style={[styles.circle, { width: inner, height: inner, borderRadius: inner / 2 }]}>
-          <Text style={[styles.count, inner >= 56 && styles.countLarge]}>
-            {cluster.count}
-          </Text>
+      {/* Wrapper sized to contain the glow at its largest scale */}
+      <Animated.View style={[{ width: wrapSize, height: wrapSize, alignItems: 'center', justifyContent: 'center' }, entranceStyle]}>
+
+        {/* Ambient glow ring — pulses outward and fades */}
+        <Animated.View
+          style={[
+            styles.glowRing,
+            { width: glowSize, height: glowSize, borderRadius: glowSize / 2, position: 'absolute' },
+            glowStyle,
+          ]}
+        />
+
+        {/* Outer halo ring */}
+        <View style={[styles.ring, { width: outer, height: outer, borderRadius: outer / 2 }]}>
+          {/* Inner filled circle */}
+          <View style={[styles.circle, { width: inner, height: inner, borderRadius: inner / 2 }]}>
+            <Text style={[styles.count, inner >= 56 && styles.countLarge]}>
+              {cluster.count}
+            </Text>
+          </View>
         </View>
+
       </Animated.View>
     </Marker>
   );
@@ -90,6 +119,9 @@ ClusterMarker.displayName = 'ClusterMarker';
 export default ClusterMarker;
 
 const styles = StyleSheet.create({
+  glowRing: {
+    backgroundColor: BRAND_BLUE,
+  },
   ring: {
     backgroundColor: `${BRAND_BLUE}30`, // ~19% opacity halo
     alignItems: 'center',
@@ -99,10 +131,10 @@ const styles = StyleSheet.create({
     backgroundColor: BRAND_BLUE,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: BRAND_BLUE,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
+    shadowOpacity: 0.45,
+    shadowRadius: 6,
     elevation: 6,
   },
   count: {
