@@ -49,7 +49,7 @@ import { PlaceEnhanced, getPlacesEnhanced } from '@/services/places';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import React, {
   useCallback,
@@ -61,6 +61,7 @@ import {
   Keyboard,
   Platform,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -76,6 +77,8 @@ const DEFAULT_REGION: Region = {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { openSearch } = useLocalSearchParams<{ openSearch?: string }>();
+  const searchInputRef = useRef<TextInput>(null);
   const { isFavorite } = useFavorites();
 
   // ── Data ──────────────────────────────────────────────────────────────────
@@ -121,6 +124,16 @@ export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+
+  // ─── Auto-focus search when arriving from home screen ────────────────────
+  useEffect(() => {
+    if (openSearch !== '1') return;
+    const t = setTimeout(() => {
+      searchInputRef.current?.focus();
+      router.setParams({ openSearch: undefined });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [openSearch]);
 
   // ─── Location tracking ────────────────────────────────────────────────────
   useEffect(() => {
@@ -279,6 +292,7 @@ export default function HomeScreen() {
             onSearchChange={setSearchQuery}
             hasActiveFilter={selectedCategory !== 'all'}
             onFilterPress={() => setFilterModalVisible(true)}
+            inputRef={searchInputRef}
           />
         </View>
 

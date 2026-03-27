@@ -2,7 +2,6 @@ import { HapticTab } from '@/components/haptic-tab';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import Svg, { Path } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { Redirect, Tabs, usePathname } from 'expo-router';
@@ -11,7 +10,7 @@ import { Dimensions, Platform, StyleSheet, View } from 'react-native';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-const TAB_ORDER = ['index', 'favorites', 'explore', 'settings'];
+const TAB_ORDER = ['home', 'index', 'favorites', 'explore', 'settings'];
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -30,6 +29,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      initialRouteName="home"
       screenListeners={{
         tabPress: () => {
           prevTabIndex.current = TAB_ORDER.indexOf(currentTabName);
@@ -102,12 +102,23 @@ export default function TabLayout() {
         },
       })}>
       <Tabs.Screen
+        name="home"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color }) => (
+            <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+            </Svg>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           title: 'Explore',
           tabBarIcon: ({ color }) => (
             <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-              <Path d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+              <Path d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
             </Svg>
           ),
         }}
@@ -128,7 +139,9 @@ export default function TabLayout() {
         options={{
           title: 'Post',
           tabBarIcon: ({ color }) => (
-            <FontAwesome6 size={24} name="plus" color={color} iconStyle="regular" />
+            <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M12 4.5v15m7.5-7.5h-15" />
+            </Svg>
           ),
         }}
       />

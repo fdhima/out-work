@@ -16,6 +16,7 @@ type MapHeaderProps = {
   /** Whether any non-default filter is active (shows badge on filter button). */
   hasActiveFilter?: boolean;
   onFilterPress: () => void;
+  inputRef?: React.RefObject<TextInput>;
 };
 
 export function MapHeader({
@@ -23,6 +24,7 @@ export function MapHeader({
   onSearchChange,
   hasActiveFilter = false,
   onFilterPress,
+  inputRef,
 }: MapHeaderProps) {
   const textColor = useThemeColor({}, "text");
   const isDark = (useColorScheme() ?? "light") === "dark";
@@ -50,6 +52,7 @@ export function MapHeader({
             <MaterialIcons name="search" size={20} color={isDark ? "#fff" : "#000"} />
 
             <TextInput
+              ref={inputRef}
               style={[styles.searchInput, { color: textColor }]}
               placeholder="Where to work?"
               placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
