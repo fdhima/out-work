@@ -158,11 +158,7 @@ function FeaturedCard({ item, isDark, onPress }: FeaturedCardProps) {
                   },
                 ]}
               >
-                <MaterialIcons
-                  name={cat.icon as any}
-                  size={10}
-                  color={isDark ? '#bbb' : '#555'}
-                />
+                <Text style={{ fontSize: 10 }}>{cat.icon}</Text>
                 <Text style={[styles.pillText, { color: isDark ? '#bbb' : '#555' }]}>
                   {cat.label}
                 </Text>
