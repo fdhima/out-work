@@ -8,14 +8,15 @@
 
 import { ThemedText } from '@/components/themed-text';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import React, { useEffect, useState } from 'react';
 import {
   Modal,
   Platform,
   Pressable,
   StyleSheet,
+  Text,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from 'react-native';
 import Animated, {
@@ -172,11 +173,7 @@ export function FilterModal({
                         },
                       ]}
                     >
-                      <MaterialIcons
-                        name={cat.icon as any}
-                        size={22}
-                        color={isActive ? pillTextColorActive : pillTextColor}
-                      />
+                      <Text style={{ fontSize: 22 }}>{cat.icon}</Text>
                       <ThemedText
                         style={[
                           styles.pillLabel,

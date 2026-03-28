@@ -1,4 +1,5 @@
 import { useAuth } from '@/context/AuthContext'
+import { useTheme } from '@/context/ThemeContext'
 import { supabase } from '@/lib/supabase'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { getProfileById } from '@/services/profiles'
@@ -21,6 +22,7 @@ import {
 
 export default function ProfileScreen() {
   const { session, signOut } = useAuth()
+  const { theme, setTheme } = useTheme()
   const router = useRouter()
   const colorScheme = useColorScheme() ?? 'light'
   const isDark = colorScheme === 'dark'
@@ -148,6 +150,43 @@ export default function ProfileScreen() {
             <Text style={[styles.profileSub, { color: textSecondary }]} numberOfLines={1}>
               {email}
             </Text>
+          </View>
+        </View>
+
+        {/* ── Appearance section ── */}
+        <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
+          Appearance
+        </Text>
+        <View style={[styles.menuCard, { backgroundColor: cardBg, marginBottom: 28 }]}>
+          <View style={styles.themeSegmentRow}>
+            {(['light', 'system', 'dark'] as const).map((option, idx, arr) => {
+              const isSelected = theme === option
+              const label = option.charAt(0).toUpperCase() + option.slice(1)
+              const isFirst = idx === 0
+              const isLast = idx === arr.length - 1
+              return (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.themeSegment,
+                    isFirst && styles.themeSegmentFirst,
+                    isLast && styles.themeSegmentLast,
+                    isSelected && { backgroundColor: '#ff6b35' },
+                    !isSelected && { backgroundColor: isDark ? '#2c2c2e' : '#f0f0f0' },
+                    idx > 0 && { borderLeftWidth: 1, borderLeftColor: isDark ? '#3a3a3c' : '#ddd' },
+                  ]}
+                  onPress={() => { Haptics.selectionAsync(); setTheme(option) }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.themeSegmentText,
+                    { color: isSelected ? '#fff' : textSecondary },
+                  ]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
           </View>
         </View>
 
@@ -286,6 +325,31 @@ const styles = StyleSheet.create({
   menuLabel: {
     fontSize: 16,
     fontWeight: '500',
+  },
+
+  // Theme segmented control
+  themeSegmentRow: {
+    flexDirection: 'row',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  themeSegment: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeSegmentFirst: {
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  themeSegmentLast: {
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+  themeSegmentText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
 
   // Delete & version

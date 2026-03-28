@@ -9,7 +9,8 @@
  * running (i.e. while isSelected is true) to minimise the performance cost
  * of view tracking on iOS MapKit.
  */
-import { BRAND_BLUE, isDark } from '@/constants/theme';
+import { BRAND_BLUE } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { PlaceEnhanced } from '@/services/places';
 import React, { memo, useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -34,6 +35,7 @@ interface MapMarkerProps {
 
 const MapMarker = memo(
   ({ place, isSelected, isFavorite, onPress }: MapMarkerProps) => {
+    const isDark = useColorScheme() === 'dark';
     // ── Scale animation ───────────────────────────────────────────────────────
     const breathe = useSharedValue(1);
 

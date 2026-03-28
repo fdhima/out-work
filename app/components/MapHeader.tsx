@@ -1,3 +1,4 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
@@ -6,9 +7,9 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity, // used for the search clear button
-  useColorScheme,
   View,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
@@ -107,11 +108,7 @@ export function MapHeader({
                 },
               ]}
             >
-              <MaterialIcons
-                name={cat.icon as any}
-                size={14}
-                color={isActive ? "#000000" : subColor}
-              />
+              <Text style={{ fontSize: 14 }}>{cat.icon}</Text>
               <ThemedText
                 style={[
                   styles.pillLabel,

@@ -3,11 +3,11 @@ import { getPlaceEnhancedById, PlaceEnhanced } from '@/services/places';
 import * as Location from 'expo-location';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   Animated,
   Dimensions,
   StyleSheet,
-  useColorScheme,
   View,
 } from 'react-native';
 import { ThemedView } from '@/components/themed-view';

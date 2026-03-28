@@ -1,3 +1,4 @@
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Image } from 'expo-image';
 import React, { memo, useCallback, useState } from 'react'; // useState kept for cardWidth
 import {
@@ -54,6 +55,8 @@ type Props = {
 };
 
 function ListingCardDetailed({ place, onPress, userLocation }: Props) {
+  const isDark = useColorScheme() === 'dark';
+
   const images = place.images?.map(i => i.url) ?? [];
   const carouselImages = images.length > 0
     ? images
@@ -66,11 +69,11 @@ function ListingCardDetailed({ place, onPress, userLocation }: Props) {
   const rating = place.rating_avg ?? 0;
   const openStatus = getOpenStatus(place.working_hours);
 
-  const distance = userLocation 
+  const distance = userLocation
     ? getDistance(
-        userLocation.latitude, 
-        userLocation.longitude, 
-        place.latitude, 
+        userLocation.latitude,
+        userLocation.longitude,
+        place.latitude,
         place.longitude
       )
     : null;
@@ -98,8 +101,17 @@ function ListingCardDetailed({ place, onPress, userLocation }: Props) {
     } catch (_) {}
   }, [place]);
 
+  const cardBg = isDark ? '#1c1c1e' : '#ffffff';
+  const textPrimary = isDark ? '#fff' : '#11181C';
+  const textSecondary = isDark ? '#8e8e93' : '#6c6c70';
+  const textMuted = isDark ? '#ebebf5' : '#11181C';
+  const dividerColor = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)';
+  const btnBorder = isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.15)';
+  const btnBg = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
+  const iconColor = isDark ? '#fff' : '#11181C';
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: cardBg }]}>
       {/* ── Image carousel ── */}
       <View
         style={styles.carouselWrap}
@@ -140,18 +152,18 @@ function ListingCardDetailed({ place, onPress, userLocation }: Props) {
       <TouchableOpacity style={styles.body} activeOpacity={0.88} onPress={onPress}>
         {/* Name + rating row */}
         <View style={styles.nameRow}>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text style={[styles.name, { color: textPrimary }]} numberOfLines={1}>
             {place.name}
           </Text>
           <View style={styles.ratingRow}>
             {distance !== null && (
               <>
-                <Text style={styles.distanceText}>{formatDistance(distance)}</Text>
-                <Text style={styles.dot}>·</Text>
+                <Text style={[styles.distanceText, { color: textSecondary }]}>{formatDistance(distance)}</Text>
+                <Text style={[styles.separator, { color: textSecondary }]}>·</Text>
               </>
             )}
             <MaterialIcons name="star" size={14} color="#FFD700" />
-            <Text style={styles.ratingText}>
+            <Text style={[styles.ratingText, { color: textMuted }]}>
               {rating > 0 ? rating.toFixed(1) : '—'}
               {reviewCount > 0 ? ` (${reviewCount})` : ''}
             </Text>
@@ -172,27 +184,27 @@ function ListingCardDetailed({ place, onPress, userLocation }: Props) {
         )}
 
         {/* Divider */}
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: dividerColor }]} />
 
         {/* Action row */}
         <View style={styles.actionRow}>
           {/* Directions button */}
           <TouchableOpacity
-            style={styles.directionsBtn}
+            style={[styles.directionsBtn, { borderColor: btnBorder, backgroundColor: btnBg }]}
             onPress={handleDirections}
             activeOpacity={0.8}
           >
-            <MaterialIcons name="map" size={16} color="#fff" />
-            <Text style={styles.directionsBtnText}>Directions</Text>
+            <MaterialIcons name="map" size={16} color={iconColor} />
+            <Text style={[styles.directionsBtnText, { color: iconColor }]}>Directions</Text>
           </TouchableOpacity>
 
           {/* Share button */}
           <TouchableOpacity
-            style={styles.shareBtn}
+            style={[styles.shareBtn, { borderColor: btnBorder, backgroundColor: btnBg }]}
             onPress={handleShare}
             activeOpacity={0.8}
           >
-            <MaterialIcons name="ios-share" size={18} color="#fff" />
+            <MaterialIcons name="ios-share" size={18} color={iconColor} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -204,7 +216,6 @@ export default memo(ListingCardDetailed);
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#1c1c1e',
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -252,7 +263,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
     letterSpacing: -0.2,
   },
   ratingRow: {
@@ -264,16 +274,13 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#ebebf5',
   },
   distanceText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#8e8e93',
   },
-  dot: {
+  separator: {
     fontSize: 13,
-    color: '#8e8e93',
     marginHorizontal: 1,
   },
   openStatus: {
@@ -282,7 +289,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   actionRow: {
     flexDirection: 'row',
@@ -298,11 +304,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
-    backgroundColor: 'rgba(255,255,255,0.07)',
   },
   directionsBtnText: {
-    color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -313,7 +316,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
-    backgroundColor: 'rgba(255,255,255,0.07)',
   },
 });

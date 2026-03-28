@@ -2,13 +2,13 @@
  * ListingRow — compact row used in the bottom sheet's full-screen vertical list.
  * Mirrors the Airbnb search-results list item: small thumbnail left, info right.
  */
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Image } from 'expo-image';
 import React, { memo } from 'react';
 import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';

@@ -5,6 +5,7 @@
  *   vertical  — fills the full container width (used in vertical FlatList)
  *               height is fixed at 256 px so getItemLayout stays accurate.
  */
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Image } from 'expo-image';
 import React, { memo } from 'react';
 import {
@@ -12,7 +13,6 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -128,11 +128,7 @@ function ListingCard({ place, isSelected, onPress, vertical = false }: Props) {
                   },
                 ]}
               >
-                <MaterialIcons
-                  name={cat.icon as any}
-                  size={11}
-                  color={isDark ? '#ddd' : '#444'}
-                />
+                <Text style={{ fontSize: 11 }}>{cat.icon}</Text>
                 <Text
                   style={[
                     styles.categoryText,

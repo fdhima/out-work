@@ -23,6 +23,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -508,11 +509,7 @@ export default function CreatePlaceScreen() {
                       activeOpacity={0.75}
                     >
                       {meta && (
-                        <MaterialIcons
-                          name={meta.icon as any}
-                          size={18}
-                          color={isSelected ? (isDark ? "#1c1c1e" : "#ffffff") : textColor}
-                        />
+                        <Text style={{ fontSize: 18 }}>{meta.icon}</Text>
                       )}
                       <ThemedText
                         style={[

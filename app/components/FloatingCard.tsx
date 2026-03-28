@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { CATEGORIES } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { PlaceEnhanced } from "@/services/places";
 import * as Location from 'expo-location';
 import { getDistance, formatDistance } from "@/utils/location";
@@ -13,7 +14,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -130,11 +130,7 @@ export function FloatingCard({ selectedPlace, onPressCard, userLocation }: Float
                     { backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)" },
                   ]}
                 >
-                  <MaterialIcons
-                    name={cat.icon as any}
-                    size={11}
-                    color={isDark ? "#ddd" : "#444"}
-                  />
+                  <Text style={{ fontSize: 11 }}>{cat.icon}</Text>
                   <Text style={[styles.categoryText, { color: isDark ? "#ddd" : "#444" }]}>
                     {cat.label}
                   </Text>

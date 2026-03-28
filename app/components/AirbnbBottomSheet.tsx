@@ -24,6 +24,7 @@ import Animated2, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { PlaceEnhanced } from '@/services/places';
 import * as Location from 'expo-location';
 import ListingCardDetailed, { DETAILED_CARD_HEIGHT } from './ListingCardDetailed';
@@ -261,8 +262,9 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
       []
     );
 
-    const bgColor = '#111111';
-    const handleColor = '#48484a';
+    const isDark = useColorScheme() === 'dark';
+    const bgColor = isDark ? '#111111' : '#ffffff';
+    const handleColor = isDark ? '#48484a' : '#d1d1d6';
 
     return (
       <>
@@ -285,7 +287,7 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
             <View style={styles.handleArea}>
               <View style={[styles.handle, { backgroundColor: handleColor }]} />
 
-              <Text style={styles.heading}>Spots in Greece 🇬🇷</Text>
+              <Text style={[styles.heading, { color: isDark ? '#fff' : '#11181C' }]}>Spots in Greece 🇬🇷</Text>
 
               {/* Category filter pills — same as search bar */}
               <FlatList
@@ -296,6 +298,14 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
                 contentContainerStyle={styles.pillsRow}
                 renderItem={({ item: cat }) => {
                   const isActive = selectedCategory === cat.id;
+                  const pillBgActive = isDark ? '#ffffff' : '#11181C';
+                  const pillBgInactive = isDark ? '#1c1c1e' : '#f0f0f0';
+                  const pillBorderActive = isDark ? '#ffffff' : '#11181C';
+                  const pillBorderInactive = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)';
+                  const iconColorActive = isDark ? '#000000' : '#ffffff';
+                  const iconColorInactive = isDark ? '#8e8e93' : '#555555';
+                  const labelColorActive = isDark ? '#000000' : '#ffffff';
+                  const labelColorInactive = isDark ? '#ebebf5' : '#333333';
                   return (
                     <ScalePill
                       onPress={() =>
@@ -304,21 +314,21 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
                       style={[
                         styles.pill,
                         {
-                          backgroundColor: isActive ? '#ffffff' : '#1c1c1e',
-                          borderColor: isActive ? '#ffffff' : 'rgba(255,255,255,0.15)',
+                          backgroundColor: isActive ? pillBgActive : pillBgInactive,
+                          borderColor: isActive ? pillBorderActive : pillBorderInactive,
                         },
                       ]}
                     >
                       <MaterialIcons
                         name={cat.icon as any}
                         size={14}
-                        color={isActive ? '#000000' : '#8e8e93'}
+                        color={isActive ? iconColorActive : iconColorInactive}
                       />
                       <ThemedText
                         style={[
                           styles.pillLabel,
                           {
-                            color: isActive ? '#000000' : '#ebebf5',
+                            color: isActive ? labelColorActive : labelColorInactive,
                             fontWeight: isActive ? '700' : '500',
                           },
                         ]}
@@ -404,7 +414,6 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
     marginBottom: 12,
   },
   pillsRow: {

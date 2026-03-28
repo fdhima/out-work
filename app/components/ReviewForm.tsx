@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
-import { BRAND_BLUE, isDark } from '@/constants/theme';
+import { BRAND_BLUE } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from "@/context/AuthContext";
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Place } from '@/services/places';
@@ -21,6 +22,7 @@ type ReviewFormProps = {
 
 export function ReviewForm({ placeForReview, onReviewPosted }: ReviewFormProps) {
   const { session } = useAuth();
+  const isDark = useColorScheme() === 'dark';
 
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');

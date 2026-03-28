@@ -65,6 +65,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   Animated,
   Dimensions,
@@ -77,7 +78,6 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
@@ -108,11 +108,11 @@ const UNIVERSAL_LINK_BASE = 'https://out-work.online';
 
 /** Maps DB category keys → display label + icon */
 const CATEGORY_META: Record<string, { label: string; icon: string }> = {
-  quiet:            { label: 'Quiet',          icon: 'volume-off'  },
-  meeting:          { label: 'Meeting',        icon: 'groups'      },
-  late_night:       { label: 'Late Night',     icon: 'nightlight'  },
-  fast_wifi:        { label: 'Fast Wifi',      icon: 'wifi'        },
-  socket_friendly:  { label: 'Socket Friendly',          icon: 'power'       },
+  quiet:            { label: 'Quiet',           icon: '🤫' },
+  meeting:          { label: 'Meeting',         icon: '👥' },
+  late_night:       { label: 'Late Night',      icon: '🌙' },
+  fast_wifi:        { label: 'Fast Wifi',       icon: '⚡' },
+  socket_friendly:  { label: 'Socket Friendly', icon: '🔌' },
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -201,11 +201,7 @@ function AmenitiesSection({ categoryNames }: { categoryNames: string[] }) {
       <View style={styles.amenitiesGrid}>
         {amenities.map((a, i) => (
           <View key={i} style={styles.amenityRow}>
-            <MaterialIcons
-              name={a.icon as any}
-              size={22}
-              color={isDark ? '#ccc' : '#444'}
-            />
+            <Text style={styles.amenityEmoji}>{a.icon}</Text>
             <Text style={[styles.amenityLabel, { color: isDark ? '#ddd' : '#333' }]}>
               {a.label}
             </Text>
@@ -874,7 +870,7 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
                       },
                     ]}
                   >
-                    <MaterialIcons name={meta.icon as any} size={13} color={BRAND_BLUE} />
+                    <Text style={{ fontSize: 13 }}>{meta.icon}</Text>
                     <Text style={[styles.categoryPillText, { color: isDark ? '#ddd' : '#444' }]}>
                       {meta.label}
                     </Text>
@@ -1192,6 +1188,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
+  },
+  amenityEmoji: {
+    fontSize: 22,
   },
   amenityLabel: {
     fontSize: 16,

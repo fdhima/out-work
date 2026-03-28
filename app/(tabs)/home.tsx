@@ -362,7 +362,7 @@ export default function HomeScreen() {
                 style={[styles.categoryChip, { backgroundColor: cardBg }]}
               >
                 <View style={styles.categoryIconRing}>
-                  <MaterialIcons name={cat.icon as any} size={18} color="#4A90E2" />
+                  <Text style={{ fontSize: 18 }}>{cat.icon}</Text>
                 </View>
                 <Text style={[styles.categoryChipLabel, { color: textColor }]}>
                   {cat.label}

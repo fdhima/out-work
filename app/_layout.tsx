@@ -1,5 +1,6 @@
 import { AuthProvider } from '@/context/AuthContext'
 import { FavoritesProvider } from '@/context/FavoritesContext'
+import { ThemeProvider } from '@/context/ThemeContext'
 import { Stack } from 'expo-router'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { StyleSheet } from 'react-native'
@@ -8,11 +9,13 @@ export default function RootLayout() {
   return (
     // GestureHandlerRootView must wrap the entire app for react-native-gesture-handler v2
     <GestureHandlerRootView style={StyleSheet.absoluteFill}>
-      <AuthProvider>
-        <FavoritesProvider>
-          <Stack screenOptions={{ headerShown: false }} />
-        </FavoritesProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <FavoritesProvider>
+            <Stack screenOptions={{ headerShown: false }} />
+          </FavoritesProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
   )
 }

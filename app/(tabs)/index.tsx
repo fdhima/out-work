@@ -40,7 +40,8 @@ import { FloatingCard } from '../components/FloatingCard';
 import { MapHeader } from '../components/MapHeader';
 import MapMarker from '../components/MapMarker';
 import { ThemedView } from '@/components/themed-view';
-import { BRAND_BLUE, CATEGORIES, isDark } from '@/constants/theme';
+import { BRAND_BLUE, CATEGORIES } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useFavorites } from '@/context/FavoritesContext';
 import { ClusterPoint, useClusters } from '@/hooks/useClusters';
 import { getCategoryIdByName } from '@/services/categories';
@@ -77,6 +78,7 @@ const DEFAULT_REGION: Region = {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const isDark = useColorScheme() === 'dark';
   const { openSearch, category } = useLocalSearchParams<{ openSearch?: string; category?: string }>();
   const searchInputRef = useRef<TextInput>(null);
   const { isFavorite } = useFavorites();
@@ -317,7 +319,7 @@ export default function HomeScreen() {
         {/* ── Re-center on user button ── */}
         {userLocation && (
           <TouchableOpacity
-            style={styles.recenterBtn}
+            style={[styles.recenterBtn, { backgroundColor: isDark ? '#2c2c2e' : '#fff' }]}
             onPress={centerOnUser}
             activeOpacity={0.85}
           >
@@ -400,7 +402,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: isDark ? '#2c2c2e' : '#fff',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -425,7 +426,6 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 8,
     borderWidth: 1,
-    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
   },
   searchAreaBlur: {
     padding: 2,

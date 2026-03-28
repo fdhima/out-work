@@ -16,12 +16,12 @@ export const colorScheme = Appearance.getColorScheme() ?? "light";
 export const isDark = colorScheme === 'dark';
 
 export const CATEGORIES = [
-  { id: "all", label: "All", icon: "grid-view" },
-  { id: "quiet", label: "Quiet", icon: "volume-off" },
-  { id: "meeting", label: "Meeting", icon: "groups" },
-  { id: "late_night", label: "Late Night", icon: "nightlight" },
-  { id: "fast_wifi", label: "Fast Wifi", icon: "wifi" },
-  { id: "socket_friendly", label: "Socket Friendly", icon: "power" },
+  { id: "all", label: "All", icon: "🔍" },
+  { id: "quiet", label: "Quiet", icon: "🤫" },
+  { id: "meeting", label: "Meeting", icon: "👥" },
+  { id: "late_night", label: "Late Night", icon: "🌙" },
+  { id: "fast_wifi", label: "Fast Wifi", icon: "⚡" },
+  { id: "socket_friendly", label: "Socket Friendly", icon: "🔌" },
 ];
 
 

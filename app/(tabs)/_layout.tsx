@@ -1,12 +1,10 @@
 import { HapticTab } from '@/components/haptic-tab';
 import { useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Svg, { Path } from 'react-native-svg';
-import { BlurView } from 'expo-blur';
 import { Redirect, Tabs, usePathname } from 'expo-router';
 import React, { useRef } from 'react';
-import { Dimensions, Platform, StyleSheet, View } from 'react-native';
+import { Dimensions, Platform, StyleSheet } from 'react-native';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -62,40 +60,23 @@ export default function TabLayout() {
         },
         tabBarStyle: Platform.select({
           ios: {
-            position: 'absolute',
-            borderTopWidth: 0,
-            elevation: 0,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: isDark ? '#2C2C2E' : '#E0E0E0',
             height: 85,
             paddingBottom: 25,
-            backgroundColor: 'transparent',
+            backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
           },
           android: {
-            position: 'absolute',
-            borderTopWidth: 0,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: isDark ? '#2C2C2E' : '#E0E0E0',
             elevation: 8,
             height: 70,
             paddingBottom: 12,
             paddingTop: 10,
-            backgroundColor: 'transparent',
-            marginHorizontal: 20,
-            marginBottom: 20,
-            borderRadius: 35,
-            overflow: 'hidden',
-            borderWidth: 1,
-            borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+            backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
           },
           default: {},
         }),
-        tabBarBackground: () => (
-          <BlurView
-            key={pathname}
-            intensity={100}
-            tint={isDark ? 'dark' : 'light'}
-            style={StyleSheet.absoluteFill}
-          >
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.12)' }]} />
-          </BlurView>
-        ),
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
