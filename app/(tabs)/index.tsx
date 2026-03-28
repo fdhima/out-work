@@ -189,6 +189,20 @@ export default function HomeScreen() {
     }, [fetchPlaces])
   );
 
+  // ─── Refresh marker positions when the sheet opens ───────────────────────
+  // When the sheet animates to full height, the parent re-render can cause
+  // react-native-maps to lose the native position of cluster annotation views.
+  // Forcing useClusters to recompute after the spring settles (re-sending the
+  // same coordinate to native) is equivalent to what "moving the map" does and
+  // corrects any displaced markers without any visible change to the map.
+  useEffect(() => {
+    if (sheetState !== 'full') return;
+    const t = setTimeout(() => {
+      setMapRegion(r => ({ ...r }));
+    }, 350);
+    return () => clearTimeout(t);
+  }, [sheetState]);
+
   // ─── Map helpers ──────────────────────────────────────────────────────────
   const centerMap = useCallback((lat: number, lng: number) => {
     mapRef.current?.animateToRegion(

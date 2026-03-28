@@ -14,10 +14,11 @@
  */
 import { BRAND_BLUE } from '@/constants/theme';
 import { ClusterPoint } from '@/hooks/useClusters';
-import React, { memo, useEffect } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -47,11 +48,21 @@ const ClusterMarker = memo(({ cluster, onPress }: ClusterMarkerProps) => {
   const scale = useSharedValue(0);
   const glow  = useSharedValue(0);
 
+  // tracksViewChanges must be true while the entrance animation runs so MapKit
+  // captures the final rendered state. Once the spring settles we turn it off —
+  // keeping it true with a looping Reanimated animation causes iOS MapKit to
+  // snapshot the view mid-frame during unrelated UI animations (e.g. the bottom
+  // sheet opening), which makes the annotation view snap to screen position (0,0).
+  const [tracksViewChanges, setTracksViewChanges] = useState(true);
+
   useEffect(() => {
     // Entrance pop
     scale.value = withSpring(1, SPRING_CONFIG, (finished) => {
       'worklet';
       if (!finished) return;
+      // Stop tracking view changes: position is now stable and continuous
+      // snapshotting is no longer needed. Glow will still animate on Android.
+      runOnJS(setTracksViewChanges)(false);
       // Start ambient glow after the entrance settles
       glow.value = withRepeat(
         withSequence(
@@ -85,7 +96,7 @@ const ClusterMarker = memo(({ cluster, onPress }: ClusterMarkerProps) => {
         e.stopPropagation();
         onPress(cluster);
       }}
-      tracksViewChanges  // must stay true for the looping animation to render on iOS
+      tracksViewChanges={tracksViewChanges}
       anchor={{ x: 0.5, y: 0.5 }}
     >
       {/* Wrapper sized to contain the glow at its largest scale */}
