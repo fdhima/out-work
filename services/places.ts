@@ -85,15 +85,12 @@ export async function createPlace(input: CreatePlaceInput): Promise<Place> {
 }
 
 // Update an existing place
-export async function updatePlace(placeId: number, input: UpdatePlaceInput): Promise<Place> {
-  const { data, error } = await supabase
+export async function updatePlace(placeId: number, input: UpdatePlaceInput): Promise<void> {
+  const { error } = await supabase
     .from('places')
     .update(input)
-    .eq('id', placeId)
-    .select('*')
-    .single();
+    .eq('id', placeId);
   if (error) throw error;
-  return data;
 }
 
 // Delete a place
@@ -165,7 +162,6 @@ export async function getPlacesEnhanced(categoryId?: number | null, query?: stri
     console.error('Error fetching places:', error);
     throw error;
   }
-  console.log(`fetched places: ${JSON.stringify(data)}`);
   return data;
 }
 

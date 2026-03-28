@@ -43,9 +43,10 @@ export async function getProfileFullNameById(userId: string): Promise<string | n
 }
 
 export async function updateProfile(
-  profileId: string,
   updates: UpdateProfileInput
 ): Promise<Profile> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
 
   const { data, error } = await supabase
     .from('profiles')
@@ -53,7 +54,7 @@ export async function updateProfile(
       ...updates,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', profileId)
+    .eq('id', user.id)
     .single()
 
   if (error) throw error

@@ -105,15 +105,12 @@ export async function createReview(input: CreateReviewInput): Promise<Review> {
 }
 
 // Update an existing review
-export async function updateReview(reviewId: number, input: UpdateReviewInput): Promise<Review> {
-  const { data, error } = await supabase
+export async function updateReview(reviewId: number, input: UpdateReviewInput): Promise<void> {
+  const { error } = await supabase
     .from('reviews')
     .update(input)
-    .eq('id', reviewId)
-    .select('*')
-    .single();
+    .eq('id', reviewId);
   if (error) throw error;
-  return data;
 }
 
 // Delete a review
