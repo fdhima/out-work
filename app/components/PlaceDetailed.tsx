@@ -52,7 +52,7 @@ import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { getDistance, formatDistance } from '@/utils/location';
 import { getReviewsByPlaceId, Review } from '@/services/reviews';
-import { addCrowdReport, getCrowdStats, CrowdStats } from '@/services/crowd';
+import { addCrowdReport, getCrowdStats, getCrowdPattern, CrowdStats, HourPattern } from '@/services/crowd';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -216,31 +216,111 @@ function AmenitiesSection({ categoryNames }: { categoryNames: string[] }) {
   );
 }
 
-/** Crowd level indicator */
-function CrowdSection({ stats }: { stats: CrowdStats }) {
+const CROWD_BAR_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+
+function levelColor(level: number) {
+  if (level >= 2.5) return '#ef4444';
+  if (level >= 1.5) return '#f59e0b';
+  return '#22c55e';
+}
+
+/** Crowd level indicator + daily busy-pattern bar chart */
+function CrowdSection({
+  stats,
+  pattern,
+}: {
+  stats: CrowdStats | null;
+  pattern: HourPattern[];
+}) {
   const isDark = (useColorScheme() ?? 'light') === 'dark';
-  const dotColor =
-    stats.crowdLevel === 3 ? '#F44336' :
-    stats.crowdLevel === 2 ? '#FFC107' : '#4CAF50';
-  const label =
+  const currentHour = new Date().getHours();
+
+  const dotColor = !stats ? '#8e8e93' :
+    stats.crowdLevel === 3 ? '#ef4444' :
+    stats.crowdLevel === 2 ? '#f59e0b' : '#22c55e';
+
+  const label = !stats ? 'No reports yet' :
     stats.crowdLevel === 3 ? 'Busy right now' :
     stats.crowdLevel === 2 ? 'Moderate crowd' : 'Quiet right now';
+
+  const byHour = Object.fromEntries(pattern.map(p => [p.hour, p]));
+  const hasPattern = pattern.length > 0;
 
   return (
     <View style={styles.section}>
       <SectionTitle title="Live crowd" />
+
+      {/* Current status row */}
       <View style={styles.crowdRow}>
         <View style={[styles.crowdDot, { backgroundColor: dotColor }]} />
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={[styles.crowdLabel, { color: isDark ? '#fff' : '#111' }]}>
             {label}
           </Text>
           <Text style={[styles.crowdSub, { color: isDark ? '#888' : '#777' }]}>
-            Based on {stats.reportCount} report{stats.reportCount !== 1 ? 's' : ''} ·{' '}
-            {stats.confidence === 'high' ? 'High confidence' : 'Low confidence'}
+            {stats
+              ? `Based on ${stats.reportCount} report${stats.reportCount !== 1 ? 's' : ''} · ${stats.confidence === 'high' ? 'High confidence' : 'Low confidence'}`
+              : 'Open the place and share how busy it is'}
           </Text>
         </View>
       </View>
+
+      {/* Daily pattern bar chart */}
+      {hasPattern && (
+        <View style={styles.patternContainer}>
+          <Text style={[styles.patternTitle, { color: isDark ? '#aaa' : '#666' }]}>
+            Typical busyness today
+          </Text>
+          <View style={styles.barsRow}>
+            {CROWD_BAR_HOURS.map(h => {
+              const entry = byHour[h];
+              const barHeight = entry ? Math.round((entry.avgLevel / 3) * 44) : 4;
+              const color = entry ? levelColor(entry.avgLevel) : (isDark ? '#333' : '#e5e5e5');
+              const isNow = h === currentHour;
+              return (
+                <View key={h} style={styles.barWrapper}>
+                  <View
+                    style={[
+                      styles.bar,
+                      {
+                        height: barHeight,
+                        backgroundColor: color,
+                        opacity: isNow ? 1 : 0.7,
+                        borderWidth: isNow ? 1.5 : 0,
+                        borderColor: isNow ? (isDark ? '#fff' : '#111') : 'transparent',
+                        borderRadius: 3,
+                      },
+                    ]}
+                  />
+                  {isNow && (
+                    <View style={[styles.nowDot, { backgroundColor: isDark ? '#fff' : '#111' }]} />
+                  )}
+                </View>
+              );
+            })}
+          </View>
+          <View style={styles.barLabelsRow}>
+            {CROWD_BAR_HOURS.map((h, i) => (
+              <Text
+                key={h}
+                style={[
+                  styles.barLabel,
+                  {
+                    color: h === currentHour
+                      ? (isDark ? '#fff' : '#111')
+                      : (isDark ? '#555' : '#bbb'),
+                    fontWeight: h === currentHour ? '700' : '400',
+                    // only show label every 3 hours to avoid crowding
+                    opacity: i % 3 === 0 ? 1 : 0,
+                  },
+                ]}
+              >
+                {h}
+              </Text>
+            ))}
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -490,6 +570,7 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [crowdModalVisible, setCrowdModalVisible] = useState(false);
   const [crowdStats, setCrowdStats] = useState<CrowdStats | null>(null);
+  const [crowdPattern, setCrowdPattern] = useState<HourPattern[]>([]);
   const [reviewsRefreshKey, setReviewsRefreshKey] = useState(0);
   const [similarPlaces, setSimilarPlaces] = useState<PlaceEnhanced[]>([]);
   const [similarLoading, setSimilarLoading] = useState(true);
@@ -521,6 +602,7 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
   // ── Effects ────────────────────────────────────────────────────────────────
   useEffect(() => {
     getCrowdStats(selectedPlace.id).then(setCrowdStats);
+    getCrowdPattern(selectedPlace.id).then(setCrowdPattern);
 
     // Ask the user about crowd levels after 1.5 s
     const timer = setTimeout(() => setCrowdModalVisible(true), 1500);
@@ -567,6 +649,7 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
   }, [selectedPlace]);
 
   const handleCrowdSubmit = useCallback(async (level: number) => {
+    setCrowdModalVisible(false);
     try {
       const now = new Date();
       await addCrowdReport({
@@ -575,10 +658,15 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
         time_bucket: now.getHours(),
         crowd_level: level,
       });
+      // Refresh stats and pattern after submission
+      const [stats, pattern] = await Promise.all([
+        getCrowdStats(selectedPlace.id),
+        getCrowdPattern(selectedPlace.id),
+      ]);
+      setCrowdStats(stats);
+      setCrowdPattern(pattern);
     } catch (e) {
       console.error('Crowd report failed', e);
-    } finally {
-      setCrowdModalVisible(false);
     }
   }, [selectedPlace.id]);
 
@@ -818,12 +906,10 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
         )}
 
         {/* ── Crowd level ── */}
-        {crowdStats && (
-          <>
-            <CrowdSection stats={crowdStats} />
-            <SectionDivider />
-          </>
-        )}
+        <>
+          <CrowdSection stats={crowdStats} pattern={crowdPattern} />
+          <SectionDivider />
+        </>
 
         {/* ── Map preview ── */}
         <MapPreviewSection
@@ -1151,6 +1237,49 @@ const styles = StyleSheet.create({
   crowdSub: {
     fontSize: 13,
     marginTop: 2,
+  },
+  patternContainer: {
+    marginTop: 20,
+  },
+  patternTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  },
+  barsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 52,
+    gap: 3,
+  },
+  barWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    height: 52,
+  },
+  bar: {
+    width: '100%',
+    minHeight: 4,
+    borderRadius: 3,
+  },
+  nowDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 3,
+  },
+  barLabelsRow: {
+    flexDirection: 'row',
+    marginTop: 6,
+    gap: 3,
+  },
+  barLabel: {
+    flex: 1,
+    fontSize: 9,
+    textAlign: 'center',
   },
 
   // ── Map preview ──

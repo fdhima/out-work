@@ -31,17 +31,31 @@ export interface CrowdStats {
     reportCount: number;
 }
 
+export interface HourPattern {
+    hour: number;
+    avgLevel: number; // 1.0 – 3.0
+    count: number;
+}
+
+/**
+ * Returns the current crowd level using a ±2-hour window so reports
+ * don't vanish after the exact hour they were submitted.
+ */
 export async function getCrowdStats(placeId: number): Promise<CrowdStats | null> {
     const now = new Date();
     const dayOfWeek = now.getDay();
     const timeBucket = now.getHours();
+
+    // ±2-hour window around the current hour
+    const buckets = [timeBucket - 2, timeBucket - 1, timeBucket, timeBucket + 1, timeBucket + 2]
+        .filter(b => b >= 0 && b <= 23);
 
     const { data, error } = await supabase
         .from('place_crowd_reports')
         .select('crowd_level')
         .eq('place_id', placeId)
         .eq('day_of_week', dayOfWeek)
-        .eq('time_bucket', timeBucket);
+        .in('time_bucket', buckets);
 
     if (error) {
         console.error('Error fetching crowd stats:', error);
@@ -77,4 +91,41 @@ export async function getCrowdStats(placeId: number): Promise<CrowdStats | null>
         confidence: reportCount >= 10 ? 'high' : 'low',
         reportCount
     };
+}
+
+/**
+ * Returns the average crowd level per hour for the current day-of-week,
+ * so the UI can render a "typical busy times" bar chart.
+ */
+export async function getCrowdPattern(placeId: number): Promise<HourPattern[]> {
+    const dayOfWeek = new Date().getDay();
+
+    const { data, error } = await supabase
+        .from('place_crowd_reports')
+        .select('time_bucket, crowd_level')
+        .eq('place_id', placeId)
+        .eq('day_of_week', dayOfWeek);
+
+    if (error) {
+        console.error('Error fetching crowd pattern:', error);
+        return [];
+    }
+
+    if (!data || data.length === 0) return [];
+
+    const byHour: Record<number, number[]> = {};
+    data.forEach(r => {
+        if (r.time_bucket >= 0 && r.time_bucket <= 23) {
+            if (!byHour[r.time_bucket]) byHour[r.time_bucket] = [];
+            byHour[r.time_bucket].push(r.crowd_level);
+        }
+    });
+
+    return Object.entries(byHour)
+        .map(([hour, levels]) => ({
+            hour: parseInt(hour),
+            avgLevel: levels.reduce((a, b) => a + b, 0) / levels.length,
+            count: levels.length,
+        }))
+        .sort((a, b) => a.hour - b.hour);
 }

@@ -2,7 +2,6 @@ import { ThemedText } from "@/components/themed-text";
 import { formatRelativeTime } from "@/lib/date";
 import { BRAND_BLUE, isDark, MAX_REVIEWS_PREVIEW } from "@/constants/theme";
 import { deleteReview, getReviewsByPlaceId, Review, updateReview } from "@/services/reviews";
-import { updatePlace } from "@/services/places";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
@@ -66,16 +65,6 @@ export function ReviewsList({
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
     : "0.0";
 
-  const syncPlaceRating = async (updatedReviews: Review[]) => {
-    const newAvg = updatedReviews.length
-      ? updatedReviews.reduce((acc, r) => acc + r.rating, 0) / updatedReviews.length
-      : 0;
-    await updatePlace(placeId, {
-      rating_avg: Math.round(newAvg * 10) / 10,
-      updated_at: new Date().toISOString(),
-    });
-  };
-
   const handleDeleteReview = (review: Review) => {
     Alert.alert(
       "Delete review",
@@ -88,9 +77,7 @@ export function ReviewsList({
           onPress: async () => {
             try {
               await deleteReview(review.id);
-              const updated = reviews.filter((r) => r.id !== review.id);
-              setReviews(updated);
-              await syncPlaceRating(updated);
+              setReviews(reviews.filter((r) => r.id !== review.id));
             } catch (err) {
               console.error("Failed to delete review", err);
               Alert.alert("Error", "Could not delete review. Please try again.");
@@ -122,9 +109,6 @@ export function ReviewsList({
           : r
       );
       setReviews(updated);
-      if (editRating !== editingReview.rating) {
-        await syncPlaceRating(updated);
-      }
       setEditingReview(null);
     } catch (err) {
       console.error("Failed to update review", err);
