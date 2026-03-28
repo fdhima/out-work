@@ -95,6 +95,9 @@ export function MapHeader({
       >
         {categories.map(cat => {
           const isActive = selectedCategory === cat.id;
+          const pillBgActive = isDark ? '#ffffff' : '#11181C';
+          const pillBorderActive = isDark ? '#ffffff' : '#11181C';
+          const labelColorActive = isDark ? '#000000' : '#ffffff';
           return (
             <ScalePill
               key={cat.id}
@@ -102,8 +105,8 @@ export function MapHeader({
               style={[
                 styles.pill,
                 {
-                  backgroundColor: isActive ? "#ffffff" : cardBg,
-                  borderColor: isActive ? "#ffffff" : pillBorderColor,
+                  backgroundColor: isActive ? pillBgActive : cardBg,
+                  borderColor: isActive ? pillBorderActive : pillBorderColor,
                   shadowColor: isDark ? "#000" : "#b09070",
                 },
               ]}
@@ -113,7 +116,7 @@ export function MapHeader({
                 style={[
                   styles.pillLabel,
                   {
-                    color: isActive ? "#000000" : textColor,
+                    color: isActive ? labelColorActive : textColor,
                     fontWeight: isActive ? "700" : "500",
                   },
                 ]}

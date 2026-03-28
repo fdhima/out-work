@@ -29,7 +29,6 @@ import { PlaceEnhanced } from '@/services/places';
 import * as Location from 'expo-location';
 import ListingCardDetailed, { DETAILED_CARD_HEIGHT } from './ListingCardDetailed';
 import { ThemedText } from '@/components/themed-text';
-import { MaterialIcons } from '@expo/vector-icons';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -302,8 +301,6 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
                   const pillBgInactive = isDark ? '#1c1c1e' : '#f0f0f0';
                   const pillBorderActive = isDark ? '#ffffff' : '#11181C';
                   const pillBorderInactive = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)';
-                  const iconColorActive = isDark ? '#000000' : '#ffffff';
-                  const iconColorInactive = isDark ? '#8e8e93' : '#555555';
                   const labelColorActive = isDark ? '#000000' : '#ffffff';
                   const labelColorInactive = isDark ? '#ebebf5' : '#333333';
                   return (
@@ -319,11 +316,7 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
                         },
                       ]}
                     >
-                      <MaterialIcons
-                        name={cat.icon as any}
-                        size={14}
-                        color={isActive ? iconColorActive : iconColorInactive}
-                      />
+                      <Text style={{ fontSize: 14 }}>{cat.icon}</Text>
                       <ThemedText
                         style={[
                           styles.pillLabel,
