@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
     Modal,
@@ -61,10 +61,12 @@ export function CrowdLevelModal({ visible, onClose, onSubmit }: CrowdLevelModalP
     const backdropOpacity = useRef(new Animated.Value(0)).current;
     const pulseScale = useRef(new Animated.Value(1)).current;
     const pulseAnim = useRef<Animated.CompositeAnimation | null>(null);
+    const [modalVisible, setModalVisible] = useState(false);
 
     useEffect(() => {
         if (visible) {
-            // Slide sheet up + fade backdrop in
+            // Show modal first, then animate in
+            setModalVisible(true);
             slideY.setValue(400);
             backdropOpacity.setValue(0);
             Animated.parallel([
@@ -98,7 +100,20 @@ export function CrowdLevelModal({ visible, onClose, onSubmit }: CrowdLevelModalP
             );
             pulseAnim.current.start();
         } else {
+            // Animate out, then hide modal
             pulseAnim.current?.stop();
+            Animated.parallel([
+                Animated.timing(slideY, {
+                    toValue: 400,
+                    duration: 250,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(backdropOpacity, {
+                    toValue: 0,
+                    duration: 250,
+                    useNativeDriver: true,
+                }),
+            ]).start(() => setModalVisible(false));
         }
         return () => pulseAnim.current?.stop();
     }, [visible, slideY, backdropOpacity, pulseScale]);
@@ -113,7 +128,7 @@ export function CrowdLevelModal({ visible, onClose, onSubmit }: CrowdLevelModalP
         <Modal
             animationType="none"
             transparent
-            visible={visible}
+            visible={modalVisible}
             onRequestClose={onClose}
             statusBarTranslucent
         >
