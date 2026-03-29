@@ -3,12 +3,13 @@ import { formatRelativeTime } from "@/lib/date";
 import { BRAND_BLUE, isDark, MAX_REVIEWS_PREVIEW } from "@/constants/theme";
 import { deleteReview, getReviewsByPlaceId, Review, updateReview } from "@/services/reviews";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Modal,
   StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -16,6 +17,137 @@ import {
 import { RenderStars } from "./RenderStars";
 import { useAuth } from "@/context/AuthContext";
 import { useThemeColor } from "@/hooks/use-theme-color";
+
+function SubRatingPill({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: string;
+  label: string;
+  value: number;
+  color: string;
+}) {
+  return (
+    <View style={pillStyles.pill}>
+      <Text style={pillStyles.pillEmoji}>{icon}</Text>
+      <ThemedText style={pillStyles.label}>{label}</ThemedText>
+      <View style={pillStyles.segments}>
+        {Array.from({ length: 4 }, (_, i) => (
+          <View
+            key={i}
+            style={[
+              pillStyles.segment,
+              { backgroundColor: i < value ? color : isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb' },
+            ]}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const pillStyles = {
+  pill: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+  },
+  pillEmoji: {
+    fontSize: 11,
+  },
+  label: {
+    fontSize: 11,
+    opacity: 0.6,
+  },
+  segments: {
+    flexDirection: 'row' as const,
+    gap: 2,
+  },
+  segment: {
+    width: 14,
+    height: 5,
+    borderRadius: 3,
+  },
+};
+
+function EditSubRatingRow({
+  icon,
+  label,
+  value,
+  onChange,
+  isDark,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | null;
+  onChange: (v: number) => void;
+  isDark: boolean;
+}) {
+  return (
+    <View style={editSubStyles.row}>
+      <View style={editSubStyles.labelGroup}>
+        {icon}
+        <ThemedText style={editSubStyles.label}>{label}</ThemedText>
+      </View>
+      <View style={editSubStyles.segments}>
+        {Array.from({ length: 4 }, (_, i) => {
+          const level = i + 1;
+          const filled = value !== null && level <= value;
+          return (
+            <TouchableOpacity
+              key={level}
+              onPress={() => onChange(level)}
+              activeOpacity={0.7}
+              style={[
+                editSubStyles.segment,
+                {
+                  backgroundColor: filled
+                    ? BRAND_BLUE
+                    : isDark
+                    ? "rgba(255,255,255,0.12)"
+                    : "#e5e7eb",
+                },
+              ]}
+            />
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const editSubStyles = StyleSheet.create({
+  emoji: {
+    fontSize: 15,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  labelGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  segments: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  segment: {
+    width: 28,
+    height: 22,
+    borderRadius: 6,
+  },
+});
 
 type ReviewsListProps = {
   placeId: number;
@@ -36,7 +168,10 @@ export function ReviewsList({
   // Edit modal state
   const [editingReview, setEditingReview] = useState<Review | null>(null);
   const [editComment, setEditComment] = useState("");
-  const [editRating, setEditRating] = useState(5);
+  const [editRating, setEditRating] = useState(0);
+  const [editWifiSpeed, setEditWifiSpeed] = useState<number | null>(null);
+  const [editNoiseLevel, setEditNoiseLevel] = useState<number | null>(null);
+  const [editSeatComfort, setEditSeatComfort] = useState<number | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
@@ -92,20 +227,33 @@ export function ReviewsList({
     setEditingReview(review);
     setEditComment(review.comment);
     setEditRating(review.rating);
+    setEditWifiSpeed(review.wifi_speed);
+    setEditNoiseLevel(review.noise_level);
+    setEditSeatComfort(review.seat_comfort);
   };
 
   const handleSaveEdit = async () => {
-    if (!editingReview || !editComment.trim()) return;
+    if (!editingReview || editRating === 0) return;
     setSavingEdit(true);
     try {
       await updateReview(editingReview.id, {
         comment: editComment.trim(),
         rating: editRating,
+        wifi_speed: editWifiSpeed,
+        noise_level: editNoiseLevel,
+        seat_comfort: editSeatComfort,
         updated_at: new Date().toISOString(),
       });
       const updated = reviews.map((r) =>
         r.id === editingReview.id
-          ? { ...r, comment: editComment.trim(), rating: editRating }
+          ? {
+              ...r,
+              comment: editComment.trim(),
+              rating: editRating,
+              wifi_speed: editWifiSpeed,
+              noise_level: editNoiseLevel,
+              seat_comfort: editSeatComfort,
+            }
           : r
       );
       setReviews(updated);
@@ -159,6 +307,14 @@ export function ReviewsList({
                 <RenderStars rating={r.rating} size={12} color={BRAND_BLUE} />
               </View>
 
+              {(r.wifi_speed || r.noise_level || r.seat_comfort) ? (
+                <View style={styles.subRatings}>
+                  {r.wifi_speed ? <SubRatingPill icon="🛜" label="WiFi" value={r.wifi_speed} color={BRAND_BLUE} /> : null}
+                  {r.noise_level ? <SubRatingPill icon="🔇" label="Noise" value={r.noise_level} color="#ef4444" /> : null}
+                  {r.seat_comfort ? <SubRatingPill icon="🪑" label="Seats" value={r.seat_comfort} color="#22c55e" /> : null}
+                </View>
+              ) : null}
+
               <ThemedText style={styles.reviewText}>{r.comment}</ThemedText>
             </View>
           ))}
@@ -185,64 +341,90 @@ export function ReviewsList({
       <Modal
         visible={!!editingReview}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setEditingReview(null)}
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: isDark ? "#1c1c1e" : "#fff" }]}>
-            <ThemedText style={styles.modalTitle}>Edit review</ThemedText>
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setEditingReview(null)} hitSlop={8}>
+                <MaterialIcons name="close" size={22} color={isDark ? "#fff" : "#000"} />
+              </TouchableOpacity>
+              <ThemedText style={styles.modalTitle}>Edit Review</ThemedText>
+              <View style={{ width: 22 }} />
+            </View>
 
-            <View style={styles.starSelector}>
+            {/* Overall Experience */}
+            <ThemedText style={styles.modalSectionLabel}>Overall Experience</ThemedText>
+            <View style={styles.modalStarRow}>
               {[1, 2, 3, 4, 5].map((s) => (
-                <TouchableOpacity key={s} onPress={() => setEditRating(s)}>
+                <TouchableOpacity key={s} onPress={() => setEditRating(s)} activeOpacity={0.7}>
                   <MaterialIcons
                     name={s <= editRating ? "star" : "star-border"}
-                    size={28}
-                    color={BRAND_BLUE}
+                    size={36}
+                    color={s <= editRating ? "#f59e0b" : isDark ? "#555" : "#d1d5db"}
                   />
                 </TouchableOpacity>
               ))}
             </View>
 
+            {/* Sub-ratings */}
+            <View style={[styles.modalSubCard, { backgroundColor: isDark ? "#2c2c2e" : "#f9fafb", borderColor: isDark ? "#3a3a3c" : "#e5e7eb" }]}>
+              <EditSubRatingRow
+                icon={<Text style={editSubStyles.emoji}>🛜</Text>}
+                label="WiFi Speed"
+                value={editWifiSpeed}
+                onChange={setEditWifiSpeed}
+                isDark={isDark}
+              />
+              <View style={[styles.modalDivider, { backgroundColor: isDark ? "#3a3a3c" : "#e5e7eb" }]} />
+              <EditSubRatingRow
+                icon={<Text style={editSubStyles.emoji}>🔇</Text>}
+                label="Noise Level"
+                value={editNoiseLevel}
+                onChange={setEditNoiseLevel}
+                isDark={isDark}
+              />
+              <View style={[styles.modalDivider, { backgroundColor: isDark ? "#3a3a3c" : "#e5e7eb" }]} />
+              <EditSubRatingRow
+                icon={<Text style={editSubStyles.emoji}>🪑</Text>}
+                label="Seat Comfort"
+                value={editSeatComfort}
+                onChange={setEditSeatComfort}
+                isDark={isDark}
+              />
+            </View>
+
+            {/* Comment */}
             <TextInput
               value={editComment}
               onChangeText={setEditComment}
               placeholder="Share your experience…"
-              placeholderTextColor={isDark ? "#9ca3af" : "#6b7280"}
+              placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
               multiline
               style={[
                 styles.editInput,
                 {
                   color: textColor,
-                  backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb",
-                  borderColor: isDark ? "transparent" : "#e5e7eb",
+                  backgroundColor: isDark ? "#2c2c2e" : "#f9fafb",
+                  borderColor: isDark ? "#3a3a3c" : "#e5e7eb",
                 },
               ]}
             />
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                onPress={() => setEditingReview(null)}
-                style={[styles.modalButton, styles.cancelButton, { borderColor: isDark ? "#555" : "#e5e7eb" }]}
-              >
-                <ThemedText style={{ fontWeight: "600" }}>Cancel</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleSaveEdit}
-                disabled={!editComment.trim() || savingEdit}
-                style={[
-                  styles.modalButton,
-                  styles.saveButton,
-                  { opacity: !editComment.trim() || savingEdit ? 0.6 : 1 },
-                ]}
-              >
-                {savingEdit ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <ThemedText style={{ color: "#fff", fontWeight: "600" }}>Save</ThemedText>
-                )}
-              </TouchableOpacity>
-            </View>
+            {/* Save button */}
+            <TouchableOpacity
+              onPress={handleSaveEdit}
+              disabled={editRating === 0 || savingEdit}
+              style={[styles.saveButton, { opacity: editRating === 0 || savingEdit ? 0.5 : 1 }]}
+            >
+              {savingEdit ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <ThemedText style={styles.saveButtonText}>Save Review</ThemedText>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -303,6 +485,12 @@ const styles = StyleSheet.create({
   ratingStars: {
     marginBottom: 8,
   },
+  subRatings: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+    flexWrap: 'wrap',
+  },
   reviewText: {
     fontSize: 16,
     lineHeight: 24,
@@ -326,54 +514,77 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
+    justifyContent: "flex-end",
   },
   modalCard: {
-    width: "100%",
-    borderRadius: 16,
-    padding: 24,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 8,
+    paddingBottom: 32,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 8,
+    elevation: 12,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
+  },
+  modalSectionLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    opacity: 0.6,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  modalStarRow: {
+    flexDirection: "row",
+    gap: 6,
+    paddingHorizontal: 20,
     marginBottom: 16,
   },
-  starSelector: {
-    flexDirection: "row",
-    gap: 4,
-    marginBottom: 16,
+  modalSubCard: {
+    marginHorizontal: 20,
+    marginBottom: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  modalDivider: {
+    height: 1,
+    marginHorizontal: 14,
   },
   editInput: {
-    fontSize: 16,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    fontSize: 15,
     padding: 12,
     borderRadius: 12,
-    height: 100,
+    height: 96,
     textAlignVertical: "top",
-    marginBottom: 20,
-    borderWidth: 1,
-  },
-  modalActions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelButton: {
     borderWidth: 1,
   },
   saveButton: {
+    marginHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: BRAND_BLUE,
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });

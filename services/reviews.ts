@@ -4,6 +4,9 @@ export interface Review {
   id: number;
   comment: string;
   rating: number;
+  wifi_speed: number | null;
+  noise_level: number | null;
+  seat_comfort: number | null;
   place_id: number;
   profile_id: string;
   created_at: string | null;
@@ -15,6 +18,9 @@ export interface Review {
 export interface CreateReviewInput {
   comment: string;
   rating: number;
+  wifi_speed?: number | null;
+  noise_level?: number | null;
+  seat_comfort?: number | null;
   place_id: number;
   profile_id: string;
   created_at: string;
@@ -23,6 +29,9 @@ export interface CreateReviewInput {
 export interface UpdateReviewInput {
   comment?: string;
   rating?: number;
+  wifi_speed?: number | null;
+  noise_level?: number | null;
+  seat_comfort?: number | null;
   updated_at: string;
 }
 
@@ -55,6 +64,9 @@ export async function getReviewsByPlaceId(placeId: number): Promise<Review[]> {
       id,
       comment,
       rating,
+      wifi_speed,
+      noise_level,
+      seat_comfort,
       place_id,
       profile_id,
       created_at,
