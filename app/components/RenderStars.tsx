@@ -1,6 +1,5 @@
 import { ThemedText } from "@/components/themed-text";
-import { MaterialIcons } from "@expo/vector-icons";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 type RenderStarsProps = {
   rating: number;
@@ -15,7 +14,7 @@ export function RenderStars({
 }: RenderStarsProps) {
     return (
       <View style={styles.starContainer}>
-        <MaterialIcons name="star" size={size} color={color} />
+        <Text style={{ fontSize: size }}>⭐</Text>
         <ThemedText style={[styles.ratingText, { fontSize: size }]}>{rating.toFixed(1)}</ThemedText>
       </View>
     );

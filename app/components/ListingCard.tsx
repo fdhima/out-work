@@ -15,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
 import { PlaceEnhanced } from '@/services/places';
 import { CATEGORIES } from '@/constants/theme';
 import { getOpenStatus } from '@/utils/workingHours';
@@ -76,7 +75,7 @@ function ListingCard({ place, isSelected, onPress, vertical = false }: Props) {
 
       {/* Rating badge overlay */}
       <View style={styles.ratingBadge}>
-        <MaterialIcons name="star" size={12} color="#FF6B35" />
+        <Text style={{ fontSize: 12 }}>⭐</Text>
         <Text style={styles.ratingBadgeText}>
           {place.rating_avg.toFixed(2)}
         </Text>

@@ -271,7 +271,7 @@ export function ReviewsList({
       {visibleReviews.length ? (
         <View style={styles.container}>
           <View style={styles.summaryContainer}>
-            <MaterialIcons name="star" size={18} color={isDark ? "#fff" : "#000"} />
+            <Text style={{ fontSize: 18 }}>⭐</Text>
             <ThemedText style={styles.summaryText}>
               {averageRating} · {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
             </ThemedText>

@@ -498,7 +498,7 @@ function SimilarPlaceCard({
           {place.name}
         </Text>
         <View style={styles.similarCardRating}>
-          <MaterialIcons name="star" size={12} color="#FF6B35" />
+          <Text style={{ fontSize: 12 }}>⭐</Text>
           <Text style={[styles.similarCardRatingText, { color: isDark ? '#aaa' : '#555' }]}>
             {place.rating_avg.toFixed(2)}
           </Text>
@@ -832,7 +832,7 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
                 <Text style={[styles.ratingDot, { color: textSecondary }]}>·</Text>
               </>
             )}
-            <MaterialIcons name="star" size={15} color="#FF6B35" />
+            <Text style={{ fontSize: 15 }}>⭐</Text>
             <Text style={[styles.ratingText, { color: textPrimary }]}>
               {selectedPlace.rating_avg.toFixed(2)}
             </Text>
@@ -972,7 +972,7 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
         {/* Rating summary on the left */}
         <View style={styles.actionBarInfo}>
           <View style={styles.actionBarRating}>
-            <MaterialIcons name="star" size={14} color="#FF6B35" />
+            <Text style={{ fontSize: 14 }}>⭐</Text>
             <Text style={[styles.actionBarRatingText, { color: textPrimary }]}>
               {selectedPlace.rating_avg.toFixed(2)}
             </Text>

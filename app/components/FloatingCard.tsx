@@ -4,7 +4,6 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { PlaceEnhanced } from "@/services/places";
 import * as Location from 'expo-location';
 import { getDistance, formatDistance } from "@/utils/location";
-import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
 import {
@@ -107,7 +106,7 @@ export function FloatingCard({ selectedPlace, onPressCard, userLocation }: Float
                   <Text style={[styles.dot, { color: isDark ? "#8e8e93" : "#666" }]}>·</Text>
                 </>
               )}
-              <MaterialIcons name="star" size={13} color={isDark ? "#FFD700" : "#FFB400"} />
+              <Text style={{ fontSize: 13 }}>⭐</Text>
               <ThemedText style={styles.ratingText}>
                 {place.rating_avg.toFixed(2)}
               </ThemedText>

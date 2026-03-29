@@ -162,7 +162,7 @@ function ListingCardDetailed({ place, onPress, userLocation }: Props) {
                 <Text style={[styles.separator, { color: textSecondary }]}>·</Text>
               </>
             )}
-            <MaterialIcons name="star" size={14} color="#FFD700" />
+            <Text style={{ fontSize: 14 }}>⭐</Text>
             <Text style={[styles.ratingText, { color: textMuted }]}>
               {rating > 0 ? rating.toFixed(1) : '—'}
               {reviewCount > 0 ? ` (${reviewCount})` : ''}

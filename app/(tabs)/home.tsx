@@ -120,7 +120,7 @@ function FeaturedCard({ item, isDark, onPress }: FeaturedCardProps) {
 
       {/* Rating badge */}
       <View style={styles.ratingBadge}>
-        <MaterialIcons name="star" size={11} color="#FFB400" />
+        <Text style={{ fontSize: 11 }}>⭐</Text>
         <Text style={styles.ratingBadgeText}>{item.rating_avg.toFixed(1)}</Text>
       </View>
 
@@ -199,7 +199,7 @@ function CompactCard({ item, isDark, onPress }: CompactCardProps) {
           {item.name}
         </Text>
         <View style={styles.compactRatingRow}>
-          <MaterialIcons name="star" size={12} color="#FFB400" />
+          <Text style={{ fontSize: 12 }}>⭐</Text>
           <Text style={[styles.compactRatingText, { color: subColor }]}>
             {item.rating_avg.toFixed(1)}
           </Text>

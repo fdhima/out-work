@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
 import { PlaceEnhanced } from '@/services/places';
 import { CATEGORIES } from '@/constants/theme';
 import { getOpenStatus } from '@/utils/workingHours';
@@ -69,7 +68,7 @@ function ListingRow({ place, isSelected, onPress }: Props) {
             {place.name}
           </Text>
           <View style={styles.ratingPill}>
-            <MaterialIcons name="star" size={12} color="#FF6B35" />
+            <Text style={{ fontSize: 12 }}>⭐</Text>
             <Text style={[styles.rating, { color: isDark ? '#fff' : '#111' }]}>
               {place.rating_avg.toFixed(2)}
             </Text>
