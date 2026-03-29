@@ -147,7 +147,7 @@ export function FloatingCard({ selectedPlace, onPressCard, userLocation }: Float
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: Platform.OS === "ios" ? 92 : 78,
+    bottom: Platform.OS === "ios" ? 56 : 62,
     left: 16,
     right: 16,
     zIndex: 200,
