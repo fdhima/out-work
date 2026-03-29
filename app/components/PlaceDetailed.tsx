@@ -947,7 +947,10 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
             ) : (
               <SimilarPlaceCard
                 place={item}
-                onPress={() => router.push(`/place/${item.id}`)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push(`/place/${item.id}`);
+                }}
               />
             )
           }

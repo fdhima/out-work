@@ -269,7 +269,10 @@ export default function HomeScreen() {
   const goExploreCategory = (categoryId: string) =>
     router.push({ pathname: '/(tabs)', params: { category: categoryId } });
   const goExploreSearch = () => router.push({ pathname: '/(tabs)', params: { openSearch: '1' } });
-  const goPlace = (id: number) => router.push(`/place/${id}`);
+  const goPlace = (id: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push(`/place/${id}`);
+  };
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>

@@ -3,6 +3,7 @@ import { useFavorites } from '@/context/FavoritesContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getPlacesEnhancedByIds, PlaceEnhanced } from '@/services/places';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -113,6 +114,7 @@ export default function FavoritesScreen() {
               isSelected={selectedId === item.id}
               vertical
               onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setSelectedId(prev => (prev === item.id ? null : item.id));
                 router.push(`/place/${item.id}`);
               }}

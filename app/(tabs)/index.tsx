@@ -51,6 +51,7 @@ import Svg, { Path } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import React, {
   useCallback,
@@ -280,6 +281,7 @@ export default function HomeScreen() {
    */
   const onPressCard = useCallback(
     (place: PlaceEnhanced) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       router.push(`/place/${place.id}`);
     },
     [router]
