@@ -29,8 +29,9 @@ export interface CreatePlaceInput {
   latitude: number;
   longitude: number;
   rating_avg: number; // to be calculated later in code
-  approved: boolean
-  created_at: string
+  approved: boolean;
+  working_hours?: WorkingHours | null;
+  created_at: string;
 }
 
 export interface UpdatePlaceInput {
@@ -103,8 +104,18 @@ export async function updatePlace(placeId: number, input: UpdatePlaceInput): Pro
   if (error) throw error;
 }
 
-// Delete a place
+// Delete a place (also removes its storage images)
 export async function deletePlace(placeId: number): Promise<Place> {
+  // Remove storage files under place-images/{placeId}/
+  const { data: storageFiles } = await supabase.storage
+    .from('place-images')
+    .list(`${placeId}`);
+
+  if (storageFiles && storageFiles.length > 0) {
+    const paths = storageFiles.map((f) => `${placeId}/${f.name}`);
+    await supabase.storage.from('place-images').remove(paths);
+  }
+
   const { data, error } = await supabase
     .from('places')
     .delete()
