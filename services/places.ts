@@ -73,6 +73,16 @@ export async function getPlaceById(placeId: number): Promise<Place | null> {
   return data;
 }
 
+// Check if a place with the same name already exists (case-insensitive)
+export async function placeNameExists(name: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from('places')
+    .select('id', { count: 'exact', head: true })
+    .ilike('name', name.trim());
+  if (error) return false;
+  return (count ?? 0) > 0;
+}
+
 // Create a new place
 export async function createPlace(input: CreatePlaceInput): Promise<Place> {
   const { data, error } = await supabase

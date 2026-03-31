@@ -26,7 +26,9 @@ export async function uploadImage(
   index: number
 ): Promise<string> {
   try {
-    const ext = uri.split(".").pop()?.toLowerCase() ?? "jpg";
+    // HEIC is not supported by Supabase Storage; treat as jpeg (imagePicker normalizes HEIC before this point)
+    let ext = uri.split(".").pop()?.toLowerCase() ?? "jpg";
+    if (ext === "heic" || ext === "heif") ext = "jpg";
     const fileName = `${Date.now()}-${index}.${ext}`;
     const filePath = `${placeId}/${fileName}`;
 
@@ -38,7 +40,6 @@ export async function uploadImage(
     let contentType = "image/jpeg";
     if (ext === "png") contentType = "image/png";
     else if (ext === "webp") contentType = "image/webp";
-    else if (ext === "heic") contentType = "image/heic";
 
     const { error } = await supabase.storage
       .from("place-images")
