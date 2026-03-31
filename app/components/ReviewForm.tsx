@@ -5,7 +5,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Place } from '@/services/places';
 import { createReview } from '@/services/reviews';
-import { MaterialIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -132,11 +131,7 @@ export function ReviewForm({ placeForReview, onReviewPosted }: ReviewFormProps) 
       <View style={styles.starRow}>
         {[1, 2, 3, 4, 5].map((s) => (
           <TouchableOpacity key={s} onPress={() => setReviewRating(s)} activeOpacity={0.7}>
-            <MaterialIcons
-              name={s <= reviewRating ? 'star' : 'star-border'}
-              size={36}
-              color={s <= reviewRating ? '#f59e0b' : isDark ? '#555' : '#d1d5db'}
-            />
+            <Text style={{ fontSize: 32 }}>{s <= reviewRating ? '⭐' : '☆'}</Text>
           </TouchableOpacity>
         ))}
       </View>

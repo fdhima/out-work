@@ -360,11 +360,7 @@ export function ReviewsList({
             <View style={styles.modalStarRow}>
               {[1, 2, 3, 4, 5].map((s) => (
                 <TouchableOpacity key={s} onPress={() => setEditRating(s)} activeOpacity={0.7}>
-                  <MaterialIcons
-                    name={s <= editRating ? "star" : "star-border"}
-                    size={36}
-                    color={s <= editRating ? "#f59e0b" : isDark ? "#555" : "#d1d5db"}
-                  />
+                  <Text style={{ fontSize: 32 }}>{s <= editRating ? '⭐' : '☆'}</Text>
                 </TouchableOpacity>
               ))}
             </View>
