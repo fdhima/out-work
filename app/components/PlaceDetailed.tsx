@@ -456,7 +456,7 @@ function WorkingHoursSection({ working_hours }: { working_hours: WorkingHours })
                 isToday && { fontWeight: '700' },
               ]}
             >
-              {hours ? `${formatTime(hours.open)} – ${formatTime(hours.close)}` : 'Closed'}
+              {hours?.open && hours?.close ? `${formatTime(hours.open)} – ${formatTime(hours.close)}` : 'Closed'}
             </Text>
           </View>
         ))}
