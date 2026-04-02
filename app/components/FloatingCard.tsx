@@ -4,6 +4,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { PlaceEnhanced } from "@/services/places";
 import * as Location from 'expo-location';
 import { getDistance, formatDistance } from "@/utils/location";
+import { getOpenStatus } from "@/utils/workingHours";
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
 import {
@@ -59,6 +60,8 @@ export function FloatingCard({ selectedPlace, onPressCard, userLocation }: Float
     : null;
 
   if (!place) return null;
+
+  const openStatus = getOpenStatus(place.working_hours);
 
   const categories = place.places_categories
     ?.map(pc => {
@@ -117,6 +120,19 @@ export function FloatingCard({ selectedPlace, onPressCard, userLocation }: Float
           {/* <Text style={[styles.endorser, { color: isDark ? "#aaa" : "#666" }]} numberOfLines={1}>
             Endorsed by {place.profiles?.full_name ?? "OutWork"}
           </Text> */}
+
+          {/* Open / closed status */}
+          {openStatus && (
+            <Text
+              style={[
+                styles.openStatus,
+                { color: openStatus.isOpen ? '#22c55e' : isDark ? '#888' : '#999' },
+              ]}
+              numberOfLines={1}
+            >
+              {openStatus.statusText}
+            </Text>
+          )}
 
           {/* Category pills — same style as ListingCard */}
           {categories && categories.length > 0 && (
@@ -202,6 +218,10 @@ const styles = StyleSheet.create({
   },
   endorser: {
     fontSize: 13,
+  },
+  openStatus: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   categoryRow: {
     flexDirection: "row",

@@ -40,6 +40,8 @@ type MapHeaderProps = {
   onCategoryChange: (id: string) => void;
   categories: Category[];
   inputRef?: React.RefObject<TextInput>;
+  openNow?: boolean;
+  onOpenNowChange?: (value: boolean) => void;
 };
 
 export function MapHeader({
@@ -49,6 +51,8 @@ export function MapHeader({
   onCategoryChange,
   categories,
   inputRef,
+  openNow = false,
+  onOpenNowChange,
 }: MapHeaderProps) {
   const textColor = useThemeColor({}, "text");
   const isDark = (useColorScheme() ?? "light") === "dark";
@@ -87,12 +91,38 @@ export function MapHeader({
         </View>
       </View>
 
-      {/* Category filter pills */}
+      {/* Category filter pills + Open now toggle */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.pillsScroll}
       >
+        {/* Open now pill */}
+        <ScalePill
+          onPress={() => onOpenNowChange?.(!openNow)}
+          style={[
+            styles.pill,
+            {
+              backgroundColor: openNow ? '#22c55e' : cardBg,
+              borderColor: openNow ? '#22c55e' : pillBorderColor,
+              shadowColor: isDark ? "#000" : "#b09070",
+            },
+          ]}
+        >
+          <Text style={{ fontSize: 14 }}>🟢</Text>
+          <ThemedText
+            style={[
+              styles.pillLabel,
+              {
+                color: openNow ? '#ffffff' : textColor,
+                fontWeight: openNow ? "700" : "500",
+              },
+            ]}
+          >
+            Open now
+          </ThemedText>
+        </ScalePill>
+
         {categories.map(cat => {
           const isActive = selectedCategory === cat.id;
           const pillBgActive = isDark ? '#ffffff' : '#11181C';

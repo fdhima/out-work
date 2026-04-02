@@ -75,6 +75,8 @@ type Props = {
   onCategoryChange: (id: string) => void;
   categories: Category[];
   userLocation?: Location.LocationObjectCoords | null;
+  openNow?: boolean;
+  onOpenNowChange?: (value: boolean) => void;
 };
 
 // ─── Scale-press pill ─────────────────────────────────────────────────────────
@@ -129,6 +131,8 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
       onCategoryChange,
       categories,
       userLocation,
+      openNow = false,
+      onOpenNowChange,
     },
     ref
   ) => {
@@ -288,13 +292,39 @@ const AirbnbBottomSheet = forwardRef<BottomSheetRef, Props>(
 
               <Text style={[styles.heading, { color: isDark ? '#fff' : '#11181C' }]}>Spots in Greece 🇬🇷</Text>
 
-              {/* Category filter pills — same as search bar */}
+              {/* Category filter pills + Open now toggle */}
               <FlatList
                 data={categories}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={item => item.id}
                 contentContainerStyle={styles.pillsRow}
+                ListHeaderComponent={
+                  <ScalePill
+                    onPress={() => onOpenNowChange?.(!openNow)}
+                    style={[
+                      styles.pill,
+                      styles.pillOpenNow,
+                      {
+                        backgroundColor: openNow ? '#22c55e' : (isDark ? '#1c1c1e' : '#f0f0f0'),
+                        borderColor: openNow ? '#22c55e' : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'),
+                      },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 14 }}>🟢</Text>
+                    <ThemedText
+                      style={[
+                        styles.pillLabel,
+                        {
+                          color: openNow ? '#ffffff' : (isDark ? '#ebebf5' : '#333333'),
+                          fontWeight: openNow ? '700' : '500',
+                        },
+                      ]}
+                    >
+                      Open now
+                    </ThemedText>
+                  </ScalePill>
+                }
                 renderItem={({ item: cat }) => {
                   const isActive = selectedCategory === cat.id;
                   const pillBgActive = isDark ? '#ffffff' : '#11181C';
@@ -424,6 +454,9 @@ const styles = StyleSheet.create({
   },
   pillLabel: {
     fontSize: 13,
+  },
+  pillOpenNow: {
+    marginRight: 8,
   },
   listContent: {
     paddingHorizontal: 20,

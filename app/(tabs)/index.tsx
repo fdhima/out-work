@@ -46,6 +46,7 @@ import { useFavorites } from '@/context/FavoritesContext';
 import { ClusterPoint, useClusters } from '@/hooks/useClusters';
 import { getCategoryIdByName } from '@/services/categories';
 import { PlaceEnhanced, getPlacesEnhanced } from '@/services/places';
+import { getOpenStatus } from '@/utils/workingHours';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
@@ -56,6 +57,7 @@ import * as Location from 'expo-location';
 import React, {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -92,22 +94,15 @@ export default function HomeScreen() {
   // ── Selection — single source of truth ───────────────────────────────────
   const [selectedPlace, setSelectedPlace] = useState<PlaceEnhanced | null>(null);
 
-
   // ── Sheet state ───────────────────────────────────────────────────────────
   const [sheetState, setSheetState] = useState<SheetState>('collapsed');
   const sheetRef = useRef<BottomSheetRef>(null);
 
   // ── Map ───────────────────────────────────────────────────────────────────
   const mapRef = useRef<MapView>(null);
-  // Ref: fetchPlaces reads the current region without being a reactive dep.
   const mapRegionRef = useRef<Region | null>(null);
-  // State: drives cluster recalculation when panning/zooming stops.
   const [mapRegion, setMapRegion] = useState<Region>(DEFAULT_REGION);
-  // Pending rAF handle — ensures only the latest region triggers a re-cluster.
   const clusterRafRef = useRef<number | null>(null);
-
-  // ── Clustering ────────────────────────────────────────────────────────────
-  const mapPoints = useClusters(places, mapRegion);
 
   const [lastSearchRegion, setLastSearchRegion] = useState<Region | null>(null);
   const [showSearchArea, setShowSearchArea] = useState(false);
@@ -120,6 +115,19 @@ export default function HomeScreen() {
   // ── Search / filter ───────────────────────────────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [openNow, setOpenNow] = useState(false);
+
+  // ── "Open now" client-side filter ────────────────────────────────────────
+  const filteredPlaces = useMemo(
+    () =>
+      openNow
+        ? places.filter(p => getOpenStatus(p.working_hours)?.isOpen === true)
+        : places,
+    [places, openNow]
+  );
+
+  // ── Clustering ────────────────────────────────────────────────────────────
+  const mapPoints = useClusters(filteredPlaces, mapRegion);
 
   // ─── Auto-focus search when arriving from home screen ────────────────────
   useEffect(() => {
@@ -299,6 +307,8 @@ export default function HomeScreen() {
             onCategoryChange={setSelectedCategory}
             categories={CATEGORIES}
             inputRef={searchInputRef}
+            openNow={openNow}
+            onOpenNowChange={setOpenNow}
           />
         </View>
 
@@ -374,7 +384,7 @@ export default function HomeScreen() {
         {/* ── Airbnb-style bottom sheet ── */}
         <AirbnbBottomSheet
           ref={sheetRef}
-          places={places}
+          places={filteredPlaces}
           selectedPlace={selectedPlace}
           sheetState={sheetState}
           onSheetStateChange={setSheetState}
@@ -383,6 +393,8 @@ export default function HomeScreen() {
           onCategoryChange={setSelectedCategory}
           categories={CATEGORIES}
           userLocation={userLocation}
+          openNow={openNow}
+          onOpenNowChange={setOpenNow}
         />
 
         {/* ── Floating place-preview card (shown when a marker is selected) ── */}
