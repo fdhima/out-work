@@ -2,7 +2,7 @@
   "expo": {
     "name": "OutWork",
     "slug": "out-work",
-    "version": "1.0.2",
+    "version": "1.0.2.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "out-work",
