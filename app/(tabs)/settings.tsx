@@ -231,7 +231,7 @@ export default function ProfileScreen() {
           <Text style={styles.deleteText}>Delete Account</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.versionText, { color: textSecondary }]}>Version 1.0.2.1</Text>
+        <Text style={[styles.versionText, { color: textSecondary }]}>Version 1.0.3</Text>
 
         <View style={{ height: 120 }} />
       </ScrollView>
