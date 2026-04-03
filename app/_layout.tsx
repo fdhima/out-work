@@ -9,6 +9,10 @@ import { useEffect } from 'react'
 
 SplashScreen.preventAutoHideAsync()
 
+export const unstable_settings = {
+  initialRouteName: '(tabs)',
+}
+
 export default function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync()
