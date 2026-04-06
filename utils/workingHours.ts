@@ -70,12 +70,21 @@ export function getOpenStatus(working_hours?: WorkingHours | null): OpenStatus |
   const currentMinutes = hours * 60 + minutes;
   const openMinutes = parseMinutes(dayHours.open);
   const closeMinutes = parseMinutes(dayHours.close);
-  const isOpen = currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+
+  // Handle overnight hours (e.g. open 10:00, close 01:00 next day)
+  const overnight = closeMinutes <= openMinutes;
+  const isOpen = overnight
+    ? currentMinutes >= openMinutes || currentMinutes < closeMinutes
+    : currentMinutes >= openMinutes && currentMinutes < closeMinutes;
 
   if (isOpen) {
     return { isOpen: true, statusText: `Open · Closes ${formatTime(dayHours.close)}` };
   }
-  if (currentMinutes < openMinutes) {
+  // Not open: show when it opens next (only meaningful before opening time, not after closing)
+  if (!overnight && currentMinutes < openMinutes) {
+    return { isOpen: false, statusText: `Closed · Opens ${formatTime(dayHours.open)}` };
+  }
+  if (overnight && currentMinutes >= closeMinutes && currentMinutes < openMinutes) {
     return { isOpen: false, statusText: `Closed · Opens ${formatTime(dayHours.open)}` };
   }
   return { isOpen: false, statusText: `Closed` };
