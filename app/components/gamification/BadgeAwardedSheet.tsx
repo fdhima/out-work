@@ -8,6 +8,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Reanimated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { BADGES } from '@/services/gamification';
@@ -25,8 +35,11 @@ export function BadgeAwardedSheet({ badgeKey, onClose }: BadgeAwardedSheetProps)
   const isDark = (useColorScheme() ?? 'light') === 'dark';
   const slideY = useRef(new Animated.Value(400)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const popScale = useRef(new Animated.Value(0.5)).current;
   const [modalVisible, setModalVisible] = useState(false);
+
+  // Reanimated — pop-in scale + mascot-style float
+  const badgeScale = useSharedValue(0.5);
+  const floatY = useSharedValue(0);
 
   const badge = badgeKey ? BADGES[badgeKey] : null;
 
@@ -35,20 +48,46 @@ export function BadgeAwardedSheet({ badgeKey, onClose }: BadgeAwardedSheetProps)
       setModalVisible(true);
       slideY.setValue(400);
       backdropOpacity.setValue(0);
-      popScale.setValue(0.5);
 
+      // Sheet slide + backdrop (old Animated)
       Animated.parallel([
         Animated.spring(slideY, { toValue: 0, useNativeDriver: true, tension: 55, friction: 10 }),
         Animated.timing(backdropOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
-        Animated.spring(popScale, { toValue: 1, useNativeDriver: true, tension: 60, friction: 8 }),
       ]).start();
+
+      // Badge pop-in (Reanimated spring)
+      badgeScale.value = 0.5;
+      floatY.value = 0;
+      badgeScale.value = withSpring(1, { damping: 10, stiffness: 180, mass: 0.8 });
+
+      // Float loop starts after pop-in settles
+      const t = setTimeout(() => {
+        floatY.value = withRepeat(
+          withSequence(
+            withTiming(-6, { duration: 900, easing: Easing.inOut(Easing.sin) }),
+            withTiming(0,  { duration: 900, easing: Easing.inOut(Easing.sin) }),
+          ),
+          -1,
+          false,
+        );
+      }, 380);
+
+      return () => clearTimeout(t);
     } else {
+      cancelAnimation(floatY);
       Animated.parallel([
         Animated.timing(slideY, { toValue: 400, duration: 250, useNativeDriver: true }),
         Animated.timing(backdropOpacity, { toValue: 0, duration: 250, useNativeDriver: true }),
       ]).start(() => setModalVisible(false));
     }
-  }, [badgeKey, slideY, backdropOpacity, popScale]);
+  }, [badgeKey, slideY, backdropOpacity, badgeScale, floatY]);
+
+  const badgeAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: badgeScale.value },
+      { translateY: floatY.value },
+    ],
+  }));
 
   if (!badge) return null;
 
@@ -72,10 +111,10 @@ export function BadgeAwardedSheet({ badgeKey, onClose }: BadgeAwardedSheetProps)
         <Animated.View style={[styles.sheet, { backgroundColor: bg, transform: [{ translateY: slideY }] }]}>
           <View style={styles.handle} />
 
-          {/* Badge pop-in */}
-          <Animated.Text style={[styles.emoji, { transform: [{ scale: popScale }] }]}>
-            {badge.emoji}
-          </Animated.Text>
+          {/* Badge — pop-in spring + mascot float */}
+          <Reanimated.View style={[styles.emojiWrap, badgeAnimStyle]}>
+            <Text style={styles.emoji}>{badge.emoji}</Text>
+          </Reanimated.View>
 
           <Text style={[styles.unlocked, { color: '#22c55e' }]}>Badge Unlocked!</Text>
           <Text style={[styles.title, { color: titleColor }]}>{badge.name}</Text>
@@ -113,7 +152,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(128,128,128,0.3)',
     marginBottom: 20,
   },
-  emoji: { fontSize: 72, marginBottom: 12 },
+  emojiWrap: { marginBottom: 12 },
+  emoji: { fontSize: 72 },
   unlocked: { fontSize: 13, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 },
   title: { fontSize: 22, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
   desc: { fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 28 },

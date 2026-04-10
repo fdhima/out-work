@@ -11,6 +11,16 @@ export const RANKS = [
   { level: 6, title: 'Workspace Legend', minXp: 7500 },
 ] as const;
 
+// Static require map — bundler resolves these at build time
+export const RANK_IMAGES: Record<number, ReturnType<typeof require>> = {
+  1: require('@/assets/images/rank_desk_lurker.png'),
+  2: require('@/assets/images/rank_coffee_scout.png'),
+  3: require('@/assets/images/rank_wifi_wanderer.png'),
+  4: require('@/assets/images/rank_office_nomad.png'),
+  5: require('@/assets/images/rank_worknomad_pro.png'),
+  6: require('@/assets/images/rank_workspace_legend.png'),
+};
+
 export const XP_REWARDS = {
   review: 50,
   sub_rating_bonus: 20,

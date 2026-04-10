@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Dimensions,
   Modal,
   Platform,
   RefreshControl,
@@ -13,8 +14,23 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+
+const BADGE_COLS = 4;
+const BADGE_GAP = 12;
+const BADGE_ITEM_W = Math.floor(
+  (Dimensions.get('window').width - 40 - 32 - BADGE_GAP * (BADGE_COLS - 1)) / BADGE_COLS
+);
 import { BlurView } from 'expo-blur';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import Reanimated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -28,6 +44,7 @@ import {
   LeaderboardEntry,
   BADGES,
   RANKS,
+  RANK_IMAGES,
 } from '@/services/gamification';
 import { BadgeDetailSheet } from '@/app/components/gamification/BadgeDetailSheet';
 
@@ -74,18 +91,40 @@ function RankBar({ gam, isDark }: { gam: GamificationProfile; isDark: boolean })
   const cardBg = isDark ? '#1c1c1e' : '#fff';
   const currentRank = RANKS.find(r => r.level === gam.rankLevel) ?? RANKS[0];
   const nextRank = RANKS.find(r => r.level === gam.rankLevel + 1);
+  const badgeImage = RANK_IMAGES[gam.rankLevel];
+
+  const floatY = useSharedValue(0);
+  React.useEffect(() => {
+    floatY.value = withRepeat(
+      withSequence(
+        withTiming(-5, { duration: 900, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0,  { duration: 900, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      false,
+    );
+  }, [floatY]);
+  const badgeFloatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: floatY.value }],
+  }));
 
   return (
     <View style={[styles.card, { backgroundColor: cardBg }]}>
-      <View style={styles.rankRow}>
-        <View>
+      {/* Badge image + rank info */}
+      <View style={styles.rankHero}>
+        <Reanimated.View style={badgeFloatStyle}>
+          <Image source={badgeImage} style={styles.rankBadgeImage} contentFit="contain" />
+        </Reanimated.View>
+        <View style={styles.rankHeroInfo}>
+          <View style={styles.rankLevelPill}>
+            <Text style={styles.rankLevelPillText}>Rank {gam.rankLevel} of {RANKS.length}</Text>
+          </View>
           <Text style={[styles.rankName, { color: '#4A90E2' }]}>{gam.rankTitle}</Text>
           <Text style={[styles.rankXp, { color: textPrimary }]}>{gam.xp.toLocaleString()} XP</Text>
         </View>
-        <View style={styles.rankBadge}>
-          <Text style={styles.rankBadgeText}>Rank {gam.rankLevel}</Text>
-        </View>
       </View>
+
+      {/* XP progress bar */}
       <View style={[styles.xpBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
         <View style={[styles.xpBarFill, { width: `${Math.round(gam.rankProgressPct * 100)}%` as any }]} />
       </View>
@@ -95,6 +134,8 @@ function RankBar({ gam, isDark }: { gam: GamificationProfile; isDark: boolean })
           ? <Text style={[styles.xpBarLabel, { color: textSecondary }]}>{gam.xpToNextRank} XP · {nextRank.title}</Text>
           : <Text style={[styles.xpBarLabel, { color: '#4A90E2' }]}>Max Rank!</Text>}
       </View>
+
+      {/* Stats row */}
       <View style={[styles.statRow, { borderTopColor: isDark ? '#2c2c2e' : '#f0f0f0' }]}>
         {[
           { value: gam.stampCount, label: 'Stamps' },
@@ -533,11 +574,13 @@ const styles = StyleSheet.create({
   },
 
   // Rank bar
-  rankRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  rankName: { fontSize: 13, fontWeight: '700', letterSpacing: 0.2, marginBottom: 2 },
-  rankXp: { fontSize: 22, fontWeight: '800' },
-  rankBadge: { backgroundColor: 'rgba(74,144,226,0.12)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
-  rankBadgeText: { color: '#4A90E2', fontWeight: '700', fontSize: 13 },
+  rankHero: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
+  rankBadgeImage: { width: 88, height: 88 },
+  rankHeroInfo: { flex: 1, gap: 4 },
+  rankLevelPill: { alignSelf: 'flex-start', backgroundColor: 'rgba(74,144,226,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  rankLevelPillText: { color: '#4A90E2', fontWeight: '700', fontSize: 11 },
+  rankName: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
+  rankXp: { fontSize: 15, fontWeight: '600' },
   xpBarBg: { height: 6, borderRadius: 3, overflow: 'hidden', marginBottom: 6 },
   xpBarFill: { height: 6, borderRadius: 3, backgroundColor: '#4A90E2' },
   xpBarLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
@@ -551,8 +594,8 @@ const styles = StyleSheet.create({
   // Badges
   sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 8 },
   hint: { fontSize: 12, marginBottom: 12 },
-  badgesWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  badgeItem: { alignItems: 'center', width: 72, borderRadius: 12, padding: 8, gap: 4 },
+  badgesWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: BADGE_GAP },
+  badgeItem: { alignItems: 'center', width: BADGE_ITEM_W, borderRadius: 12, padding: 8, gap: 4 },
   badgeEmoji: { fontSize: 28 },
   locked: { opacity: 0.25 },
   badgeName: { fontSize: 10, fontWeight: '600', textAlign: 'center' },

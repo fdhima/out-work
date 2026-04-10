@@ -8,6 +8,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Reanimated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -37,9 +46,10 @@ export function BadgeDetailSheet({ badgeKey, earned, onClose }: BadgeDetailSheet
   const isDark = (useColorScheme() ?? 'light') === 'dark';
   const slideY = useRef(new Animated.Value(400)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const pulseScale = useRef(new Animated.Value(1)).current;
-  const pulseAnim = useRef<Animated.CompositeAnimation | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+
+  // Reanimated — mascot-style float for earned badges
+  const floatY = useSharedValue(0);
 
   // Dynamic neighborhood badge: not in BADGES dict, synthesise on the fly
   const badge = badgeKey
@@ -76,25 +86,31 @@ export function BadgeDetailSheet({ badgeKey, earned, onClose }: BadgeDetailSheet
         }),
       ]).start();
 
-      // Pulse only for earned badges
+      // Float only for earned badges (same as mascot in the post tab)
+      floatY.value = 0;
       if (earned) {
-        pulseAnim.current = Animated.loop(
-          Animated.sequence([
-            Animated.timing(pulseScale, { toValue: 1.15, duration: 850, useNativeDriver: true }),
-            Animated.timing(pulseScale, { toValue: 1,    duration: 850, useNativeDriver: true }),
-          ])
+        floatY.value = withRepeat(
+          withSequence(
+            withTiming(-6, { duration: 900, easing: Easing.inOut(Easing.sin) }),
+            withTiming(0,  { duration: 900, easing: Easing.inOut(Easing.sin) }),
+          ),
+          -1,
+          false,
         );
-        pulseAnim.current.start();
       }
     } else {
-      pulseAnim.current?.stop();
+      cancelAnimation(floatY);
       Animated.parallel([
         Animated.timing(slideY, { toValue: 400, duration: 250, useNativeDriver: true }),
         Animated.timing(backdropOpacity, { toValue: 0, duration: 250, useNativeDriver: true }),
       ]).start(() => setModalVisible(false));
     }
-    return () => pulseAnim.current?.stop();
-  }, [badgeKey, earned, slideY, backdropOpacity, pulseScale]);
+    return () => cancelAnimation(floatY);
+  }, [badgeKey, earned, slideY, backdropOpacity, floatY]);
+
+  const emojiFloatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: floatY.value }],
+  }));
 
   if (!badge) return null;
 
@@ -152,12 +168,12 @@ export function BadgeDetailSheet({ badgeKey, earned, onClose }: BadgeDetailSheet
             <MaterialIcons name="close" size={20} color={isDark ? '#8e8e93' : '#aaaaaa'} />
           </TouchableOpacity>
 
-          {/* Badge emoji with pulse for earned */}
-          <Animated.Text
-            style={[styles.emoji, !earned && styles.emojiLocked, { transform: [{ scale: pulseScale }] }]}
-          >
-            {badge.emoji}
-          </Animated.Text>
+          {/* Badge emoji — float for earned, static+dimmed for locked */}
+          <Reanimated.View style={[styles.emojiWrap, emojiFloatStyle]}>
+            <Text style={[styles.emoji, !earned && styles.emojiLocked]}>
+              {badge.emoji}
+            </Text>
+          </Reanimated.View>
 
           {/* Status pill */}
           <View style={[styles.statusPill, { backgroundColor: earned ? 'rgba(34,197,94,0.12)' : requirementBg }]}>
@@ -219,9 +235,11 @@ const styles = StyleSheet.create({
     padding: 4,
     zIndex: 1,
   },
+  emojiWrap: {
+    marginBottom: 12,
+  },
   emoji: {
     fontSize: 64,
-    marginBottom: 12,
   },
   emojiLocked: {
     opacity: 0.3,

@@ -8,21 +8,23 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
+import Reanimated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { RANKS } from '@/services/gamification';
+import { RANKS, RANK_IMAGES } from '@/services/gamification';
 
 type RankUpModalProps = {
   newRankLevel: number | null; // null = hidden
   onClose: () => void;
-};
-
-const RANK_EMOJIS: Record<number, string> = {
-  2: '☕',
-  3: '📶',
-  4: '🧳',
-  5: '🚀',
-  6: '🧭',
 };
 
 /**
@@ -36,6 +38,10 @@ export function RankUpModal({ newRankLevel, onClose }: RankUpModalProps) {
   const [modalVisible, setModalVisible] = useState(false);
 
   const rank = newRankLevel ? RANKS.find(r => r.level === newRankLevel) : null;
+  const badgeImage = newRankLevel ? RANK_IMAGES[newRankLevel] : null;
+
+  // Reanimated — mascot-style float for the badge image
+  const floatY = useSharedValue(0);
 
   useEffect(() => {
     if (newRankLevel && rank) {
@@ -49,20 +55,39 @@ export function RankUpModal({ newRankLevel, onClose }: RankUpModalProps) {
         Animated.timing(opacityAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
         Animated.timing(backdropOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
       ]).start();
+
+      // Float starts after card spring settles
+      floatY.value = 0;
+      const t = setTimeout(() => {
+        floatY.value = withRepeat(
+          withSequence(
+            withTiming(-7, { duration: 900, easing: Easing.inOut(Easing.sin) }),
+            withTiming(0,  { duration: 900, easing: Easing.inOut(Easing.sin) }),
+          ),
+          -1,
+          false,
+        );
+      }, 420);
+
+      return () => clearTimeout(t);
     } else {
+      cancelAnimation(floatY);
       Animated.parallel([
         Animated.timing(opacityAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
         Animated.timing(backdropOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
       ]).start(() => setModalVisible(false));
     }
-  }, [newRankLevel, rank, scaleAnim, opacityAnim, backdropOpacity]);
+  }, [newRankLevel, rank, scaleAnim, opacityAnim, backdropOpacity, floatY]);
+
+  const badgeFloatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: floatY.value }],
+  }));
 
   if (!rank) return null;
 
   const bg = isDark ? '#1c1c1e' : '#ffffff';
   const titleColor = isDark ? '#fff' : '#111';
   const subtitleColor = isDark ? '#8e8e93' : '#6c6c70';
-  const emoji = RANK_EMOJIS[rank.level] ?? '🎉';
 
   return (
     <Modal animationType="none" transparent visible={modalVisible} onRequestClose={onClose} statusBarTranslucent>
@@ -85,10 +110,14 @@ export function RankUpModal({ newRankLevel, onClose }: RankUpModalProps) {
             { backgroundColor: bg, opacity: opacityAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
-          {/* Decorative ring */}
-          <View style={styles.emojiRing}>
-            <Text style={styles.emoji}>{emoji}</Text>
-          </View>
+          {/* Rank badge image — card spring-in wraps the Reanimated float */}
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <Reanimated.View style={[styles.badgeRing, badgeFloatStyle]}>
+              {badgeImage ? (
+                <Image source={badgeImage} style={styles.badgeImage} contentFit="contain" />
+              ) : null}
+            </Reanimated.View>
+          </Animated.View>
 
           <Text style={[styles.levelUpText, { color: '#4A90E2' }]}>Level Up!</Text>
           <Text style={[styles.rankTitle, { color: titleColor }]}>{rank.title}</Text>
@@ -119,18 +148,17 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 20,
   },
-  emojiRing: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: 'rgba(74,144,226,0.12)',
-    borderWidth: 2,
-    borderColor: 'rgba(74,144,226,0.3)',
+  badgeRing: {
+    width: 140,
+    height: 140,
+    marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
   },
-  emoji: { fontSize: 44 },
+  badgeImage: {
+    width: 140,
+    height: 140,
+  },
   levelUpText: { fontSize: 13, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
   rankTitle: { fontSize: 26, fontWeight: '800', textAlign: 'center', marginBottom: 10 },
   subtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 28 },

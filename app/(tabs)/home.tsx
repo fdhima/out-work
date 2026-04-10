@@ -1,4 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import Reanimated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import {
   Animated,
   ActivityIndicator,
@@ -23,6 +31,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/context/AuthContext';
 import { getProfileFullNameById } from '@/services/profiles';
 import { getPlacesEnhanced, PlaceEnhanced } from '@/services/places';
+import { getGamificationProfile, GamificationProfile, RANKS, RANK_IMAGES, XP_REWARDS } from '@/services/gamification';
+import { getUserId } from '@/services/users';
 import { CATEGORIES } from '@/constants/theme';
 import { getOpenStatus } from '@/utils/workingHours';
 
@@ -209,6 +219,81 @@ function CompactCard({ item, isDark, onPress }: CompactCardProps) {
   );
 }
 
+// ─── XP Nudge Card ────────────────────────────────────────────────────────────
+
+type XpNudgeCardProps = {
+  gam: GamificationProfile;
+  isDark: boolean;
+  onPress: () => void;
+  onReview: () => void;
+  onCrowdReport: () => void;
+};
+
+function XpNudgeCard({ gam, isDark, onPress, onReview, onCrowdReport }: XpNudgeCardProps) {
+  const cardBg = isDark ? '#1c1c1e' : '#ffffff';
+  const textColor = isDark ? '#ffffff' : '#111111';
+  const subColor = isDark ? '#8e8e93' : '#888888';
+  const barBg = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)';
+  const nextRank = RANKS.find(r => r.level === gam.rankLevel + 1);
+  const progressPct = Math.max(0.03, gam.rankProgressPct); // keep bar visible even at 0
+  const badgeImage = RANK_IMAGES[gam.rankLevel];
+
+  const floatY = useSharedValue(0);
+  useEffect(() => {
+    floatY.value = withRepeat(
+      withSequence(
+        withTiming(-5, { duration: 900, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0,  { duration: 900, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      false,
+    );
+  }, [floatY]);
+  const badgeFloatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: floatY.value }],
+  }));
+
+  const actions: { label: string; xp: number; onPress: () => void }[] = [
+    { label: 'Write Review', xp: XP_REWARDS.review, onPress: onReview },
+    { label: 'Crowd Report', xp: XP_REWARDS.crowd_report, onPress: onCrowdReport },
+  ];
+
+  return (
+    <SpringPressable onPress={onPress} style={[xpStyles.card, { backgroundColor: cardBg }]}>
+      {/* Header row */}
+      <View style={xpStyles.headerRow}>
+        <Reanimated.View style={badgeFloatStyle}>
+          <Image source={badgeImage} style={xpStyles.rankBadgeImage} contentFit="contain" />
+        </Reanimated.View>
+        <View style={{ flex: 1 }}>
+          <Text style={[xpStyles.rankTitle, { color: '#4A90E2' }]}>{gam.rankTitle}</Text>
+          <Text style={[xpStyles.xpCount, { color: subColor }]}>{gam.xp.toLocaleString()} XP · Rank {gam.rankLevel}</Text>
+        </View>
+      </View>
+
+      {/* Progress bar */}
+      <View style={[xpStyles.barBg, { backgroundColor: barBg }]}>
+        <View style={[xpStyles.barFill, { width: `${Math.round(progressPct * 100)}%` as any }]} />
+      </View>
+      <Text style={[xpStyles.progressLabel, { color: subColor }]}>
+        {nextRank
+          ? `${gam.xpToNextRank} XP to ${nextRank.title}`
+          : 'Maximum rank reached!'}
+      </Text>
+
+      {/* Action chips */}
+      <View style={xpStyles.chipRow}>
+        {actions.map(a => (
+          <SpringPressable key={a.label} onPress={a.onPress} style={[xpStyles.chip, { backgroundColor: isDark ? 'rgba(74,144,226,0.15)' : 'rgba(74,144,226,0.08)' }]}>
+            <Text style={[xpStyles.chipLabel, { color: textColor }]}>{a.label}</Text>
+            {a.xp > 0 && <Text style={xpStyles.chipXp}>+{a.xp} XP</Text>}
+          </SpringPressable>
+        ))}
+      </View>
+    </SpringPressable>
+  );
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
@@ -219,6 +304,7 @@ export default function HomeScreen() {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [topPlaces, setTopPlaces] = useState<PlaceEnhanced[]>([]);
   const [recentPlaces, setRecentPlaces] = useState<PlaceEnhanced[]>([]);
+  const [gamProfile, setGamProfile] = useState<GamificationProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -226,14 +312,18 @@ export default function HomeScreen() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [nameResult, placesResult] = await Promise.all([
+      const userId = session?.user?.id ? await getUserId() : null;
+
+      const [nameResult, placesResult, gamResult] = await Promise.all([
         session?.user?.id
           ? getProfileFullNameById(session.user.id)
           : Promise.resolve(null),
         getPlacesEnhanced(),
+        userId ? getGamificationProfile(userId) : Promise.resolve(null),
       ]);
 
       setProfileName(nameResult);
+      setGamProfile(gamResult);
 
       const byRating = [...placesResult].sort((a, b) => b.rating_avg - a.rating_avg);
       setTopPlaces(byRating.slice(0, 8));
@@ -269,6 +359,7 @@ export default function HomeScreen() {
   const goExploreCategory = (categoryId: string) =>
     router.push({ pathname: '/(tabs)', params: { category: categoryId } });
   const goExploreSearch = () => router.push({ pathname: '/(tabs)', params: { openSearch: '1' } });
+  const goPassport = () => router.push('/(tabs)/passport');
   const goPlace = (id: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(`/place/${id}`);
@@ -345,6 +436,19 @@ export default function HomeScreen() {
             </View>
           </SpringPressable>
         </View>
+
+        {/* ── XP Nudge ─────────────────────────────────── */}
+        {gamProfile && (
+          <View style={styles.sectionPadded}>
+            <XpNudgeCard
+              gam={gamProfile}
+              isDark={isDark}
+              onPress={goPassport}
+              onReview={goExplore}
+              onCrowdReport={goExplore}
+            />
+          </View>
+        )}
 
         {/* ── Work Mode ────────────────────────────────── */}
         <View style={styles.sectionSpacing}>
@@ -822,5 +926,76 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingHorizontal: 20,
     marginVertical: 16,
+  },
+});
+
+// ─── XP Nudge Card styles ─────────────────────────────────────────────────────
+
+const xpStyles = StyleSheet.create({
+  card: {
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  rankBadgeImage: {
+    width: 48,
+    height: 48,
+  },
+  rankTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  xpCount: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  barBg: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 5,
+  },
+  barFill: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4A90E2',
+  },
+  progressLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginBottom: 14,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chip: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+    borderRadius: 12,
+    gap: 2,
+  },
+  chipLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  chipXp: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#22c55e',
   },
 });
