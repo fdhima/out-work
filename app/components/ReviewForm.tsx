@@ -5,6 +5,17 @@ import { useAuth } from "@/context/AuthContext";
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Place } from '@/services/places';
 import { createReview } from '@/services/reviews';
+import {
+  grantXp,
+  checkAndAwardBadges,
+  awardPassportStamp,
+  checkFirstScout,
+  XP_REWARDS,
+} from '@/services/gamification';
+import { XpToast } from './gamification/XpToast';
+import { BadgeAwardedSheet } from './gamification/BadgeAwardedSheet';
+import { RankUpModal } from './gamification/RankUpModal';
+import * as Haptics from 'expo-haptics';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -76,6 +87,11 @@ export function ReviewForm({ placeForReview, onReviewPosted }: ReviewFormProps) 
   const [reviewText, setReviewText] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  // Gamification state
+  const [xpToast, setXpToast] = useState<{ visible: boolean; xp: number }>({ visible: false, xp: 0 });
+  const [newBadge, setNewBadge] = useState<string | null>(null);
+  const [rankUp, setRankUp] = useState<number | null>(null);
+
   const canSubmit =
     reviewRating > 0 && !!session?.user && !submittingReview;
 
@@ -83,7 +99,7 @@ export function ReviewForm({ placeForReview, onReviewPosted }: ReviewFormProps) 
     if (!placeForReview || !session?.user || !canSubmit) return;
     setSubmittingReview(true);
     try {
-      await createReview({
+      const review = await createReview({
         comment: reviewText.trim(),
         rating: reviewRating,
         wifi_speed: wifiSpeed,
@@ -95,6 +111,35 @@ export function ReviewForm({ placeForReview, onReviewPosted }: ReviewFormProps) 
       });
 
       onReviewPosted?.();
+
+      // ── Gamification ──────────────────────────────────────────────────────
+      if (session?.user) {
+        const uid = session.user.id;
+        try {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+          await awardPassportStamp(uid, placeForReview.id);
+          await checkFirstScout(uid, placeForReview.id);
+
+          const hasSubRatings = wifiSpeed !== null && noiseLevel !== null && seatComfort !== null;
+
+          // Grant base review XP (separate from sub_rating_bonus so badge counts are accurate)
+          const { newRank, rankedUp } = await grantXp(uid, XP_REWARDS.review, 'review', String(review.id));
+          if (hasSubRatings) {
+            await grantXp(uid, XP_REWARDS.sub_rating_bonus, 'sub_rating_bonus', String(review.id));
+          }
+
+          const awardedBadges = await checkAndAwardBadges(uid);
+
+          const toastXp = XP_REWARDS.review + (hasSubRatings ? XP_REWARDS.sub_rating_bonus : 0);
+          setXpToast({ visible: true, xp: toastXp });
+          if (rankedUp) setRankUp(newRank);
+          if (awardedBadges.length > 0) setNewBadge(awardedBadges[0]);
+        } catch (gamErr) {
+          console.error('Gamification error (non-fatal):', gamErr);
+        }
+      }
+      // ─────────────────────────────────────────────────────────────────────
 
       setReviewText('');
       setReviewRating(0);
@@ -109,6 +154,15 @@ export function ReviewForm({ placeForReview, onReviewPosted }: ReviewFormProps) 
   };
 
   return (
+    <>
+    <XpToast
+      visible={xpToast.visible}
+      xp={xpToast.xp}
+      label="Review posted!"
+      onHide={() => setXpToast({ visible: false, xp: 0 })}
+    />
+    <BadgeAwardedSheet badgeKey={newBadge} onClose={() => setNewBadge(null)} />
+    <RankUpModal newRankLevel={rankUp} onClose={() => setRankUp(null)} />
     <View
       style={[
         styles.card,
@@ -200,6 +254,7 @@ export function ReviewForm({ placeForReview, onReviewPosted }: ReviewFormProps) 
         )}
       </TouchableOpacity>
     </View>
+    </>
   );
 }
 

@@ -53,6 +53,16 @@ import * as Location from 'expo-location';
 import { getDistance, formatDistance } from '@/utils/location';
 import { getReviewsByPlaceId, Review } from '@/services/reviews';
 import { addCrowdReport, getCrowdStats, getCrowdPattern, CrowdStats, HourPattern } from '@/services/crowd';
+import {
+  grantXp,
+  checkAndAwardBadges,
+  awardPassportStamp,
+  XP_REWARDS,
+} from '@/services/gamification';
+import { useAuth } from '@/context/AuthContext';
+import { XpToast } from './gamification/XpToast';
+import { BadgeAwardedSheet } from './gamification/BadgeAwardedSheet';
+import { RankUpModal } from './gamification/RankUpModal';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -513,6 +523,7 @@ function SimilarPlaceCard({
 export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRefresh, userLocation }: Props) {
   const isDark = (useColorScheme() ?? 'light') === 'dark';
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { session } = useAuth();
   const liked = isFavorite(selectedPlace.id);
 
   // ── Scroll animation value ─────────────────────────────────────────────────
@@ -570,6 +581,11 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
   const [reviewsRefreshKey, setReviewsRefreshKey] = useState(0);
   const [similarPlaces, setSimilarPlaces] = useState<PlaceEnhanced[]>([]);
   const [similarLoading, setSimilarLoading] = useState(true);
+
+  // Gamification state
+  const [xpToast, setXpToast] = useState<{ visible: boolean; xp: number }>({ visible: false, xp: 0 });
+  const [newBadge, setNewBadge] = useState<string | null>(null);
+  const [rankUp, setRankUp] = useState<number | null>(null);
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const imageUrls = useMemo(() =>
@@ -661,10 +677,27 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
       ]);
       setCrowdStats(stats);
       setCrowdPattern(pattern);
+
+      // ── Gamification ───────────────────────────────────────────────────────
+      if (session?.user) {
+        const uid = session.user.id;
+        try {
+          await awardPassportStamp(uid, selectedPlace.id);
+          const { newRank, rankedUp } = await grantXp(uid, XP_REWARDS.crowd_report, 'crowd_report', String(selectedPlace.id));
+          const awardedBadges = await checkAndAwardBadges(uid);
+
+          setXpToast({ visible: true, xp: XP_REWARDS.crowd_report });
+          if (rankedUp) setRankUp(newRank);
+          if (awardedBadges.length > 0) setNewBadge(awardedBadges[0]);
+        } catch (gamErr) {
+          console.error('Gamification error (non-fatal):', gamErr);
+        }
+      }
+      // ──────────────────────────────────────────────────────────────────────
     } catch (e) {
       console.error('Crowd report failed', e);
     }
-  }, [selectedPlace.id]);
+  }, [selectedPlace.id, session]);
 
   const bg = isDark ? '#111' : '#fff';
   const textPrimary = isDark ? '#fff' : '#111';
@@ -673,6 +706,15 @@ export function PlaceDetailed({ selectedPlace, onClose, refreshing = false, onRe
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
+      {/* Gamification feedback overlays */}
+      <XpToast
+        visible={xpToast.visible}
+        xp={xpToast.xp}
+        label="Crowd report sent!"
+        onHide={() => setXpToast({ visible: false, xp: 0 })}
+      />
+      <BadgeAwardedSheet badgeKey={newBadge} onClose={() => setNewBadge(null)} />
+      <RankUpModal newRankLevel={rankUp} onClose={() => setRankUp(null)} />
 
       {/* ── Floating nav bar (always on top, fades in on scroll) ── */}
       <View style={[styles.navBar, { height: NAV_HEIGHT }]} pointerEvents="box-none">

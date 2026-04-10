@@ -8,7 +8,7 @@ import { Dimensions, Platform, StyleSheet } from 'react-native';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-const TAB_ORDER = ['home', 'index', 'favorites', 'explore', 'settings'];
+const TAB_ORDER = ['home', 'index', 'favorites', 'explore', 'passport', 'settings'];
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -135,6 +135,21 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
               <Path d="M12 4.5v15m7.5-7.5h-15" />
+            </Svg>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="passport"
+        options={{
+          title: 'Passport',
+          tabBarIcon: ({ color, focused }) => focused ? (
+            <Svg width={24} height={24} viewBox="0 0 24 24" fill={color}>
+              <Path d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+            </Svg>
+          ) : (
+            <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
             </Svg>
           ),
         }}

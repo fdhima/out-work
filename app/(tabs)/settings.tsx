@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { getProfileById } from '@/services/profiles'
 import { getUserId } from '@/services/users'
+import { getGamificationProfile, GamificationProfile, BADGES } from '@/services/gamification'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
@@ -40,14 +41,19 @@ export default function ProfileScreen() {
   const [fullName, setFullName] = useState('')
   const [email] = useState(session?.user?.email || '')
   const [loading, setLoading] = useState(false)
+  const [gamification, setGamification] = useState<GamificationProfile | null>(null)
 
   useEffect(() => {
     ;(async () => {
       try {
         const userId = await getUserId()
         if (userId) {
-          const profile = await getProfileById(userId)
+          const [profile, gam] = await Promise.all([
+            getProfileById(userId),
+            getGamificationProfile(userId),
+          ])
           setFullName(profile?.full_name ?? '')
+          setGamification(gam)
         }
       } catch (e) {
         console.error(e)
@@ -150,8 +156,50 @@ export default function ProfileScreen() {
             <Text style={[styles.profileSub, { color: textSecondary }]} numberOfLines={1}>
               {email}
             </Text>
+            {gamification && (
+              <>
+                <Text style={[styles.rankTitle, { color: '#4A90E2' }]}>
+                  {gamification.rankTitle} · {gamification.xp} XP
+                </Text>
+                {/* XP progress bar */}
+                <View style={[styles.xpBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
+                  <View
+                    style={[
+                      styles.xpBarFill,
+                      { width: `${Math.round(gamification.rankProgressPct * 100)}%` as any },
+                    ]}
+                  />
+                </View>
+                {gamification.xpToNextRank !== null && (
+                  <Text style={[styles.xpNextText, { color: textSecondary }]}>
+                    {gamification.xpToNextRank} XP to next rank
+                  </Text>
+                )}
+              </>
+            )}
           </View>
         </View>
+
+        {/* ── Badges shelf ── */}
+        {gamification && gamification.badges.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Badges</Text>
+            <View style={[styles.menuCard, { backgroundColor: cardBg, marginBottom: 28 }]}>
+              <View style={styles.badgesGrid}>
+                {gamification.badges.map(key => {
+                  const b = BADGES[key]
+                  if (!b) return null
+                  return (
+                    <View key={key} style={styles.badgeItem}>
+                      <Text style={styles.badgeEmoji}>{b.emoji}</Text>
+                      <Text style={[styles.badgeName, { color: textSecondary }]} numberOfLines={1}>{b.name}</Text>
+                    </View>
+                  )
+                })}
+              </View>
+            </View>
+          </>
+        )}
 
         {/* ── Appearance section ── */}
         <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
@@ -231,7 +279,7 @@ export default function ProfileScreen() {
           <Text style={styles.deleteText}>Delete Account</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.versionText, { color: textSecondary }]}>Version 1.0.3</Text>
+        <Text style={[styles.versionText, { color: textSecondary }]}>Version 1.0.4</Text>
 
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -288,6 +336,45 @@ const styles = StyleSheet.create({
   profileSub: {
     fontSize: 13,
     fontWeight: '400',
+  },
+  rankTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  xpBarBg: {
+    height: 4,
+    borderRadius: 2,
+    marginTop: 5,
+    overflow: 'hidden',
+  },
+  xpBarFill: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#4A90E2',
+  },
+  xpNextText: {
+    fontSize: 10,
+    marginTop: 2,
+  },
+  badgesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 12,
+    gap: 12,
+  },
+  badgeItem: {
+    alignItems: 'center',
+    width: 64,
+    gap: 4,
+  },
+  badgeEmoji: {
+    fontSize: 28,
+  },
+  badgeName: {
+    fontSize: 10,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 
   // Section title

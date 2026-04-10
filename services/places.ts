@@ -11,6 +11,8 @@ export interface Place {
   longitude: number;
   approved: boolean;
   working_hours: WorkingHours | null;
+  city: string | null;
+  neighborhood: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -31,6 +33,8 @@ export interface CreatePlaceInput {
   rating_avg: number; // to be calculated later in code
   approved: boolean;
   working_hours?: WorkingHours | null;
+  city?: string | null;
+  neighborhood?: string | null;
   created_at: string;
 }
 

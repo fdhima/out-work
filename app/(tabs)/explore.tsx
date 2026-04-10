@@ -9,6 +9,15 @@ import { createPlace, deletePlace, placeNameExists } from "@/services/places";
 import { createPlaceCategory } from "@/services/places_categories";
 import { createReview } from "@/services/reviews";
 import { getUserId } from "@/services/users";
+import {
+  grantXp,
+  checkAndAwardBadges,
+  awardPassportStamp,
+  XP_REWARDS,
+} from "@/services/gamification";
+import { XpToast } from "@/app/components/gamification/XpToast";
+import { BadgeAwardedSheet } from "@/app/components/gamification/BadgeAwardedSheet";
+import { RankUpModal } from "@/app/components/gamification/RankUpModal";
 import { pickImages as pickImagesFromLibrary } from "@/lib/imagePicker";
 import { WorkingHours, WorkingHoursDay } from "@/utils/workingHours";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -689,6 +698,11 @@ export default function CreatePlaceScreen() {
   const [showSuccess, setShowSuccess] = useState(false);
   const mapRef = useRef<MapView | null>(null);
 
+  // Gamification state
+  const [xpToast, setXpToast] = useState<{ visible: boolean; xp: number }>({ visible: false, xp: 0 });
+  const [newBadge, setNewBadge] = useState<string | null>(null);
+  const [rankUp, setRankUp] = useState<number | null>(null);
+
   // ── Step state & animation ────────────────────────────────────────────────
   const [currentStep, setCurrentStep] = useState(0);
   const slideX = useSharedValue(0);
@@ -825,6 +839,17 @@ export default function CreatePlaceScreen() {
         return;
       }
 
+      // Reverse-geocode the pinned location to get city + neighborhood
+      let placeCity: string | null = null;
+      let placeNeighborhood: string | null = null;
+      try {
+        const [geo] = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (geo) {
+          placeCity = geo.city ?? geo.subregion ?? geo.region ?? null;
+          placeNeighborhood = geo.district ?? geo.streetNumber ?? null;
+        }
+      } catch { /* non-fatal — location fields stay null */ }
+
       const newPlace = await createPlace({
         profile_id: userId,
         name,
@@ -834,6 +859,8 @@ export default function CreatePlaceScreen() {
         rating_avg: rating > 0 ? rating : 5,
         approved: true,
         working_hours: Object.keys(workingHours).length > 0 ? workingHours : null,
+        city: placeCity,
+        neighborhood: placeNeighborhood,
         created_at: new Date().toISOString(),
       });
       createdPlaceId = newPlace.id;
@@ -871,6 +898,19 @@ export default function CreatePlaceScreen() {
       }
 
       setShowSuccess(true);
+
+      // ── Gamification ──────────────────────────────────────────────────────
+      try {
+        await awardPassportStamp(userId, newPlace.id);
+        const { newRank, rankedUp } = await grantXp(userId, XP_REWARDS.add_place, 'add_place', String(newPlace.id));
+        const awardedBadges = await checkAndAwardBadges(userId);
+        setXpToast({ visible: true, xp: XP_REWARDS.add_place });
+        if (rankedUp) setRankUp(newRank);
+        if (awardedBadges.length > 0) setNewBadge(awardedBadges[0]);
+      } catch (gamErr) {
+        console.error('Gamification error (non-fatal):', gamErr);
+      }
+      // ─────────────────────────────────────────────────────────────────────
     } catch (error: any) {
       if (createdPlaceId !== null) {
         try { await deletePlace(createdPlaceId); } catch { /* best-effort rollback */ }
@@ -1418,6 +1458,16 @@ export default function CreatePlaceScreen() {
 
       {/* ── Success overlay ───────────────────────────────────────────────── */}
       {showSuccess && <SuccessOverlay isDark={isDark} onDone={resetForm} />}
+
+      {/* ── Gamification feedback ─────────────────────────────────────────── */}
+      <XpToast
+        visible={xpToast.visible}
+        xp={xpToast.xp}
+        label="Workspace added!"
+        onHide={() => setXpToast({ visible: false, xp: 0 })}
+      />
+      <BadgeAwardedSheet badgeKey={newBadge} onClose={() => setNewBadge(null)} />
+      <RankUpModal newRankLevel={rankUp} onClose={() => setRankUp(null)} />
     </ThemedView>
   );
 }
