@@ -5,9 +5,18 @@
  * loop animates the scale 1.0 → 1.06 → 1.0 (~2.5 s per cycle), giving the
  * selected place a passive "alive" feel without an abrupt scale jump.
  *
- * `tracksViewChanges` is set to `true` only while the scale animation is
- * running (i.e. while isSelected is true) to minimise the performance cost
- * of view tracking on iOS MapKit.
+ * `tracksViewChanges` is kept permanently false.  In react-native-maps,
+ * appearance changes driven by React re-renders (e.g. isSelected flipping)
+ * still refresh the iOS MapKit annotation snapshot even with the flag off —
+ * the flag only enables per-frame continuous updates needed for UI-thread
+ * animations.  Enabling it dynamically (true while selected, false on
+ * dismiss) causes iOS MapKit to snapshot the annotation mid-frame during
+ * concurrent UI animations (map zoom, bottom-sheet slide), snapping the
+ * pin to screen position (0,0).  Keeping it false eliminates both the
+ * "marker disappears on select" and "marker snaps to top-left on dismiss"
+ * bugs with no visible regression: the breathing scale runs on Android
+ * where it is rendered natively; on iOS the pill switches to blue instantly,
+ * which is equally clear.
  */
 import { BRAND_BLUE } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -79,10 +88,7 @@ const MapMarker = memo(
           e.stopPropagation();
           onPress(place);
         }}
-        // Only track view changes while selected so the spring animation
-        // is reflected on the native layer. Disabling it for unselected
-        // markers is a significant performance win on large datasets.
-        tracksViewChanges={isSelected}
+        tracksViewChanges={false}
       >
         <Animated.View
           style={[

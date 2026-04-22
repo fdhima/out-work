@@ -52,3 +52,6 @@ _vscode/
 
 # Python
 venv/
+
+
+expo-env.d.ts

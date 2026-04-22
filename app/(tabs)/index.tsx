@@ -198,17 +198,20 @@ export default function HomeScreen() {
     }, [fetchPlaces])
   );
 
-  // ─── Refresh marker positions when the sheet opens ───────────────────────
-  // When the sheet animates to full height, the parent re-render can cause
-  // react-native-maps to lose the native position of cluster annotation views.
-  // Forcing useClusters to recompute after the spring settles (re-sending the
-  // same coordinate to native) is equivalent to what "moving the map" does and
-  // corrects any displaced markers without any visible change to the map.
+  // ─── Refresh marker positions after every sheet transition ──────────────
+  // The sheet spring animation (damping:22, stiffness:180, mass:0.8) settles
+  // in ~400 ms. While it is running, iOS MapKit can snapshot cluster annotation
+  // views mid-frame and snap them to screen position (0,0) / top-left.
+  // Re-sending the same coordinate to native after the spring fully settles
+  // (≥ 500 ms) corrects any displaced annotations without any visible map
+  // change — equivalent to what "moving the map slightly" does.
+  // This must fire on BOTH the open ('full') and close ('collapsed')
+  // transitions; previously it only fired on 'full', so annotations snapped
+  // on close and stayed wrong until the user panned the map.
   useEffect(() => {
-    if (sheetState !== 'full') return;
     const t = setTimeout(() => {
       setMapRegion(r => ({ ...r }));
-    }, 350);
+    }, 500);
     return () => clearTimeout(t);
   }, [sheetState]);
 

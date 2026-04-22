@@ -1,4 +1,4 @@
-export type WorkingHoursDay = { open: string; close: string };
+export type WorkingHoursDay = { open: string | null; close: string | null };
 export type WorkingHours = Partial<
   Record<'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun', WorkingHoursDay>
 >;
@@ -65,7 +65,9 @@ export function getOpenStatus(working_hours?: WorkingHours | null): OpenStatus |
   const dayKey = DAY_KEYS[dayIndex];
   const dayHours = working_hours[dayKey];
 
-  if (!dayHours) return { isOpen: false, statusText: 'Closed today' };
+  if (!dayHours || dayHours.open === null || dayHours.close === null) {
+    return { isOpen: false, statusText: 'Closed today' };
+  }
 
   const currentMinutes = hours * 60 + minutes;
   const openMinutes = parseMinutes(dayHours.open);
