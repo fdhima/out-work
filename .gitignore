@@ -1,9 +1,5 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-#ui-xi-pro-max
-.agent
-.shared
-
 # dependencies
 node_modules/
 
@@ -35,6 +31,8 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.*
 .env*.local
 
 # typescript
@@ -53,5 +51,13 @@ _vscode/
 # Python
 venv/
 
-
-expo-env.d.ts
+# AI assistant config and skills (Claude, Gemini, etc.)
+.claude/
+.gemini/
+.agent/
+.agents/
+.shared/
+.skill-archive/
+skills/
+skills-lock.json
+.mcp.json
