@@ -2,7 +2,9 @@
 
 **OutWork** is a mobile app for discovering and reviewing remote-work-friendly venues — cafes, co-working spaces, libraries, and more. Users can explore spots on a map, check real-time crowd levels, write reviews, and earn XP and badges through a gamification system.
 
-This is an [Expo](https://expo.dev) project built with React Native, targeting iOS, Android, and Web.
+This is an [Expo](https://expo.dev) project built with React Native, targeting iOS and Android.
+
+[Download on iOS](https://apps.apple.com/us/app/outwork-your-workspace-app/id6759715313)
 
 ---
 
@@ -18,7 +20,7 @@ This is an [Expo](https://expo.dev) project built with React Native, targeting i
 | Maps | `react-native-maps` with Apple Maps (default provider) |
 | Animations | `react-native-reanimated` + `react-native-gesture-handler` |
 | Images | `expo-image` (optimized caching) |
-| Auth storage | `expo-secure-store` (native) / cookies (web) |
+| Auth storage | `expo-secure-store` (native) |
 
 ---
 
@@ -168,7 +170,7 @@ Defined in `services/gamification.ts`:
 ### Authentication
 
 - Email/password sign-up and sign-in via Supabase Auth
-- Google and Apple OAuth (`lib/auth/social.ts`)
+- Google, Apple and Github OAuth (`lib/auth/social.ts`)
 - Session token persisted in `expo-secure-store` on native, browser cookies on web
 - `AuthContext` subscribes to `onAuthStateChange` and drives the tab navigator's auth guard
 - Account deletion handled by a Supabase Deno Edge Function (`delete-account`) using the service-role key so the user's auth record is fully removed
